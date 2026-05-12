@@ -1,8 +1,18 @@
 'use client';
 
 import { Mail, Phone, Eye } from 'lucide-react';
+import { useProtectedRoute } from '@/lib/useProtectedRoute';
 
 export default function Dashboard() {
+  const { loading } = useProtectedRoute();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   const stats = [
     {

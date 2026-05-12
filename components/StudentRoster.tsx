@@ -1,145 +1,147 @@
 'use client';
 
-import { Search, Upload, Eye } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import StudentRosterCard from '@/components/StudentRosterCard';
-import UploadStudentsModal from '@/components/UploadStudentsModal';
-
-interface Student {
-  id: string;
-  name: string;
-  grade: number;
-  status: 'at-risk' | 'monitor' | 'good' | 'excellent' | 'inactive';
-  signals: {
-    superGreen: number;
-    yellow: number;
-    red: number;
-  };
-  classId: string;
-}
-
-interface ClassGroup {
-  classId: string;
-  className: string;
-  period: number;
-  students: Student[];
-}
+import { useRouter } from 'next/navigation';
+import { useStudentRoster } from '@/lib/useStudentRoster';
+import { Student } from '@/lib/studentService';
+import { getStudentHistory } from '@/lib/studentService';
+import StudentHistoryModal from '@/components/StudentHistoryModal';
+import SignalLogModal from '@/components/SignalLogModal';
+import AddStudentModal from '@/components/AddStudentModal';
+import BulkUploadModal from '@/components/BulkUploadModal';
+import { ArrowLeft, Search, Upload, Plus, LogOut } from 'lucide-react';
 
 export default function StudentRoster() {
+  const params = useParams();
+  const router = useRouter();
+  const classId = params.classId as string;
+  const { students, loading, error, loadStudents, loadStudentHistory, studentHistory, logStudentSignal } = useStudentRoster();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [selectedStudentForHistory, setSelectedStudentForHistory] = useState<Student | null>(null);
+  const [selectedStudentForSignal, setSelectedStudentForSignal] = useState<Student | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
-  // Mock data
-  const mockStudents: Student[] = [
-    {
-      id: '1',
-      name: 'James Wilson',
-      grade: 11,
-      status: 'excellent',
-      signals: { superGreen: 4, yellow: 2, red: 0 },
-      classId: 'class-1',
-    },
-    {
-      id: '2',
-      name: 'Amelia Taylor',
-      grade: 11,
-      status: 'at-risk',
-      signals: { superGreen: 1, yellow: 1, red: 2 },
-      classId: 'class-1',
-    },
-    {
-      id: '3',
-      name: 'Benjamin Moore',
-      grade: 11,
-      status: 'good',
-      signals: { superGreen: 1, yellow: 1, red: 1 },
-      classId: 'class-1',
-    },
-    {
-      id: '4',
-      name: 'Mia Anderson',
-      grade: 11,
-      status: 'monitor',
-      signals: { superGreen: 2, yellow: 1, red: 1 },
-      classId: 'class-1',
-    },
-    {
-      id: '5',
-      name: 'Oliver White',
-      grade: 11,
-      status: 'inactive',
-      signals: { superGreen: 1, yellow: 0, red: 1 },
-      classId: 'class-1',
-    },
-  ];
+  // Load students on component mount or classId change
+  useEffect(() => {
+    console.log('StudentRoster useEffect triggered, classId:', classId);
+    if (classId) {
+      console.log('Loading students for classId:', classId);
+      loadStudents(classId);
+    }
+  }, [classId, loadStudents]);
 
-  // Group students by class
-  const classGroups: ClassGroup[] = useMemo(() => {
-    const grouped: Record<string, ClassGroup> = {};
+  const handleViewHistory = async (student: Student) => {
+    setSelectedStudentForHistory(student);
+    setHistoryLoading(true);
+    await loadStudentHistory(student.id);
+    setHistoryLoading(false);
+  };
 
-    mockStudents.forEach((student) => {
-      if (!grouped[student.classId]) {
-        grouped[student.classId] = {
-          classId: student.classId,
-          className: 'AP Calculus BC',
-          period: 3,
-          students: [],
-        };
-      }
-      grouped[student.classId].students.push(student);
+  const handleLogSignal = async (student: Student) => {
+    setSelectedStudentForSignal(student);
+  };
+
+  const handleSignalLogged = async (signalType: 'green' | 'yellow' | 'red', category?: string, note?: string, reasonCode?: string) => {
+    console.log('handleSignalLogged called with:', {
+      signalType,
+      category,
+      note,
+      reasonCode,
+      student: selectedStudentForSignal?.first_name,
     });
 
-    return Object.values(grouped);
-  }, []);
+    if (!selectedStudentForSignal) {
+      console.error('No student selected');
+      return false;
+    }
+    
+    const success = await logStudentSignal(selectedStudentForSignal.id, signalType, category, note, reasonCode);
+    console.log('logStudentSignal returned:', success);
 
-  // Filter students based on search
-  const filteredGroups = useMemo(() => {
-    if (!searchTerm.trim()) return classGroups;
-
-    return classGroups
-      .map((group) => ({
-        ...group,
-        students: group.students.filter((student) =>
-          student.name.toLowerCase().includes(searchTerm.toLowerCase())
-        ),
-      }))
-      .filter((group) => group.students.length > 0);
-  }, [searchTerm, classGroups]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+    if (success) {
+      console.log('Signal logged successfully, refreshing students...');
+      // Refresh students list
+      await loadStudents(classId);
+      setSelectedStudentForSignal(null);
+    }
+    return success;
   };
+
+  const getSignalCounts = (student: Student) => {
+    if (!student.today_signal) return { green: 0, yellow: 0, red: 0 };
+
+    const signal = student.today_signal;
+    if (signal.signal_type === 'green') return { green: 1, yellow: 0, red: 0 };
+    if (signal.signal_type === 'yellow') return { green: 0, yellow: 1, red: 0 };
+    if (signal.signal_type === 'red') return { green: 0, yellow: 0, red: 1 };
+    
+    return { green: 0, yellow: 0, red: 0 };
+  };
+
+  const getStatusBadge = (student: Student) => {
+    const { green, yellow, red } = getSignalCounts(student);
+    
+    if (red > 0) return { text: 'At Risk', color: 'bg-red-100 text-red-700' };
+    if (yellow > 0) return { text: 'Monitor', color: 'bg-yellow-100 text-yellow-700' };
+    if (green > 0) return { text: 'Good', color: 'bg-green-100 text-green-700' };
+    return { text: 'Inactive', color: 'bg-gray-100 text-gray-700' };
+  };
+
+  const filteredStudents = Array.isArray(students)
+    ? students.filter((student) =>
+        `${student.first_name} ${student.last_name}`
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())
+      )
+    : [];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Back to Dashboard */}
       <div className="flex items-center justify-between">
         <Link
           href="/"
           className="inline-flex items-center text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors"
         >
-          <span>← Back to Dashboard</span>
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Back to Dashboard
         </Link>
       </div>
 
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Student Roster</h1>
           <p className="text-gray-500 mt-1">View or edit profile of any student</p>
+          {classId && <p className="text-xs text-gray-400 mt-1">Class ID: {classId}</p>}
         </div>
-        <button
-          onClick={() => setIsUploadOpen(true)}
-          className="inline-flex items-center space-x-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium"
-        >
-          <Upload className="w-5 h-5" />
-          <span>Upload Students</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button className="inline-flex items-center space-x-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="w-5 h-5" />
+            <span>Upload Students</span>
+          </button>
+          <button className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium" onClick={() => setIsAddStudentOpen(true)}>
+            <Plus className="w-5 h-5" />
+            <span>Add Student</span>
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <form onSubmit={handleSearch} className="flex items-center space-x-3">
+        <form className="flex items-center space-x-3">
           <Search className="w-5 h-5 text-gray-400" />
           <input
             type="text"
@@ -157,34 +159,136 @@ export default function StudentRoster() {
         </form>
       </div>
 
-      {/* Student List by Class */}
-      <div className="space-y-8">
-        {filteredGroups.map((group) => (
-          <div key={group.classId}>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              {group.className}
-            </h2>
-            <p className="text-sm text-gray-500 mb-4">Period {group.period}</p>
+      {/* Error Message */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700 text-sm font-semibold">Error loading students:</p>
+          <p className="text-red-700 text-sm">{error}</p>
+        </div>
+      )}
 
-            <div className="space-y-3">
-              {group.students.map((student) => (
-                <StudentRosterCard key={student.id} student={student} />
-              ))}
-            </div>
+      {/* Loading Message */}
+      {loading && (
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-blue-700 text-sm">Loading students for this class...</p>
+        </div>
+      )}
+
+      {/* Students List */}
+      <div className="bg-white rounded-lg border border-gray-200">
+        {filteredStudents.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">
+            <p>No students found.</p>
           </div>
-        ))}
+        ) : (
+          <div className="divide-y divide-gray-200">
+            {filteredStudents.map((student) => {
+              const { green, yellow, red } = getSignalCounts(student);
+              const status = getStatusBadge(student);
+              const initials = `${student.first_name.charAt(0)}${student.last_name.charAt(0)}`.toUpperCase();
 
-        {filteredGroups.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No students found matching your search</p>
+              return (
+                <div
+                  key={student.id}
+                  onClick={() => router.push(`/students/${classId}/${student.id}`)}
+                  className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center space-x-4">
+                    {/* Avatar */}
+                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                      {initials}
+                    </div>
+
+                    {/* Student Info */}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-900">
+                          {student.first_name} {student.last_name}
+                        </p>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${status.color}`}>
+                          {status.text}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500">Grade {student.grade_level}</p>
+                    </div>
+                  </div>
+
+                  {/* Signal Badges */}
+                  <div className="flex items-center space-x-2">
+                    {green > 0 && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        ✨ {green}
+                      </span>
+                    )}
+                    {yellow > 0 && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        ⚠️ {yellow}
+                      </span>
+                    )}
+                    {red > 0 && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        🚨 {red}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="ml-4 flex items-center gap-2">
+                    <button
+                      onClick={() => handleLogSignal(student)}
+                      className="px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1"
+                      title="Log signal"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Log
+                    </button>
+                    <button
+                      onClick={() => handleViewHistory(student)}
+                      className="px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1"
+                      title="View history"
+                    >
+                      👤
+                      <span>History</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Upload Modal */}
-      <UploadStudentsModal
-        isOpen={isUploadOpen}
-        onClose={() => setIsUploadOpen(false)}
+      {/* Modals */}
+      <StudentHistoryModal
+        isOpen={selectedStudentForHistory !== null}
+        onClose={() => setSelectedStudentForHistory(null)}
+        studentName={selectedStudentForHistory ? `${selectedStudentForHistory.first_name} ${selectedStudentForHistory.last_name}` : ''}
+        history={studentHistory}
+        loading={historyLoading}
+      />
+
+      <SignalLogModal
+        isOpen={selectedStudentForSignal !== null}
+        onClose={() => setSelectedStudentForSignal(null)}
+        studentName={selectedStudentForSignal ? `${selectedStudentForSignal.first_name} ${selectedStudentForSignal.last_name}` : ''}
+        onLog={handleSignalLogged}
+      />
+
+      <AddStudentModal
+        isOpen={isAddStudentOpen}
+        onClose={() => setIsAddStudentOpen(false)}
+        classId={classId}
+        onAddSuccess={async () => {
+          await loadStudents(classId);
+        }}
+      />
+
+      <BulkUploadModal
+        isOpen={isBulkUploadOpen}
+        onClose={() => setIsBulkUploadOpen(false)}
+        onUploadSuccess={async () => {
+          await loadStudents(classId);
+        }}
       />
     </div>
   );
