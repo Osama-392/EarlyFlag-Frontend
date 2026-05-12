@@ -20,7 +20,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isPending: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, school_id: string) => Promise<void>;
+  signup: (email: string, password: string, school_id: string, firstName?: string, lastName?: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
 }
@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (email: string, password: string, schoolId: string) => {
+  const signup = async (email: string, password: string, schoolId: string, firstName?: string, lastName?: string) => {
     setLoading(true);
     setError(null);
 
@@ -106,7 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await api.post('/api/v1/auth/signup', {
         email,
         password,
-        schoolId,
+        school_id: schoolId,
+        first_name: firstName || '',
+        last_name: lastName || '',
       });
 
       const userData = response.data?.user;

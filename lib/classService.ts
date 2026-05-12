@@ -68,10 +68,16 @@ export const createClass = async (classData: CreateClassRequest): Promise<Class>
 // Get a specific class by ID
 export const getClass = async (classId: string): Promise<Class> => {
   try {
-    const response = await api.get(`/api/v1/teacher/classes/${classId}`);
-    return response.data;
+    // The backend doesn't have a specific endpoint for getting a single class by ID.
+    // Instead, fetch all classes for the teacher and find the matching one.
+    const classes = await getTeacherClasses();
+    const foundClass = classes.find(c => c.id === classId);
+    if (!foundClass) {
+      throw new Error(`Class with ID ${classId} not found`);
+    }
+    return foundClass;
   } catch (error) {
-    console.error('Failed to fetch class:', error);
+    console.error(`Failed to fetch class ${classId}:`, error);
     throw error;
   }
 };

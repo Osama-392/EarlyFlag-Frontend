@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Check, X, Loader2 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import FlagModal from '@/components/FlagModal';
+import { useClasses } from '@/lib/useClasses';
+import { getClassStudents, logSignals, Student as ApiStudent } from '@/lib/studentService';
 
 interface Student {
   id: string;
@@ -21,9 +23,22 @@ interface LogEntry {
   yellow?: boolean;
   red?: boolean;
   absent?: boolean;
+  flagData?: {
+    type: string;
+    category: string;
+    reasons: string[];
+  };
 }
 
 export default function QuickLogPage() {
+  const { classes, loading: classesLoading } = useClasses();
+  const [activeClassId, setActiveClassId] = useState<string | null>(null);
+  const [apiStudents, setApiStudents] = useState<ApiStudent[]>([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [logData, setLogData] = useState<Record<string, LogEntry>>({});
   const [selectedFlagModal, setSelectedFlagModal] = useState<{
@@ -32,42 +47,160 @@ export default function QuickLogPage() {
   } | null>(null);
   const itemsPerPage = 7;
 
-  // Mock student data
-  const mockStudents: Student[] = [
-    { id: '1', name: 'James Wilson', grade: 11, period: 3, initial: 'JW', bgColor: 'from-blue-400 to-blue-600' },
-    { id: '2', name: 'Amelia Taylor', grade: 9, period: 3, initial: 'AT', bgColor: 'from-purple-400 to-purple-600' },
-    { id: '3', name: 'Benjamin Moore', grade: 11, period: 3, initial: 'BM', bgColor: 'from-cyan-400 to-cyan-600' },
-    { id: '4', name: 'Mia Anderson', grade: 9, period: 3, initial: 'MA', bgColor: 'from-red-400 to-red-600' },
-    { id: '5', name: 'Oliver White', grade: 10, period: 3, initial: 'OW', bgColor: 'from-gray-400 to-gray-600' },
-    { id: '6', name: 'Sophia Davis', grade: 12, period: 3, initial: 'SD', bgColor: 'from-pink-400 to-pink-600' },
-    { id: '7', name: 'Lucas Brown', grade: 10, period: 3, initial: 'LB', bgColor: 'from-green-400 to-green-600' },
-    { id: '8', name: 'Emma Johnson', grade: 11, period: 3, initial: 'EJ', bgColor: 'from-yellow-400 to-yellow-600' },
-    { id: '9', name: 'Noah Martinez', grade: 9, period: 3, initial: 'NM', bgColor: 'from-indigo-400 to-indigo-600' },
-    { id: '10', name: 'Ava Garcia', grade: 12, period: 3, initial: 'AG', bgColor: 'from-teal-400 to-teal-600' },
-  ];
+  // Fetch classes and set active class
+  useEffect(() => {
+    if (!classesLoading && classes.length > 0 && !activeClassId) {
+      setActiveClassId(classes[0].id);
+    }
+  }, [classes, classesLoading, activeClassId]);
 
-  const totalPages = Math.ceil(mockStudents.length / itemsPerPage);
+  // Fetch students when active class changes
+  useEffect(() => {
+    const fetchStudents = async () => {
+      if (!activeClassId) return;
+      setStudentsLoading(true);
+      try {
+        const data = await getClassStudents(activeClassId);
+        setApiStudents(data);
+      } catch (err) {
+        console.error('Failed to load students', err);
+      } finally {
+        setStudentsLoading(false);
+      }
+    };
+    fetchStudents();
+  }, [activeClassId]);
+
+  // Map API students to local Student interface
+  const mappedStudents: Student[] = apiStudents.map((s, idx) => {
+    const colors = [
+      'from-blue-400 to-blue-600',
+      'from-purple-400 to-purple-600',
+      'from-cyan-400 to-cyan-600',
+      'from-red-400 to-red-600',
+      'from-gray-400 to-gray-600',
+      'from-emerald-400 to-emerald-600',
+      'from-amber-400 to-amber-600',
+    ];
+    return {
+      id: s.id,
+      name: `${s.first_name} ${s.last_name}`,
+      grade: parseInt(s.grade_level) || 9,
+      period: classes.find(c => c.id === activeClassId)?.period || 1,
+      initial: `${s.first_name[0]}${s.last_name[0]}`.toUpperCase(),
+      bgColor: colors[idx % colors.length],
+    };
+  });
+
+  const totalPages = Math.ceil(mappedStudents.length / itemsPerPage) || 1;
   const startIdx = (currentPage - 1) * itemsPerPage;
-  const paginatedStudents = mockStudents.slice(startIdx, startIdx + itemsPerPage);
+  const paginatedStudents = mappedStudents.slice(startIdx, startIdx + itemsPerPage);
 
   const toggleStatus = (studentId: string, status: keyof LogEntry) => {
     logger.formChange(`student-status-${status}`, true, 'QuickLog');
-    setLogData((prev) => ({
-      ...prev,
-      [studentId]: {
-        ...prev[studentId],
-        [status]: !prev[studentId]?.[status],
-      },
-    }));
+    setLogData((prev) => {
+      const isCurrentlyActive = prev[studentId]?.[status];
+      if (isCurrentlyActive) {
+        // Just turn it off
+        return {
+          ...prev,
+          [studentId]: {
+            ...prev[studentId],
+            [status]: false,
+          },
+        };
+      }
+      
+      // Turn it on and clear all others
+      return {
+        ...prev,
+        [studentId]: {
+          studentId,
+          superGreen: false,
+          green: false,
+          yellow: false,
+          red: false,
+          absent: false,
+          flagData: undefined,
+          [status]: true,
+        },
+      };
+    });
   };
 
-  const handleSaveLog = () => {
-    logger.formSubmit('QuickLog', { 
-      date: new Date().toLocaleDateString(),
-      entries: Object.keys(logData).length 
-    });
-    console.log('Saving log data:', logData);
-    alert('Quick log saved successfully!');
+  const handleSaveLog = async () => {
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+
+    try {
+      const signalsToLog = Object.entries(logData)
+        .filter(([_, entry]) => entry.superGreen || entry.green || entry.yellow || entry.red || entry.absent)
+        .map(([studentId, entry]) => {
+          let signalType: 'present' | 'yellow' | 'red' | 'super_green' | 'absent' = 'present';
+          if (entry.red) signalType = 'red';
+          else if (entry.yellow) signalType = 'yellow';
+          else if (entry.superGreen) signalType = 'super_green';
+          else if (entry.absent) signalType = 'absent';
+
+          const reasonsText = entry.flagData?.reasons?.join(', ') || '';
+          let mappedReasonCode: string | undefined = undefined;
+
+          // Backend validation rules require specific reason codes for certain signals
+          if (signalType === 'super_green' && entry.flagData?.reasons?.length) {
+             const firstReason = entry.flagData.reasons[0].toLowerCase().replace(/ /g, '_');
+             mappedReasonCode = firstReason;
+          } else if (signalType === 'red' && entry.flagData?.category === 'academic') {
+             if (reasonsText.toLowerCase().includes('cheating')) {
+                mappedReasonCode = 'cheating';
+             }
+          }
+
+          return {
+            student_id: studentId,
+            class_id: activeClassId,
+            signal_date: new Date().toISOString().split('T')[0],
+            signal_type: signalType,
+            category: (signalType === 'yellow' || signalType === 'red') 
+              ? (entry.flagData?.category || 'academic') 
+              : undefined,
+            reason_code: mappedReasonCode,
+            reason_description: reasonsText || undefined,
+            note: reasonsText || (signalType === 'red' ? 'Needs review' : ''),
+            save_for_later: signalType === 'red' && !reasonsText,
+          };
+        });
+
+      if (signalsToLog.length === 0) {
+        setSaveError('No signals selected to log.');
+        setSaving(false);
+        return;
+      }
+
+      await logSignals({ signals: signalsToLog as any });
+      
+      logger.formSubmit('QuickLog', { 
+        date: new Date().toLocaleDateString(),
+        entries: signalsToLog.length 
+      });
+      
+      setSaveSuccess(true);
+      
+      // Notify other components (like Dashboard) to refresh their data
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('dashboard-refresh'));
+      }
+
+      setTimeout(() => {
+        setSaveSuccess(false);
+        setLogData({});
+      }, 2000);
+    } catch (err: any) {
+      console.error('Failed to save quick log:', err);
+      setSaveError(err?.response?.data?.detail?.[0]?.msg || err?.response?.data?.detail || 'Failed to save logs.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -139,22 +272,59 @@ export default function QuickLogPage() {
           onClose={() => setSelectedFlagModal(null)}
           onSubmit={(data) => {
             logger.info('Flag submitted', data, 'QuickLog');
-            // Mark the flag as selected
+            const newStatus = selectedFlagModal.type === 'super-green' ? 'superGreen' : selectedFlagModal.type;
+            
+            // Mark the flag as selected and clear out others
             setLogData((prev) => ({
               ...prev,
               [selectedFlagModal.student.id]: {
-                ...prev[selectedFlagModal.student.id],
-                [selectedFlagModal.type === 'super-green' ? 'superGreen' : selectedFlagModal.type]: true,
+                studentId: selectedFlagModal.student.id,
+                superGreen: false,
+                green: false,
+                yellow: false,
+                red: false,
+                absent: false,
+                [newStatus]: true,
+                flagData: data,
               },
             }));
           }}
         />
       )}
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Daily Quick Log</h2>
-        <p className="text-sm text-gray-500 mt-1">Monitor top student concerns day to day performance</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Daily Quick Log</h2>
+          <p className="text-sm text-gray-500 mt-1">Monitor top student concerns day to day performance</p>
+        </div>
+        {classes.length > 0 && (
+          <select
+            value={activeClassId || ''}
+            onChange={(e) => {
+              setActiveClassId(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+          >
+            {classes.map(c => (
+              <option key={c.id} value={c.id}>{c.name} - Period {c.period}</option>
+            ))}
+          </select>
+        )}
       </div>
+
+      {saveSuccess && (
+        <div className="p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg flex items-center gap-2">
+          <Check className="w-5 h-5" />
+          Quick log saved successfully!
+        </div>
+      )}
+      {saveError && (
+        <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg flex items-center gap-2">
+          <X className="w-5 h-5" />
+          {saveError}
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -191,7 +361,21 @@ export default function QuickLogPage() {
               </tr>
             </thead>
             <tbody>
-              {paginatedStudents.map((student, idx) => (
+              {classesLoading || studentsLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                    Loading students...
+                  </td>
+                </tr>
+              ) : paginatedStudents.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    No students found in this class.
+                  </td>
+                </tr>
+              ) : (
+                paginatedStudents.map((student, idx) => (
                 <tr
                   key={student.id}
                   className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
@@ -227,7 +411,7 @@ export default function QuickLogPage() {
                     {getStatusIndicator(student.id, 'absent')}
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>
@@ -348,15 +532,24 @@ export default function QuickLogPage() {
       <div className="flex items-center justify-end space-x-3">
         <button
           onClick={handleCancel}
-          className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+          disabled={saving}
+          className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           onClick={handleSaveLog}
-          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          disabled={saving || Object.keys(logData).length === 0}
+          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
-          Save Log
+          {saving ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            'Save Log'
+          )}
         </button>
       </div>
     </div>

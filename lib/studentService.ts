@@ -133,4 +133,36 @@ export const createEnrollment = async (studentId: string, classId: string): Prom
   }
 };
 
+// Send a counselor referral
+export const sendCounselorReferral = async (payload: { student_id: string; subject: string; message: string; severity?: string }): Promise<any> => {
+  try {
+    const response = await api.post('/api/v1/teacher/referrals', payload);
+    return response.data;
+  } catch (error: any) {
+    console.error('Failed to send counselor referral:', error?.response?.data);
+    throw error;
+  }
+};
+
+// Generate a student report
+export const generateStudentReport = async (studentId: string, payload: any): Promise<any> => {
+  try {
+    const response = await api.post(`/api/v1/teacher/reports/${studentId}`, payload);
+    return response.data;
+  } catch (error: any) {
+    console.error('Failed to generate student report:', error?.response?.data);
+    throw error;
+  }
+};
+
+// Notify parent
+export const notifyParent = async (payload: { student_id: string; message: string; template?: string }): Promise<any> => {
+  try {
+    const response = await api.post('/api/v1/teacher/parent-notify', payload);
+    return response.data;
+  } catch (error: any) {
+    console.error('Failed to notify parent:', error?.response?.data);
+    throw error;
+  }
+};
 

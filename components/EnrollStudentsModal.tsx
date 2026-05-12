@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, AlertCircle, CheckCircle } from 'lucide-react';
-import { getSchoolStudents, createEnrollment } from '@/lib/studentService';
-import { Student } from '@/lib/studentService';
+import { useState } from 'react';
+import { X, AlertCircle, CheckCircle, UserPlus, Search } from 'lucide-react';
+import { createEnrollment } from '@/lib/studentService';
 
 interface EnrollStudentsModalProps {
   isOpen: boolean;
@@ -20,57 +19,26 @@ export default function EnrollStudentsModal({
   enrolledStudentIds,
   onEnrollSuccess,
 }: EnrollStudentsModalProps) {
-  const [schoolStudents, setSchoolStudents] = useState<Student[]>([]);
-  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
+  const [studentId, setStudentId] = useState('');
   const [loading, setLoading] = useState(false);
-  const [fetchingStudents, setFetchingStudents] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchUnenrolledStudents();
-    }
-  }, [isOpen]);
-
-  const fetchUnenrolledStudents = async () => {
-    try {
-      setFetchingStudents(true);
-      const allStudents = await getSchoolStudents();
-      // Filter out already enrolled students
-      const unenrolled = allStudents.filter((s) => !enrolledStudentIds.has(s.id));
-      setSchoolStudents(unenrolled);
-      setError('');
-    } catch (err: any) {
-      const message = err?.response?.data?.detail?.[0]?.msg || 'Failed to fetch students';
-      setError(message);
-      console.error('Error fetching students:', err);
-    } finally {
-      setFetchingStudents(false);
-    }
-  };
-
-  const handleSelectStudent = (studentId: string) => {
-    const newSelected = new Set(selectedStudents);
-    if (newSelected.has(studentId)) {
-      newSelected.delete(studentId);
-    } else {
-      newSelected.add(studentId);
-    }
-    setSelectedStudents(newSelected);
-  };
-
-  const handleSelectAll = () => {
-    if (selectedStudents.size === schoolStudents.length) {
-      setSelectedStudents(new Set());
-    } else {
-      setSelectedStudents(new Set(schoolStudents.map((s) => s.id)));
-    }
-  };
+  const [enrolledIds, setEnrolledIds] = useState<string[]>([]);
 
   const handleEnroll = async () => {
-    if (selectedStudents.size === 0) {
-      setError('Please select at least one student');
+    const trimmedId = studentId.trim();
+    if (!trimmedId) {
+      setError('Please enter a student ID');
+      return;
+    }
+
+    if (enrolledStudentIds.has(trimmedId)) {
+      setError('This student is already enrolled in this class');
+      return;
+    }
+
+    if (enrolledIds.includes(trimmedId)) {
+      setError('You already enrolled this student in this session');
       return;
     }
 
@@ -78,26 +46,30 @@ export default function EnrollStudentsModal({
     setError('');
 
     try {
-      const enrollmentPromises = Array.from(selectedStudents).map((studentId) =>
-        createEnrollment(studentId, classId)
-      );
-
-      await Promise.all(enrollmentPromises);
+      await createEnrollment(trimmedId, classId);
+      setEnrolledIds((prev) => [...prev, trimmedId]);
+      setStudentId('');
       setSuccess(true);
 
       // Refresh roster
       await onEnrollSuccess();
 
-      // Close modal after 2 seconds
+      // Reset success after 3 seconds
       setTimeout(() => {
-        setSelectedStudents(new Set());
         setSuccess(false);
-        onClose();
-      }, 2000);
+      }, 3000);
     } catch (err: any) {
-      const message = err?.response?.data?.detail?.[0]?.msg || 'Failed to enroll students';
+      const detail = err?.response?.data?.detail;
+      let message = 'Failed to enroll student. Please check the student ID and try again.';
+      if (detail) {
+        if (Array.isArray(detail)) {
+          message = detail.map((e: any) => (typeof e === 'object' && e.msg ? e.msg : String(e))).join(', ');
+        } else if (typeof detail === 'string') {
+          message = detail;
+        }
+      }
       setError(message);
-      console.error('Error enrolling students:', err);
+      console.error('Error enrolling student:', err);
     } finally {
       setLoading(false);
     }
@@ -105,10 +77,18 @@ export default function EnrollStudentsModal({
 
   const handleClose = () => {
     if (!loading) {
-      setSelectedStudents(new Set());
+      setStudentId('');
       setError('');
       setSuccess(false);
+      setEnrolledIds([]);
       onClose();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleEnroll();
     }
   };
 
@@ -116,117 +96,120 @@ export default function EnrollStudentsModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
-          <h2 className="text-xl font-bold text-gray-900">Enroll Students</h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <UserPlus size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Enroll Student</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Add an existing student to this class</p>
+            </div>
+          </div>
           <button
             onClick={handleClose}
             disabled={loading}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
           >
-            <X className="w-6 h-6 text-gray-400" />
+            <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6">
-          {success ? (
-            // Success State
-            <div className="flex flex-col items-center justify-center py-8">
-              <CheckCircle className="w-12 h-12 text-green-600 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Successfully enrolled {selectedStudents.size} student{selectedStudents.size !== 1 ? 's' : ''}!
-              </h3>
-              <p className="text-gray-600 text-sm">The roster is being updated...</p>
+        <div className="p-6 space-y-5">
+          {/* Success Toast */}
+          {success && (
+            <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <CheckCircle size={18} className="text-emerald-600 flex-shrink-0" />
+              <p className="text-sm text-emerald-800 font-medium">Student enrolled successfully!</p>
             </div>
-          ) : fetchingStudents ? (
-            // Loading State
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="ml-3 text-gray-600">Loading students...</span>
-            </div>
-          ) : schoolStudents.length === 0 ? (
-            // No Students
-            <div className="text-center py-8">
-              <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-600">All students are already enrolled in this class.</p>
-            </div>
-          ) : (
-            // Student List
-            <div className="space-y-4">
-              {/* Select All */}
-              <div className="border-b border-gray-200 pb-4">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedStudents.size === schoolStudents.length}
-                    onChange={handleSelectAll}
-                    className="w-4 h-4 rounded"
-                    disabled={loading}
-                  />
-                  <span className="text-sm font-semibold text-gray-900">
-                    Select All ({schoolStudents.length})
-                  </span>
-                </label>
-              </div>
+          )}
 
-              {/* Student List */}
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {schoolStudents.map((student) => (
-                  <label
-                    key={student.id}
-                    className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+          {/* Student ID Input */}
+          <div>
+            <label htmlFor="student-id-input" className="block text-sm font-semibold text-gray-700 mb-2">
+              Student ID
+            </label>
+            <div className="relative">
+              <Search size={16} className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                id="student-id-input"
+                type="text"
+                value={studentId}
+                onChange={(e) => {
+                  setStudentId(e.target.value);
+                  setError('');
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="Enter the student's ID..."
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm"
+                disabled={loading}
+                autoFocus
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Enter the student ID assigned during student creation or bulk upload.
+            </p>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle size={16} className="text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
+          {/* Recently enrolled in this session */}
+          {enrolledIds.length > 0 && (
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                Enrolled this session ({enrolledIds.length})
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {enrolledIds.map((id) => (
+                  <span
+                    key={id}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium"
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedStudents.has(student.id)}
-                      onChange={() => handleSelectStudent(student.id)}
-                      disabled={loading}
-                      className="w-4 h-4 rounded"
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
-                        {student.first_name} {student.last_name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Grade {student.grade_level} • ID: {student.student_id}
-                      </p>
-                    </div>
-                  </label>
+                    <CheckCircle size={12} />
+                    {id}
+                  </span>
                 ))}
               </div>
-
-              {/* Error */}
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
-              )}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        {!success && schoolStudents.length > 0 && (
-          <div className="border-t border-gray-200 p-6 flex justify-end gap-3 sticky bottom-0 bg-white">
-            <button
-              onClick={handleClose}
-              disabled={loading}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors font-medium disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleEnroll}
-              disabled={loading || selectedStudents.size === 0}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
-            >
-              {loading ? 'Enrolling...' : `Enroll Selected (${selectedStudents.size})`}
-            </button>
-          </div>
-        )}
+        <div className="border-t border-gray-200 p-6 flex justify-end gap-3">
+          <button
+            onClick={handleClose}
+            disabled={loading}
+            className="px-5 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors font-medium text-sm disabled:opacity-50"
+          >
+            {enrolledIds.length > 0 ? 'Done' : 'Cancel'}
+          </button>
+          <button
+            onClick={handleEnroll}
+            disabled={loading || !studentId.trim()}
+            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Enrolling...
+              </>
+            ) : (
+              <>
+                <UserPlus size={16} />
+                Enroll Student
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

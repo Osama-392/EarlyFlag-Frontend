@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { AlertCircle, Eye, EyeOff, CheckCircle } from 'lucide-react';
 
 export default function SignupForm() {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -23,7 +25,7 @@ export default function SignupForm() {
     setLocalError('');
 
     // Validation
-    if (!email || !password || !confirmPassword || !schoolId) {
+    if (!firstName || !lastName || !email || !password || !confirmPassword || !schoolId) {
       setLocalError('Please fill in all fields');
       return;
     }
@@ -39,7 +41,7 @@ export default function SignupForm() {
     }
 
     try {
-      await signup(email, password, schoolId);
+      await signup(email, password, schoolId, firstName, lastName);
       setSignupSuccess(true);
     } catch (err: any) {
       // Error is already set in context
@@ -71,6 +73,37 @@ export default function SignupForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+            First Name
+          </label>
+          <input
+            id="firstName"
+            type="text"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="First name"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+            disabled={loading}
+          />
+        </div>
+        <div>
+          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+            Last Name
+          </label>
+          <input
+            id="lastName"
+            type="text"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Last name"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+            disabled={loading}
+          />
+        </div>
+      </div>
+
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
           Email Address

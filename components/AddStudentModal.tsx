@@ -8,6 +8,7 @@ interface AddStudentModalProps {
   isOpen: boolean;
   onClose: () => void;
   classId: string;
+  classGradeLevel?: string;
   onAddSuccess: (student: any) => Promise<void>;
 }
 
@@ -15,6 +16,7 @@ export default function AddStudentModal({
   isOpen,
   onClose,
   classId,
+  classGradeLevel,
   onAddSuccess,
 }: AddStudentModalProps) {
   const [formData, setFormData] = useState({
@@ -22,7 +24,7 @@ export default function AddStudentModal({
     first_name: '',
     last_name: '',
     middle_name: '',
-    grade_level: '',
+    grade_level: classGradeLevel || '',
     date_of_birth: '',
     gender: '',
     parent_email: '',
@@ -103,7 +105,7 @@ export default function AddStudentModal({
         first_name: '',
         last_name: '',
         middle_name: '',
-        grade_level: '',
+        grade_level: classGradeLevel || '',
         date_of_birth: '',
         gender: '',
         parent_email: '',
@@ -194,20 +196,32 @@ export default function AddStudentModal({
               <label className="block text-sm font-semibold text-gray-900 mb-1">
                 Grade Level <span className="text-red-500">*</span>
               </label>
-              <select
-                name="grade_level"
-                value={formData.grade_level}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
-                disabled={loading}
-              >
-                <option value="">Select grade...</option>
-                {Array.from({ length: 7 }, (_, i) => i + 6).map((grade) => (
-                  <option key={grade} value={grade}>
-                    Grade {grade}
-                  </option>
-                ))}
-              </select>
+              {classGradeLevel ? (
+                <>
+                  <input
+                    type="text"
+                    value={`Grade ${classGradeLevel}`}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-600 text-sm cursor-not-allowed"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Locked to match the class grade</p>
+                </>
+              ) : (
+                <select
+                  name="grade_level"
+                  value={formData.grade_level}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                  disabled={loading}
+                >
+                  <option value="">Select grade...</option>
+                  {Array.from({ length: 7 }, (_, i) => i + 6).map((grade) => (
+                    <option key={grade} value={grade}>
+                      Grade {grade}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-1">

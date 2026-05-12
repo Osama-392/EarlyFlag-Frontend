@@ -30,10 +30,13 @@ export default function FlagModal({
   const flagConfig = {
     'super-green': {
       title: 'Super Green',
-      icon: '🟢',
-      bgColor: 'bg-emerald-50',
-      borderColor: 'border-emerald-200',
-      titleColor: 'text-emerald-700',
+      icon: (
+        <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
+          <div className="w-3 h-3 rounded-full bg-emerald-900" />
+        </div>
+      ),
+      studentBg: 'bg-slate-50',
+      activeCategoryBg: 'bg-emerald-500 text-white border-emerald-500',
       reasons: [
         'Leadership',
         'Academic growth',
@@ -44,42 +47,52 @@ export default function FlagModal({
       categories: ['positive'],
     },
     green: {
-      title: 'Green',
-      icon: '🟢',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-200',
-      titleColor: 'text-green-700',
+      title: 'Green Flag',
+      icon: (
+        <div className="w-8 h-8 rounded-full bg-emerald-300 flex items-center justify-center">
+          <div className="w-3 h-3 rounded-full bg-emerald-800" />
+        </div>
+      ),
+      studentBg: 'bg-slate-50',
+      activeCategoryBg: 'bg-emerald-400 text-white border-emerald-400',
       reasons: [],
       categories: ['default'],
     },
     yellow: {
       title: 'Yellow Flag',
-      icon: '🟡',
-      bgColor: 'bg-amber-50',
-      borderColor: 'border-amber-200',
-      titleColor: 'text-amber-700',
+      icon: (
+        <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center">
+          <AlertTriangle className="w-4 h-4 text-amber-900" fill="currentColor" />
+        </div>
+      ),
+      studentBg: 'bg-[#f4f7fb]', // Light grayish blue from image
+      activeCategoryBg: 'bg-[#ffca4b] text-amber-900 border-[#ffca4b]', // Yellow from image
       reasons: {
         academic: [
-          'Cannot follow lesson',
-          'Missing homework',
-          'Struggling with content',
-          'Needs extra help',
+          'Missing assignment',
+          'Low test score',
+          'Needs support',
+          'Incomplete work',
+          'Off-task behavior',
         ],
         behavioral: [
           'Talking out of turn',
-          'Off task',
-          'Needs directions',
           'Disrupting others',
+          'Needs directions',
+          'Off task',
         ],
       },
       categories: ['academic', 'behavioral'],
     },
     red: {
       title: 'Red Flag',
-      icon: '🔴',
-      bgColor: 'bg-red-50',
-      borderColor: 'border-red-200',
-      titleColor: 'text-red-700',
+      icon: (
+        <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center">
+          <AlertTriangle className="w-4 h-4 text-white" fill="currentColor" />
+        </div>
+      ),
+      studentBg: 'bg-slate-50',
+      activeCategoryBg: 'bg-red-500 text-white border-red-500',
       reasons: {
         academic: ['Cheating'],
         behavioral: [
@@ -94,10 +107,13 @@ export default function FlagModal({
     },
     absent: {
       title: 'Not In Class',
-      icon: '⚪',
-      bgColor: 'bg-gray-50',
-      borderColor: 'border-gray-200',
-      titleColor: 'text-gray-700',
+      icon: (
+        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+          <div className="w-3 h-3 rounded-full bg-gray-600" />
+        </div>
+      ),
+      studentBg: 'bg-slate-50',
+      activeCategoryBg: 'bg-gray-500 text-white border-gray-500',
       reasons: [],
       categories: [],
     },
@@ -134,38 +150,34 @@ export default function FlagModal({
 
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div
-          className={`${config.bgColor} ${config.borderColor} border-b-2 px-6 py-4 flex items-center justify-between`}
-        >
+        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <span className="text-2xl">{config.icon}</span>
-            <h2 className={`text-lg font-bold ${config.titleColor}`}>{config.title}</h2>
+            {config.icon}
+            <h2 className="text-xl font-medium text-slate-800">{config.title}</h2>
           </div>
           <button
             onClick={() => {
               logger.buttonClick('Close Flag Modal', 'FlagModal');
               onClose();
             }}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-slate-500 hover:text-slate-700 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-6">
           {/* Student Info */}
-          <div className={`${config.bgColor} rounded-xl p-4 flex items-center space-x-3`}>
-            <div
-              className={`w-12 h-12 rounded-full bg-gradient-to-br ${student.bgColor} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}
-            >
+          <div className={`${config.studentBg} rounded-xl p-4 flex items-center space-x-4 mb-6`}>
+            <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium text-lg flex-shrink-0">
               {student.initial}
             </div>
             <div>
-              <p className="font-semibold text-gray-900">{student.name}</p>
-              <p className="text-sm text-gray-600">
+              <p className="font-medium text-slate-800 text-lg">{student.name}</p>
+              <p className="text-sm text-slate-500">
                 Grade {student.grade} • Period {student.period}
               </p>
             </div>
@@ -173,9 +185,9 @@ export default function FlagModal({
 
           {/* Category Selection (only for yellow/red) */}
           {config.categories.length > 1 && (
-            <div>
-              <p className="text-sm font-medium text-gray-700 mb-3">Category</p>
-              <div className="flex gap-3">
+            <div className="mb-6">
+              <p className="text-[15px] font-medium text-slate-700 mb-3">Category</p>
+              <div className="flex gap-4">
                 {config.categories.map((cat) => (
                   <button
                     key={cat}
@@ -184,12 +196,10 @@ export default function FlagModal({
                       setSelectedCategory(cat as 'academic' | 'behavioral');
                       setSelectedReasons([]);
                     }}
-                    className={`flex-1 px-4 py-2 rounded-full font-medium transition-all ${
+                    className={`flex-1 px-4 py-2.5 rounded-full font-medium text-sm transition-all border ${
                       selectedCategory === cat
-                        ? cat === 'academic'
-                          ? 'bg-amber-400 text-white'
-                          : 'bg-purple-400 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? config.activeCategoryBg
+                        : 'bg-white text-slate-500 border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     {cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -201,17 +211,17 @@ export default function FlagModal({
 
           {/* Reason Selection */}
           {reasons.length > 0 && (
-            <div>
-              <p className="text-sm font-medium text-gray-700 mb-3">Select reason(s)</p>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
+            <div className="mb-6">
+              <p className="text-[15px] font-medium text-slate-700 mb-3">Select reason(s)</p>
+              <div className="flex flex-wrap gap-2.5">
                 {reasons.map((reason) => (
                   <button
                     key={reason}
                     onClick={() => toggleReason(reason)}
-                    className={`w-full px-4 py-2 rounded-full text-sm transition-all font-medium ${
+                    className={`px-4 py-2 rounded-full text-sm transition-all font-medium border ${
                       selectedReasons.includes(reason)
-                        ? 'bg-gray-800 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-slate-700 text-white border-slate-700'
+                        : 'bg-white text-slate-500 border-gray-200 hover:border-gray-300'
                     }`}
                   >
                     {reason}
@@ -222,19 +232,19 @@ export default function FlagModal({
           )}
 
           {/* Warning Message */}
-          {flagType === 'red' && (
-            <div className={`${config.bgColor} border-2 ${config.borderColor} rounded-lg p-3 flex items-start space-x-2`}>
-              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-gray-700">
-                <span className="font-semibold">3 more flags — Red urgent</span>
+          {flagType === 'yellow' && (
+            <div className="border border-amber-200 bg-[#fffdf0] rounded-lg p-3 flex items-center space-x-2 mb-2">
+              <span className="text-amber-600 font-bold text-sm">!</span>
+              <p className="text-sm text-amber-700">
+                3 more flags → Red urgent
               </p>
             </div>
           )}
 
           {selectedReasons.length > 0 && flagType === 'red' && (
-            <div className={`${config.bgColor} border-2 ${config.borderColor} rounded-lg p-3 flex items-start space-x-2`}>
-              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: config.titleColor.split('-')[1] }} />
-              <p className="text-sm text-gray-700">
+            <div className="border border-red-200 bg-red-50 rounded-lg p-3 flex items-center space-x-2 mb-2">
+              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+              <p className="text-sm text-red-700">
                 This will trigger a <span className="font-semibold">counselor notification</span>
               </p>
             </div>
@@ -242,20 +252,24 @@ export default function FlagModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex gap-3">
+        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
           <button
             onClick={() => {
               logger.buttonClick('Cancel Flag Modal', 'FlagModal');
               onClose();
             }}
-            className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+            className="px-4 py-2 text-slate-600 font-medium hover:text-slate-800 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={reasons.length > 0 && selectedReasons.length === 0}
-            className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-lg font-medium transition-colors"
+            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+              (reasons.length > 0 && selectedReasons.length === 0)
+                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                : 'bg-slate-700 text-white hover:bg-slate-800'
+            }`}
           >
             Submit Flag
           </button>

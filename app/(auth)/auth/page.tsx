@@ -8,7 +8,7 @@ export default function LoginPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Sora:wght@400;500;600;700&display=swap');
       `}</style>
-      
+
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md border border-blue-100">
         <div className="text-center mb-8">
           <div className="inline-block mb-4">
@@ -23,7 +23,7 @@ export default function LoginPage() {
         </div>
 
         <div className="mb-6 pb-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900" style={{ fontFamily: 'Sora' }}>Teacher & Student Login</h2>
+          <h2 className="text-xl font-semibold text-gray-900" style={{ fontFamily: 'Sora' }}>Teacher Login</h2>
           <p className="text-sm text-gray-600 mt-1">Access your personalized dashboard</p>
         </div>
 

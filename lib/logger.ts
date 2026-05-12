@@ -20,7 +20,7 @@ const LOG_COLORS = {
 class Logger {
   private logs: LogEntry[] = [];
   private maxLogs = 100; // Keep last 100 logs in memory
-  private sendToServer = true; // Send logs to backend
+  private sendToServer = false; // Send logs to backend
 
   private formatTime(): string {
     const now = new Date();

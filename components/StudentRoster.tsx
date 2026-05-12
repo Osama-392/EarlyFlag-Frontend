@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useStudentRoster } from '@/lib/useStudentRoster';
 import { Student } from '@/lib/studentService';
 import { getStudentHistory } from '@/lib/studentService';
+import { getClass, Class } from '@/lib/classService';
 import StudentHistoryModal from '@/components/StudentHistoryModal';
 import SignalLogModal from '@/components/SignalLogModal';
 import AddStudentModal from '@/components/AddStudentModal';
@@ -24,13 +25,16 @@ export default function StudentRoster() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [classInfo, setClassInfo] = useState<Class | null>(null);
 
-  // Load students on component mount or classId change
+  // Load students and class info on mount or classId change
   useEffect(() => {
-    console.log('StudentRoster useEffect triggered, classId:', classId);
     if (classId) {
-      console.log('Loading students for classId:', classId);
       loadStudents(classId);
+      // Fetch class details to get grade level
+      getClass(classId)
+        .then((cls) => setClassInfo(cls))
+        .catch((err) => console.error('Failed to load class info:', err));
     }
   }, [classId, loadStudents]);
 
@@ -88,7 +92,7 @@ export default function StudentRoster() {
     if (red > 0) return { text: 'At Risk', color: 'bg-red-100 text-red-700' };
     if (yellow > 0) return { text: 'Monitor', color: 'bg-yellow-100 text-yellow-700' };
     if (green > 0) return { text: 'Good', color: 'bg-green-100 text-green-700' };
-    return { text: 'Inactive', color: 'bg-gray-100 text-gray-700' };
+    return null;
   };
 
   const filteredStudents = Array.isArray(students)
@@ -123,9 +127,14 @@ export default function StudentRoster() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Student Roster</h1>
-          <p className="text-gray-500 mt-1">View or edit profile of any student</p>
-          {classId && <p className="text-xs text-gray-400 mt-1">Class ID: {classId}</p>}
+          <h1 className="text-3xl font-bold text-gray-900">
+            {classInfo ? classInfo.name : 'Student Roster'}
+          </h1>
+          <p className="text-gray-500 mt-1">
+            {classInfo
+              ? `Grade ${classInfo.grade_level} · ${classInfo.subject || ''} · ${filteredStudents.length} student${filteredStudents.length !== 1 ? 's' : ''}`
+              : 'View or edit profile of any student'}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button className="inline-flex items-center space-x-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium" onClick={() => setIsBulkUploadOpen(true)}>
@@ -205,9 +214,11 @@ export default function StudentRoster() {
                         <p className="font-medium text-gray-900">
                           {student.first_name} {student.last_name}
                         </p>
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${status.color}`}>
-                          {status.text}
-                        </span>
+                        {status && (
+                          <span className={`text-xs font-semibold px-2 py-1 rounded-full ${status.color}`}>
+                            {status.text}
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-gray-500">Grade {student.grade_level}</p>
                     </div>
@@ -278,6 +289,7 @@ export default function StudentRoster() {
         isOpen={isAddStudentOpen}
         onClose={() => setIsAddStudentOpen(false)}
         classId={classId}
+        classGradeLevel={classInfo?.grade_level}
         onAddSuccess={async () => {
           await loadStudents(classId);
         }}

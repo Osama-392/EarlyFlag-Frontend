@@ -27,11 +27,6 @@ export default function Header() {
 
           {/* Right: Controls */}
           <div className="flex items-center space-x-3 ml-8">
-            {/* Period Selector */}
-            <div className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">
-              <span>{period}</span>
-              <ChevronDown className="w-4 h-4" />
-            </div>
 
             {/* Quick Log Button */}
             <button 

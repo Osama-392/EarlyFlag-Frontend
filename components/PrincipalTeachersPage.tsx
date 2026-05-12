@@ -1,186 +1,487 @@
 "use client";
 
-import { Users, Search, Filter, MoreVertical } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Users, Search, Clock, CheckCircle2, XCircle, UserCheck, UserX, RefreshCw, Mail, Calendar, Shield, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
 import { getPendingTeachers, approveTeacher, rejectTeacher, PendingTeacher } from '@/lib/adminService';
+
+type ToastType = 'success' | 'error';
+
+interface Toast {
+  id: number;
+  message: string;
+  type: ToastType;
+}
 
 export default function PrincipalTeachersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [pending, setPending] = useState<PendingTeacher[]>([]);
-  const [loadingPending, setLoadingPending] = useState(false);
+  const [loadingPending, setLoadingPending] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [confirmAction, setConfirmAction] = useState<{ type: 'approve' | 'reject'; teacher: PendingTeacher } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const loadPending = async () => {
-      try {
-        setLoadingPending(true);
-        const data = await getPendingTeachers();
-        setPending(data || []);
-      } catch (err) {
-        console.error('Failed to load pending teachers', err);
-      } finally {
-        setLoadingPending(false);
-      }
-    };
+  // Stats derived from pending list
+  const approvedCount = 0; // No endpoint to get all teachers yet
+  const pendingCount = pending.length;
 
-    loadPending();
+  const showToast = (message: string, type: ToastType) => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  };
+
+  const loadPending = useCallback(async (showRefreshIndicator = false) => {
+    try {
+      if (showRefreshIndicator) setRefreshing(true);
+      else setLoadingPending(true);
+
+      const data = await getPendingTeachers();
+      setPending(data || []);
+    } catch (err) {
+      console.error('Failed to load pending teachers', err);
+      showToast('Failed to load pending teachers. Please try again.', 'error');
+    } finally {
+      setLoadingPending(false);
+      setRefreshing(false);
+    }
   }, []);
 
-  const handleApprove = async (id: string) => {
-    if (!confirm('Approve this teacher?')) return;
+  useEffect(() => {
+    loadPending();
+  }, [loadPending]);
+
+  const handleApprove = async (teacher: PendingTeacher) => {
     try {
-      setActionLoading(id);
-      await approveTeacher(id);
-      setPending((p) => p.filter((t) => t.id !== id));
+      setActionLoading(teacher.id);
+      setConfirmAction(null);
+      await approveTeacher(teacher.id);
+      setPending((p) => p.filter((t) => t.id !== teacher.id));
+      showToast(`${teacher.first_name} ${teacher.last_name} has been approved!`, 'success');
     } catch (err) {
       console.error('Approve failed', err);
-      alert('Failed to approve - check console');
+      showToast(`Failed to approve ${teacher.first_name} ${teacher.last_name}. Please try again.`, 'error');
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleReject = async (id: string) => {
-    if (!confirm('Reject this teacher?')) return;
+  const handleReject = async (teacher: PendingTeacher) => {
     try {
-      setActionLoading(id);
-      await rejectTeacher(id);
-      setPending((p) => p.filter((t) => t.id !== id));
+      setActionLoading(teacher.id);
+      setConfirmAction(null);
+      await rejectTeacher(teacher.id);
+      setPending((p) => p.filter((t) => t.id !== teacher.id));
+      showToast(`${teacher.first_name} ${teacher.last_name} has been rejected.`, 'success');
     } catch (err) {
       console.error('Reject failed', err);
-      alert('Failed to reject - check console');
+      showToast(`Failed to reject ${teacher.first_name} ${teacher.last_name}. Please try again.`, 'error');
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const filteredPending = pending.filter((t) => {
+    const fullName = `${t.first_name} ${t.last_name}`.toLowerCase();
+    const term = searchTerm.toLowerCase();
+    return fullName.includes(term) || t.email.toLowerCase().includes(term);
+  });
+
+  const formatDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      if (diffHours < 1) return 'Just now';
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const getInitials = (first: string, last: string) => {
+    return `${(first || '?')[0]}${(last || '?')[0]}`.toUpperCase();
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Sora:wght@400;500;600;700&display=swap');
+
+        @keyframes slideInUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes slideInRight {
+          from { opacity: 0; transform: translateX(100px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes slideOutRight {
+          from { opacity: 1; transform: translateX(0); }
+          to { opacity: 0; transform: translateX(100px); }
+        }
+
+        @keyframes pulse-border {
+          0%, 100% { border-color: rgba(59, 130, 246, 0.3); }
+          50% { border-color: rgba(59, 130, 246, 0.6); }
+        }
+
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        .teacher-card {
+          animation: slideInUp 0.5s ease-out forwards;
+          opacity: 0;
+        }
+        .teacher-card:nth-child(1) { animation-delay: 0.05s; }
+        .teacher-card:nth-child(2) { animation-delay: 0.1s; }
+        .teacher-card:nth-child(3) { animation-delay: 0.15s; }
+        .teacher-card:nth-child(4) { animation-delay: 0.2s; }
+        .teacher-card:nth-child(5) { animation-delay: 0.25s; }
+        .teacher-card:nth-child(6) { animation-delay: 0.3s; }
+        .teacher-card:nth-child(7) { animation-delay: 0.35s; }
+        .teacher-card:nth-child(8) { animation-delay: 0.4s; }
+
+        .skeleton {
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+          border-radius: 8px;
+        }
+
+        .toast-enter {
+          animation: slideInRight 0.3s ease-out forwards;
+        }
+
+        .toast-exit {
+          animation: slideOutRight 0.3s ease-in forwards;
+        }
+
+        .confirm-overlay {
+          animation: fadeIn 0.2s ease-out forwards;
+        }
+
+        .confirm-modal {
+          animation: slideInUp 0.3s ease-out forwards;
+        }
+
+        .refresh-spin {
+          animation: spin 1s linear infinite;
+        }
+
+        .pending-pulse {
+          animation: pulse-border 2s ease-in-out infinite;
+        }
       `}</style>
 
-      {/* Page Header */}
-      <div className="space-y-2">
-        <h1 className="text-4xl font-bold text-gray-900" style={{ fontFamily: 'Playfair Display' }}>
-          Teachers
-        </h1>
-        <p className="text-gray-600">Manage teachers and their class assignments</p>
+      {/* Toast Notifications */}
+      <div className="fixed top-6 right-6 z-50 space-y-3" style={{ pointerEvents: 'none' }}>
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className="toast-enter flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl border backdrop-blur-sm"
+            style={{
+              pointerEvents: 'auto',
+              background: toast.type === 'success'
+                ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95))'
+                : 'linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.95))',
+              borderColor: toast.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)',
+              minWidth: '300px',
+            }}
+          >
+            {toast.type === 'success' ? (
+              <CheckCircle2 size={20} className="text-white flex-shrink-0" />
+            ) : (
+              <AlertCircle size={20} className="text-white flex-shrink-0" />
+            )}
+            <span className="text-white text-sm font-medium">{toast.message}</span>
+          </div>
+        ))}
       </div>
 
-      {/* Pending Approvals */}
-      {pending.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Pending Teacher Approvals</h2>
-          {loadingPending ? (
-            <p className="text-sm text-gray-500">Loading...</p>
-          ) : (
-            <div className="space-y-3">
-              {pending.map((t) => (
-                <div key={t.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <div className="font-medium text-gray-900">{t.first_name} {t.last_name}</div>
-                    <div className="text-sm text-gray-600">{t.email}</div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleApprove(t.id)}
-                      disabled={actionLoading === t.id}
-                      className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition"
-                    >
-                      {actionLoading === t.id ? '...' : 'Approve'}
-                    </button>
-                    <button
-                      onClick={() => handleReject(t.id)}
-                      disabled={actionLoading === t.id}
-                      className="px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              ))}
+      {/* Confirmation Modal */}
+      {confirmAction && (
+        <div className="confirm-overlay fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
+          <div className="confirm-modal bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 border border-gray-100">
+            <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-5 ${
+              confirmAction.type === 'approve' ? 'bg-emerald-100' : 'bg-red-100'
+            }`}>
+              {confirmAction.type === 'approve' ? (
+                <UserCheck size={28} className="text-emerald-600" />
+              ) : (
+                <UserX size={28} className="text-red-600" />
+              )}
             </div>
-          )}
+
+            <h3 className="text-xl font-bold text-gray-900 text-center mb-2" style={{ fontFamily: 'Sora' }}>
+              {confirmAction.type === 'approve' ? 'Approve Teacher?' : 'Reject Teacher?'}
+            </h3>
+
+            <p className="text-gray-600 text-center text-sm mb-2">
+              {confirmAction.type === 'approve'
+                ? 'This will grant full access to the EarlyFlag platform for:'
+                : 'This will deny access to the EarlyFlag platform for:'}
+            </p>
+
+            <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
+              <p className="font-semibold text-gray-900 text-center">
+                {confirmAction.teacher.first_name} {confirmAction.teacher.last_name}
+              </p>
+              <p className="text-sm text-gray-500 text-center">{confirmAction.teacher.email}</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmAction(null)}
+                className="flex-1 px-4 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (confirmAction.type === 'approve') {
+                    handleApprove(confirmAction.teacher);
+                  } else {
+                    handleReject(confirmAction.teacher);
+                  }
+                }}
+                className={`flex-1 px-4 py-3 text-white rounded-xl text-sm font-semibold transition-all ${
+                  confirmAction.type === 'approve'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200'
+                    : 'bg-red-600 hover:bg-red-700 shadow-lg shadow-red-200'
+                }`}
+              >
+                {confirmAction.type === 'approve' ? 'Yes, Approve' : 'Yes, Reject'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Quick Stats */}
-      <div className="grid md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-          <p className="text-gray-600 text-sm font-medium">Total Teachers</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">127</p>
+      {/* Page Header */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-blue-100 rounded-lg">
+            <Users size={24} className="text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900" style={{ fontFamily: 'Playfair Display' }}>
+              Teachers
+            </h1>
+            <p className="text-gray-600 text-sm mt-1">Review and manage teacher access requests</p>
+          </div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-          <p className="text-gray-600 text-sm font-medium">Active Classes</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">342</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl border-2 border-amber-200 p-5 shadow-sm hover:shadow-md transition-shadow pending-pulse">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-amber-100 rounded-lg">
+              <Clock size={18} className="text-amber-600" />
+            </div>
+            <p className="text-gray-600 text-xs font-semibold uppercase tracking-wide">Pending Approval</p>
+          </div>
+          <p className="text-3xl font-bold text-amber-600">{pendingCount}</p>
+          <p className="text-xs text-gray-500 mt-2">
+            {pendingCount === 0 ? 'All clear!' : pendingCount === 1 ? 'Needs your review' : 'Need your review'}
+          </p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-          <p className="text-gray-600 text-sm font-medium">Avg Students/Teacher</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">22.4</p>
+        <div className="bg-white rounded-xl border border-emerald-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-emerald-100 rounded-lg">
+              <CheckCircle2 size={18} className="text-emerald-600" />
+            </div>
+            <p className="text-gray-600 text-xs font-semibold uppercase tracking-wide">Approved</p>
+          </div>
+          <p className="text-3xl font-bold text-emerald-600">—</p>
+          <p className="text-xs text-gray-500 mt-2">Endpoint coming soon</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow col-span-2 md:col-span-1">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Shield size={18} className="text-blue-600" />
+            </div>
+            <p className="text-gray-600 text-xs font-semibold uppercase tracking-wide">Access Control</p>
+          </div>
+          <p className="text-sm font-semibold text-gray-900">Teacher Approval</p>
+          <p className="text-xs text-gray-500 mt-2">Approve or reject sign-up requests</p>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col md:flex-row gap-4 items-end">
+      <div className="flex flex-col lg:flex-row gap-4 items-end">
         <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Search Teachers</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Search Pending Teachers</label>
           <div className="relative">
-            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Search size={18} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Name, email, or department..."
+              id="teacher-search-input"
+              placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm"
             />
           </div>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
-          <Filter size={18} />
-          Filter
+        <button
+          id="refresh-teachers-btn"
+          onClick={() => loadPending(true)}
+          disabled={refreshing}
+          className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm font-medium text-gray-700 hover:text-gray-900 disabled:opacity-50"
+        >
+          <RefreshCw size={16} className={refreshing ? 'refresh-spin' : ''} />
+          {refreshing ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
 
-      {/* Teachers Table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Teacher Name</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Department</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Classes</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Students</th>
-                <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <tr key={i} className="border-b border-gray-200 hover:bg-gray-50 transition">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    {i % 2 === 0 ? 'Ms. Johnson' : 'Mr. Williams'}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    {i % 2 === 0 ? 'mjohnson@school.edu' : 'mwilliams@school.edu'}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    {['Mathematics', 'English', 'Science', 'History', 'PE'][i - 1]}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{4 + i}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{(i + 1) * 25}</td>
-                  <td className="px-6 py-4 text-center">
-                    <button className="inline-flex items-center justify-center p-2 text-gray-600 hover:bg-gray-200 rounded-lg transition">
-                      <MoreVertical size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Loading State */}
+      {loadingPending && (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="skeleton w-12 h-12 rounded-full" />
+                <div className="flex-1">
+                  <div className="skeleton h-4 w-3/4 mb-2" />
+                  <div className="skeleton h-3 w-1/2" />
+                </div>
+              </div>
+              <div className="skeleton h-3 w-full mb-3" />
+              <div className="skeleton h-3 w-2/3 mb-5" />
+              <div className="flex gap-3">
+                <div className="skeleton h-10 flex-1" />
+                <div className="skeleton h-10 flex-1" />
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
+
+      {/* Pending Teacher Cards */}
+      {!loadingPending && filteredPending.length > 0 && (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredPending.map((teacher) => (
+            <div
+              key={teacher.id}
+              className="teacher-card bg-white border-2 border-amber-100 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-amber-200 group"
+            >
+              {/* Header with Avatar */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm"
+                    style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
+                  >
+                    {getInitials(teacher.first_name, teacher.last_name)}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900">{teacher.first_name} {teacher.last_name}</h3>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold mt-1">
+                      <Clock size={10} />
+                      Pending
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Info Rows */}
+              <div className="space-y-3 mb-5">
+                <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg">
+                  <Mail size={14} className="text-gray-400 flex-shrink-0" />
+                  <span className="text-xs text-gray-700 truncate">{teacher.email}</span>
+                </div>
+                <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg">
+                  <Calendar size={14} className="text-gray-400 flex-shrink-0" />
+                  <span className="text-xs text-gray-700">Signed up {formatDate(teacher.created_at)}</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t border-gray-100">
+                <button
+                  id={`approve-teacher-${teacher.id}`}
+                  onClick={() => setConfirmAction({ type: 'approve', teacher })}
+                  disabled={actionLoading === teacher.id}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {actionLoading === teacher.id ? (
+                    <RefreshCw size={14} className="refresh-spin" />
+                  ) : (
+                    <UserCheck size={14} />
+                  )}
+                  Approve
+                </button>
+                <button
+                  id={`reject-teacher-${teacher.id}`}
+                  onClick={() => setConfirmAction({ type: 'reject', teacher })}
+                  disabled={actionLoading === teacher.id}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:bg-red-50 hover:border-red-200 hover:text-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <UserX size={14} />
+                  Reject
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Empty State - No pending teachers */}
+      {!loadingPending && pending.length === 0 && (
+        <div className="text-center py-20">
+          <div className="mx-auto w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6">
+            <CheckCircle2 size={40} className="text-emerald-400" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2" style={{ fontFamily: 'Sora' }}>All Caught Up!</h3>
+          <p className="text-gray-500 text-sm max-w-md mx-auto mb-6">
+            There are no pending teacher approval requests right now. New teachers who sign up will appear here for your review.
+          </p>
+          <button
+            onClick={() => loadPending(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+          >
+            <RefreshCw size={16} className={refreshing ? 'refresh-spin' : ''} />
+            Check Again
+          </button>
+        </div>
+      )}
+
+      {/* Empty State - Search returned no results */}
+      {!loadingPending && pending.length > 0 && filteredPending.length === 0 && (
+        <div className="text-center py-16">
+          <Search size={40} className="mx-auto text-gray-300 mb-4" />
+          <p className="text-gray-600 font-medium">No matching teachers found</p>
+          <p className="text-gray-500 text-sm mt-1">Try a different search term</p>
+          <button
+            onClick={() => setSearchTerm('')}
+            className="mt-4 text-blue-600 text-sm font-medium hover:text-blue-700 transition"
+          >
+            Clear search
+          </button>
+        </div>
+      )}
     </div>
   );
 }

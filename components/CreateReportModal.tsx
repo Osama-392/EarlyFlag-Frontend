@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Download } from 'lucide-react';
+import { X, Download, AlertCircle } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { generateStudentReport } from '@/lib/studentService';
 
 interface CreateReportModalProps {
   isOpen: boolean;
@@ -28,18 +29,32 @@ export default function CreateReportModal({
   const [subject, setSubject] = useState('English Language');
   const [includeTeachersNotes, setIncludeTeachersNotes] = useState(true);
   const [includeAIRecommendations, setIncludeAIRecommendations] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleGenerateReport = () => {
-    const reportData = {
-      studentId: student.id,
-      startDate,
-      endDate,
-      subject,
-      includeTeachersNotes,
-      includeAIRecommendations,
-    };
-    logger.formSubmit('CreateReportModal', reportData);
-    onGenerate(reportData);
+  const handleGenerateReport = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const payload = {
+        start_date: startDate,
+        end_date: endDate,
+        subject,
+        include_teachers_notes: includeTeachersNotes,
+        include_ai_recommendations: includeAIRecommendations,
+      };
+      
+      const apiResponse = await generateStudentReport(student.id, payload);
+      logger.formSubmit('CreateReportModal', payload);
+      
+      // Pass both the payload settings and the actual response to the parent
+      onGenerate({ ...payload, result: apiResponse });
+    } catch (err: any) {
+      console.error('Report generation failed:', err);
+      setError(err?.response?.data?.detail?.[0]?.msg || err?.response?.data?.detail || 'Failed to generate report.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -78,16 +93,27 @@ export default function CreateReportModal({
               <span>Export</span>
             </button>
             <button
+              disabled={loading}
               onClick={() => {
                 logger.modalClose('CreateReportModal');
                 onClose();
               }}
-              className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
             >
               <X className="w-5 h-5 text-gray-400" />
             </button>
           </div>
         </div>
+
+        {/* Error Banner */}
+        {error && (
+          <div className="px-6 pt-4 pb-2">
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              <AlertCircle size={16} />
+              {error}
+            </div>
+          </div>
+        )}
 
         {/* Form Content */}
         <form onSubmit={(e) => { e.preventDefault(); handleGenerateReport(); }} className="p-6 space-y-6">
@@ -184,9 +210,17 @@ export default function CreateReportModal({
           {/* Create Report Button */}
           <button
             type="submit"
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+            disabled={loading}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
           >
-            Create Report
+            {loading ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Generating Report...
+              </>
+            ) : (
+              'Create Report'
+            )}
           </button>
         </form>
       </div>
