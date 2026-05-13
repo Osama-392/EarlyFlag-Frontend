@@ -3,16 +3,19 @@
 import { useState } from 'react';
 import { X, Upload as UploadIcon, AlertCircle, CheckCircle } from 'lucide-react';
 import { bulkUploadStudents } from '@/lib/studentService';
+import { cacheInvalidate } from '@/lib/dataCache';
 
 interface BulkUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
+  classId?: string;
   onUploadSuccess: () => Promise<void>;
 }
 
 export default function BulkUploadModal({
   isOpen,
   onClose,
+  classId,
   onUploadSuccess,
 }: BulkUploadModalProps) {
   const [file, setFile] = useState<File | null>(null);
@@ -59,11 +62,14 @@ export default function BulkUploadModal({
     setResult(null);
 
     try {
-      const data = await bulkUploadStudents(file);
+      const data = await bulkUploadStudents(file, classId);
       setResult(data);
 
       // Refresh roster after successful upload
       await onUploadSuccess();
+
+      // Invalidate cache so dashboard reflects new student counts
+      cacheInvalidate();
 
       // Close modal after 2 seconds to show success
       setTimeout(() => {
@@ -72,9 +78,17 @@ export default function BulkUploadModal({
         onClose();
       }, 2000);
     } catch (err: any) {
-      const message = err?.response?.data?.detail?.[0]?.msg || err.message || 'Failed to upload file';
+      let message = 'Failed to upload file';
+      const detail = err?.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        message = detail[0]?.msg || message;
+      } else if (typeof detail === 'string') {
+        message = detail;
+      } else if (err.message) {
+        message = err.message;
+      }
       setError(message);
-      console.error('Upload error:', err);
+      console.error('Upload error:', err?.response?.status, err?.response?.data, err);
     } finally {
       setLoading(false);
     }
@@ -173,6 +187,7 @@ export default function BulkUploadModal({
                   <li>• gender (optional)</li>
                   <li>• parent_email (optional)</li>
                   <li>• parent_phone (optional)</li>
+                  <li>• class_id (optional - auto-assigned to {classId ? 'current class' : 'school'})</li>
                 </ul>
               </div>
 

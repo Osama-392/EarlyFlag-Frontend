@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
 import FlagModal from '@/components/FlagModal';
 import { useClasses } from '@/lib/useClasses';
 import { getClassStudents, logSignals, Student as ApiStudent } from '@/lib/studentService';
+import { cacheInvalidate } from '@/lib/dataCache';
 
 interface Student {
   id: string;
@@ -30,7 +31,11 @@ interface LogEntry {
   };
 }
 
-export default function QuickLogPage() {
+interface QuickLogPageProps {
+  onCancel?: () => void;
+}
+
+export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
   const { classes, loading: classesLoading } = useClasses();
   const [activeClassId, setActiveClassId] = useState<string | null>(null);
   const [apiStudents, setApiStudents] = useState<ApiStudent[]>([]);
@@ -62,6 +67,20 @@ export default function QuickLogPage() {
       try {
         const data = await getClassStudents(activeClassId);
         setApiStudents(data);
+        
+        // Initialize logData with green signals by default
+        const initialLogData: Record<string, LogEntry> = {};
+        data.forEach(s => {
+          initialLogData[s.id] = {
+            studentId: s.id,
+            green: true,
+            superGreen: false,
+            yellow: false,
+            red: false,
+            absent: false
+          };
+        });
+        setLogData(initialLogData);
       } catch (err) {
         console.error('Failed to load students', err);
       } finally {
@@ -186,6 +205,9 @@ export default function QuickLogPage() {
       
       setSaveSuccess(true);
       
+      // Invalidate cache so dashboard & classes refresh on next visit
+      cacheInvalidate();
+
       // Notify other components (like Dashboard) to refresh their data
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('dashboard-refresh'));
@@ -206,6 +228,9 @@ export default function QuickLogPage() {
   const handleCancel = () => {
     logger.buttonClick('Cancel Quick Log', 'QuickLog');
     setLogData({});
+    if (onCancel) {
+      onCancel();
+    }
   };
 
   const getStatusIndicator = (studentId: string, status: keyof LogEntry) => {

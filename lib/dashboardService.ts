@@ -1,93 +1,107 @@
 import api from './api';
+import { cacheGet, cacheSet, CACHE_KEYS, withCache } from './dataCache';
 
 // ─── Dashboard Types ───────────────────────────────────────────────
 
-export interface DashboardStats {
-  students_flagged_this_week?: number;
-  yellow_flags_30d?: number;
-  red_flags_30d?: number;
-  green_signals_30d?: number;
-  total_students?: number;
-  // Percentage changes
-  flagged_change?: number;
-  yellow_change?: number;
-  red_change?: number;
+export interface TeacherKpiBlock {
+  week_start: string;
+  week_end: string;
+  yellow_total: number;
+  red_total: number;
+  super_green_total: number;
+  absent_total: number;
+  yellow_academic: number;
+  yellow_behavioral: number;
+  red_academic: number;
+  red_behavioral: number;
 }
 
-export interface WatchListStudent {
+export interface ClassLoggingStatusRow {
+  class_id: string;
+  class_name: string;
+  logged_today: boolean;
+  student_count_active: number;
+}
+
+export interface YellowWatchListRow {
   student_id: string;
-  student_name: string;
-  first_name?: string;
-  last_name?: string;
-  academic_count?: number;
-  behavioral_count?: number;
-  total_flags: number;
-  last_flag_date?: string;
-  streak?: string;
+  first_name: string;
+  last_name: string;
+  grade_level: number;
+  yellow_academic_count: number;
+  yellow_behavioral_count: number;
+  yellow_total: number;
+  unresolved_alert_max_severity?: string | null;
 }
 
-export interface UrgentAlert {
-  id?: string;
+export interface RedUrgentStudentSummary {
   student_id: string;
-  student_name: string;
-  first_name?: string;
-  last_name?: string;
-  issue?: string;
-  alert_type?: string;
-  rule_name?: string;
-  severity?: string;
-  created_at?: string;
-  duration?: string;
+  first_name: string;
+  last_name: string;
+  grade_level: number;
 }
 
-export interface ActivityItem {
-  id?: string;
-  type?: string;
-  description?: string;
-  text?: string;
-  student_name?: string;
-  created_at?: string;
-  time?: string;
-  highlight?: boolean;
+export interface RedUrgentRow {
+  alert_id: string;
+  rule_description: string;
+  severity: string;
+  triggered_at: string;
+  student: RedUrgentStudentSummary;
 }
 
-export interface SuperGreenStudent {
+export interface SuperGreenHighlightRow {
+  signal_id: string;
   student_id: string;
-  student_name: string;
-  first_name?: string;
-  last_name?: string;
-  grade?: string;
-  class_name?: string;
-  green_streak_days: number;
+  first_name: string;
+  last_name: string;
+  signal_date: string;
+  reason_code?: string | null;
+  reason_description?: string | null;
+  parent_email_on_file: boolean;
 }
 
-export interface DailyBreakdown {
-  day: string;
-  date?: string;
-  academic: number;
-  behavioral: number;
+export interface MondayBriefTopStudent {
+  student_id: string;
+  first_name: string;
+  last_name: string;
+  grade_level: number;
+  total_signals: number;
 }
 
-export interface DashboardData {
-  stats?: DashboardStats;
-  yellow_watch_list?: WatchListStudent[];
-  red_urgent?: UrgentAlert[];
-  recent_activity?: ActivityItem[];
-  super_green?: SuperGreenStudent[];
-  daily_breakdown?: DailyBreakdown[];
-  // Fallback: the API may return data under different keys
-  [key: string]: any;
+export interface MondayBriefBlock {
+  active: boolean;
+  prior_week_start: string;
+  prior_week_end: string;
+  prior_week_unresolved_critical: number;
+  top_students?: MondayBriefTopStudent[];
+}
+
+export interface TeacherDashboardResponse {
+  kpis: TeacherKpiBlock;
+  classes: ClassLoggingStatusRow[];
+  yellow_watch_list: YellowWatchListRow[];
+  red_urgent: RedUrgentRow[];
+  super_green_highlights: SuperGreenHighlightRow[];
+  monday_brief: MondayBriefBlock;
+  recommendations: string[];
+  generated_at: string;
+  school_timezone: string;
 }
 
 // ─── API Call ──────────────────────────────────────────────────────
 
-export const getTeacherDashboard = async (): Promise<DashboardData> => {
-  try {
-    const response = await api.get('/api/v1/teacher/dashboard');
-    console.log('📊 Dashboard API response keys:', Object.keys(response.data || {}));
-    return response.data || {};
-  } catch (error: any) {
-    console.error('Failed to fetch dashboard:', error?.response?.status, error?.response?.data);
-    throw error;
-  }
+export const getTeacherDashboard = async (forceRefresh = false): Promise<TeacherDashboardResponse> => {
+  return withCache(
+    CACHE_KEYS.TEACHER_DASHBOARD,
+    async () => {
+      try {
+        const response = await api.get('/api/v1/teacher/dashboard');
+        return response.data;
+      } catch (error: any) {
+        console.error('Failed to fetch teacher dashboard:', error?.response?.status, error?.response?.data);
+        throw error;
+      }
+    },
+    forceRefresh
+  );
 };

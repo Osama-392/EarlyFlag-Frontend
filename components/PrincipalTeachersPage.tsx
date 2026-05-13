@@ -1,8 +1,9 @@
 "use client";
 
-import { Users, Search, Clock, CheckCircle2, XCircle, UserCheck, UserX, RefreshCw, Mail, Calendar, Shield, AlertCircle } from 'lucide-react';
+import { Users, Search, Clock, CheckCircle2, XCircle, UserCheck, UserX, RefreshCw, Mail, Calendar, Shield, AlertCircle, Eye, Flag } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { getPendingTeachers, approveTeacher, rejectTeacher, PendingTeacher } from '@/lib/adminService';
+import { getAdminTeacherFlags, acknowledgeTeacherFlag, TeacherObservationFlagRow } from '@/lib/adminDashboardService';
 
 type ToastType = 'success' | 'error';
 
@@ -20,6 +21,12 @@ export default function PrincipalTeachersPage() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [confirmAction, setConfirmAction] = useState<{ type: 'approve' | 'reject'; teacher: PendingTeacher } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Teacher Observation Flags state
+  const [obsFlags, setObsFlags] = useState<TeacherObservationFlagRow[]>([]);
+  const [obsFlagsLoading, setObsFlagsLoading] = useState(true);
+  const [obsFlagStatus, setObsFlagStatus] = useState<'open' | 'all'>('open');
+  const [ackLoading, setAckLoading] = useState<string | null>(null);
 
   // Stats derived from pending list
   const approvedCount = 0; // No endpoint to get all teachers yet
@@ -52,6 +59,34 @@ export default function PrincipalTeachersPage() {
   useEffect(() => {
     loadPending();
   }, [loadPending]);
+
+  const loadObsFlags = useCallback(async () => {
+    try {
+      setObsFlagsLoading(true);
+      const data = await getAdminTeacherFlags(obsFlagStatus);
+      setObsFlags(data.flags || []);
+    } catch (err) {
+      console.error('Failed to load teacher flags', err);
+    } finally {
+      setObsFlagsLoading(false);
+    }
+  }, [obsFlagStatus]);
+
+  useEffect(() => { loadObsFlags(); }, [loadObsFlags]);
+
+  const handleAcknowledge = async (flagId: string) => {
+    try {
+      setAckLoading(flagId);
+      await acknowledgeTeacherFlag(flagId);
+      setObsFlags(f => f.filter(fl => fl.flag_id !== flagId));
+      showToast('Flag acknowledged successfully', 'success');
+    } catch (err) {
+      console.error('Acknowledge failed', err);
+      showToast('Failed to acknowledge flag', 'error');
+    } finally {
+      setAckLoading(null);
+    }
+  };
 
   const handleApprove = async (teacher: PendingTeacher) => {
     try {
@@ -318,15 +353,15 @@ export default function PrincipalTeachersPage() {
           <p className="text-3xl font-bold text-emerald-600">—</p>
           <p className="text-xs text-gray-500 mt-2">Endpoint coming soon</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow col-span-2 md:col-span-1">
+        <div className="bg-white rounded-xl border border-red-200 p-5 shadow-sm hover:shadow-md transition-shadow col-span-2 md:col-span-1">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Shield size={18} className="text-blue-600" />
+            <div className="p-2 bg-red-100 rounded-lg">
+              <Flag size={18} className="text-red-600" />
             </div>
-            <p className="text-gray-600 text-xs font-semibold uppercase tracking-wide">Access Control</p>
+            <p className="text-gray-600 text-xs font-semibold uppercase tracking-wide">Observation Flags</p>
           </div>
-          <p className="text-sm font-semibold text-gray-900">Teacher Approval</p>
-          <p className="text-xs text-gray-500 mt-2">Approve or reject sign-up requests</p>
+          <p className="text-3xl font-bold text-red-600">{obsFlags.filter(f => !f.is_acknowledged).length}</p>
+          <p className="text-xs text-gray-500 mt-2">Unacknowledged class alerts</p>
         </div>
       </div>
 
@@ -482,6 +517,82 @@ export default function PrincipalTeachersPage() {
           </button>
         </div>
       )}
+
+      {/* ── Teacher Observation Flags Section ────────────── */}
+      <div className="mt-10 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-100 rounded-lg"><Flag size={18} className="text-amber-600" /></div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Playfair Display' }}>Teacher Observation Flags</h2>
+              <p className="text-gray-600 text-sm">Class-level threshold flags (Rule 5: ≥30% yellow)</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              {(['open', 'all'] as const).map(s => (
+                <button key={s} onClick={() => setObsFlagStatus(s)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${obsFlagStatus === s ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-600'}`}>
+                  {s === 'open' ? 'Open' : 'All'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {obsFlagsLoading ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[1,2,3].map(i => <div key={i} className="h-40 bg-gray-200 rounded-xl animate-pulse" />)}
+          </div>
+        ) : obsFlags.length === 0 ? (
+          <div className="text-center py-12">
+            <CheckCircle2 size={36} className="mx-auto text-emerald-400 mb-3" />
+            <p className="text-gray-600 font-medium">No {obsFlagStatus === 'open' ? 'open' : ''} observation flags</p>
+            <p className="text-gray-500 text-sm mt-1">All class thresholds are healthy</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {obsFlags.map(flag => (
+              <div key={flag.flag_id} className={`bg-white border-2 ${flag.is_acknowledged ? 'border-gray-200' : 'border-amber-200'} rounded-xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 ${!flag.is_acknowledged ? 'hover:-translate-y-1' : ''}`}>
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900">{flag.class_name}</h4>
+                    <p className="text-xs text-gray-600 mt-0.5">Grade {flag.grade_level}</p>
+                  </div>
+                  {flag.is_acknowledged ? (
+                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold">✓ Ack'd</span>
+                  ) : (
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-bold animate-pulse">Open</span>
+                  )}
+                </div>
+                <div className="mb-3 pb-3 border-b border-gray-100">
+                  <p className="text-sm font-medium text-gray-800">{flag.teacher_first_name} {flag.teacher_last_name}</p>
+                </div>
+                <div className="flex items-center gap-3 text-xs mb-3">
+                  <span className="text-yellow-700 font-semibold">🟡 {flag.yellow_count} yellow</span>
+                  <span className="text-red-700 font-semibold">🔴 {flag.red_count} red</span>
+                  <span className="text-gray-500">{Math.round(flag.threshold_percentage * 100)}%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-400">
+                    {new Date(flag.triggered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                  {!flag.is_acknowledged && (
+                    <button onClick={() => handleAcknowledge(flag.flag_id)} disabled={ackLoading === flag.flag_id}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-semibold hover:bg-teal-700 transition disabled:opacity-50">
+                      {ackLoading === flag.flag_id ? <RefreshCw size={12} className="animate-spin" /> : <Eye size={12} />}
+                      Acknowledge
+                    </button>
+                  )}
+                  {flag.is_acknowledged && flag.acknowledged_by_first_name && (
+                    <span className="text-xs text-gray-400">by {flag.acknowledged_by_first_name} {flag.acknowledged_by_last_name}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

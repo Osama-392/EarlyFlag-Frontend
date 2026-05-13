@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getTeacherClasses, createClass, Class, CreateClassRequest } from '@/lib/classService';
+import { getTeacherDashboard } from '@/lib/dashboardService';
+import { withCache, CACHE_KEYS } from '@/lib/dataCache';
 
 export const useClasses = () => {
   const [classes, setClasses] = useState<Class[]>([]);
@@ -12,8 +14,32 @@ export const useClasses = () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await getTeacherClasses();
-        setClasses(data);
+        
+        const finalClasses = await withCache<Class[]>(
+          CACHE_KEYS.TEACHER_CLASSES,
+          async () => {
+            // Fetch classes and dashboard concurrently. 
+            // By using getTeacherDashboard(), we hook into the promise cache, avoiding 429 errors.
+            const [classesData, dashboardData] = await Promise.all([
+              getTeacherClasses(),
+              getTeacherDashboard().catch(() => null)
+            ]);
+
+            // Merge student_count_active from dashboard if available
+            if (dashboardData && dashboardData.classes) {
+              return classesData.map(cls => {
+                const dashClass = dashboardData.classes.find((c: any) => c.class_id === cls.id);
+                return {
+                  ...cls,
+                  studentCount: dashClass?.student_count_active || 0
+                };
+              });
+            }
+            return classesData;
+          }
+        );
+        
+        setClasses(finalClasses);
       } catch (err: any) {
         let message = 'Failed to load classes';
         

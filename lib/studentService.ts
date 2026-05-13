@@ -103,18 +103,19 @@ export const createStudent = async (studentData: any): Promise<Student> => {
 };
 
 // Bulk upload students
-export const bulkUploadStudents = async (file: File): Promise<any> => {
+export const bulkUploadStudents = async (file: File, classId?: string): Promise<any> => {
   try {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await api.post('/api/v1/teacher/students/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    if (classId) {
+      formData.append('class_id', classId);
+    }
+    
+    // Use postForm which explicitly handles multipart/form-data correctly in modern axios
+    const response = await api.postForm('/api/v1/teacher/students/upload', formData);
     return response.data;
   } catch (error: any) {
-    console.error('Failed to upload students:', error?.response?.data);
+    console.error('Failed to upload students:', error?.response?.status, error?.response?.data);
     throw error;
   }
 };

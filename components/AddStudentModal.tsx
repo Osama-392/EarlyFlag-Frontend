@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { createStudent, createEnrollment } from '@/lib/studentService';
+import { cacheInvalidate } from '@/lib/dataCache';
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -34,6 +35,16 @@ export default function AddStudentModal({
     iep_status: false,
     ell_status: false,
   });
+
+  // Sync grade_level when classGradeLevel changes or modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(prev => ({ 
+        ...prev, 
+        grade_level: classGradeLevel || prev.grade_level 
+      }));
+    }
+  }, [classGradeLevel, isOpen]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -98,6 +109,9 @@ export default function AddStudentModal({
       await createEnrollment(newStudent.id, classId);
       
       await onAddSuccess(newStudent);
+      
+      // Invalidate cache so dashboard reflects new student counts
+      cacheInvalidate();
 
       // Reset form
       setFormData({

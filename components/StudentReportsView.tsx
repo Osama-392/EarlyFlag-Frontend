@@ -2,18 +2,12 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Search, FileText, Eye } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import CreateReportModal from '@/components/CreateReportModal';
 import ReportView from '@/components/ReportView';
 import { logger } from '@/lib/logger';
-
-interface Student {
-  id: string;
-  name: string;
-  gradeLevel: number;
-  status: 'super-green' | 'yellow' | 'red' | 'neutral';
-  initial: string;
-  bgColor: string;
-}
+import { useStudentRoster } from '@/lib/useStudentRoster';
+import { Student } from '@/lib/studentService';
 
 interface StudentReportsProps {
   classData: {
@@ -28,105 +22,55 @@ export default function StudentReportsView({
   classData,
   onBack,
 }: StudentReportsProps) {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [generatedReport, setGeneratedReport] = useState<any>(null);
 
+  const { students, loading, error, loadStudents } = useStudentRoster();
+
   useEffect(() => {
     logger.info(`Viewing students for ${classData.name}`, { period: classData.period }, 'StudentReportsView');
-  }, [classData]);
-
-  // Mock student data
-  const mockStudents: Student[] = [
-    {
-      id: '1',
-      name: 'James Wilson',
-      gradeLevel: 11,
-      status: 'super-green',
-      initial: 'JW',
-      bgColor: 'from-blue-400 to-blue-600',
-    },
-    {
-      id: '2',
-      name: 'Amelia Taylor',
-      gradeLevel: 9,
-      status: 'red',
-      initial: 'AT',
-      bgColor: 'from-purple-400 to-purple-600',
-    },
-    {
-      id: '3',
-      name: 'Benjamin Moore',
-      gradeLevel: 11,
-      status: 'super-green',
-      initial: 'BM',
-      bgColor: 'from-cyan-400 to-cyan-600',
-    },
-    {
-      id: '4',
-      name: 'Mia Anderson',
-      gradeLevel: 9,
-      status: 'yellow',
-      initial: 'MA',
-      bgColor: 'from-red-400 to-red-600',
-    },
-    {
-      id: '5',
-      name: 'Oliver White',
-      gradeLevel: 10,
-      status: 'neutral',
-      initial: 'OW',
-      bgColor: 'from-gray-400 to-gray-600',
-    },
-  ];
+    if (classData?.id) {
+      loadStudents(classData.id);
+    }
+  }, [classData, loadStudents]);
 
   // Filter students based on search
   const filteredStudents = useMemo(() => {
-    if (!searchTerm.trim()) return mockStudents;
-    return mockStudents.filter((student) =>
-      student.name.toLowerCase().includes(searchTerm.toLowerCase())
+    if (!Array.isArray(students)) return [];
+    if (!searchTerm.trim()) return students;
+    return students.filter((student) =>
+      `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [searchTerm]);
+  }, [searchTerm, students]);
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'super-green':
-        return 'bg-green-100 text-green-700';
-      case 'yellow':
-        return 'bg-yellow-100 text-yellow-700';
-      case 'red':
-        return 'bg-red-100 text-red-700';
-      case 'neutral':
-        return 'bg-gray-100 text-gray-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
+  const getSignalCounts = (student: Student) => {
+    if (!student.today_signal) return { green: 0, yellow: 0, red: 0 };
+    const signal = student.today_signal;
+    if (signal.signal_type === 'green') return { green: 1, yellow: 0, red: 0 };
+    if (signal.signal_type === 'yellow') return { green: 0, yellow: 1, red: 0 };
+    if (signal.signal_type === 'red') return { green: 0, yellow: 0, red: 1 };
+    return { green: 0, yellow: 0, red: 0 };
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'super-green':
-        return 'Super Green';
-      case 'yellow':
-        return 'Yellow';
-      case 'red':
-        return 'Red Flag';
-      case 'neutral':
-        return 'Neutral';
-      default:
-        return 'Unknown';
-    }
+  const getStatusBadge = (student: Student) => {
+    const { green, yellow, red } = getSignalCounts(student);
+    if (red > 0) return { text: 'Red Flag', color: 'bg-red-100 text-red-700' };
+    if (yellow > 0) return { text: 'Yellow', color: 'bg-yellow-100 text-yellow-700' };
+    if (green > 0) return { text: 'Super Green', color: 'bg-green-100 text-green-700' };
+    return { text: 'Neutral', color: 'bg-gray-100 text-gray-700' };
   };
 
   const handleCreateReport = (student: Student) => {
-    logger.buttonClick(`Create Report for ${student.name}`, 'StudentReportsView');
+    logger.buttonClick(`Create Report for ${student.first_name}`, 'StudentReportsView');
     setSelectedStudent(student);
     setIsReportModalOpen(true);
   };
 
   const handleGenerateReport = (reportData: any) => {
-    logger.reportGeneration(selectedStudent?.name || 'Unknown', reportData);
+    logger.reportGeneration(`${selectedStudent?.first_name} ${selectedStudent?.last_name}`, reportData);
     // Store report data and show report view
     setGeneratedReport({
       student: selectedStudent,
@@ -145,7 +89,11 @@ export default function StudentReportsView({
   if (generatedReport) {
     return (
       <ReportView
-        student={generatedReport.student}
+        student={{
+          id: generatedReport.student.id,
+          name: `${generatedReport.student.first_name} ${generatedReport.student.last_name}`,
+          gradeLevel: generatedReport.student.grade_level
+        }}
         reportData={generatedReport.reportData}
         onBack={handleBackFromReport}
       />
@@ -197,70 +145,93 @@ export default function StudentReportsView({
       {/* Class Header */}
       <div className="border-b border-gray-200 pb-4">
         <h2 className="text-lg font-semibold text-gray-900">{classData.name}</h2>
-        <p className="text-sm text-gray-500">Period {classData.period}</p>
+        <p className="text-sm text-gray-500">Period {classData.period || '-'}</p>
+        {error && <p className="text-red-600 text-sm mt-1">{error}</p>}
       </div>
+
+      {/* Loading state */}
+      {loading && (
+        <div className="py-12 text-center">
+          <div className="animate-pulse text-gray-400">Loading students...</div>
+        </div>
+      )}
 
       {/* Student List */}
-      <div className="space-y-3">
-        {filteredStudents.length > 0 ? (
-          filteredStudents.map((student) => (
-            <div
-              key={student.id}
-              className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between hover:shadow-md transition-shadow"
-            >
-              {/* Left: Student Info */}
-              <div className="flex items-center space-x-4 flex-1">
-                {/* Avatar */}
+      {!loading && (
+        <div className="space-y-3">
+          {filteredStudents.length > 0 ? (
+            filteredStudents.map((student) => {
+              const status = getStatusBadge(student);
+              const initials = `${student.first_name.charAt(0)}${student.last_name.charAt(0)}`.toUpperCase();
+
+              return (
                 <div
-                  className={`w-12 h-12 rounded-full bg-gradient-to-br ${student.bgColor} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}
+                  key={student.id}
+                  className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between hover:shadow-md transition-shadow"
                 >
-                  {student.initial}
-                </div>
-
-                {/* Student Details */}
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2">
-                    <h3 className="font-semibold text-gray-900">{student.name}</h3>
-                    <span
-                      className={`text-xs font-semibold px-2 py-1 rounded-full ${getStatusBadgeColor(
-                        student.status
-                      )}`}
+                  {/* Left: Student Info */}
+                  <div className="flex items-center space-x-4 flex-1">
+                    {/* Avatar */}
+                    <div
+                      className={`w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}
                     >
-                      {getStatusLabel(student.status)}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-500">Grade {student.gradeLevel}</p>
-                </div>
-              </div>
+                      {initials}
+                    </div>
 
-              {/* Right: Actions */}
-              <div className="flex items-center space-x-3 flex-shrink-0">
-                <button 
-                  onClick={() => handleCreateReport(student)}
-                  className="flex items-center space-x-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium text-sm"
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>Create Report</span>
-                </button>
-                <button className="flex items-center space-x-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium text-sm">
-                  <Eye className="w-4 h-4" />
-                  <span>View Profile</span>
-                </button>
-              </div>
+                    {/* Student Details */}
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-semibold text-gray-900">{student.first_name} {student.last_name}</h3>
+                        <span
+                          className={`text-xs font-semibold px-2 py-1 rounded-full ${status.color}`}
+                        >
+                          {status.text}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500">Grade {student.grade_level || 9}</p>
+                    </div>
+                  </div>
+
+                  {/* Right: Actions */}
+                  <div className="flex items-center space-x-3 flex-shrink-0">
+                    <button 
+                      onClick={() => handleCreateReport(student)}
+                      className="flex items-center space-x-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium text-sm"
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>Create Report</span>
+                    </button>
+                    <button 
+                      onClick={() => router.push(`/students/${classData.id}/${student.id}`)}
+                      className="flex items-center space-x-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium text-sm"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span>View Profile</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No students found</p>
             </div>
-          ))
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No students found</p>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Create Report Modal */}
       {selectedStudent && (
         <CreateReportModal
           isOpen={isReportModalOpen}
-          student={selectedStudent}
+          student={{
+            id: selectedStudent.id,
+            name: `${selectedStudent.first_name} ${selectedStudent.last_name}`,
+            gradeLevel: selectedStudent.grade_level || 9,
+            status: getStatusBadge(selectedStudent).text.toLowerCase() as any,
+            initial: `${selectedStudent.first_name.charAt(0)}${selectedStudent.last_name.charAt(0)}`.toUpperCase(),
+            bgColor: 'from-blue-400 to-blue-600'
+          }}
           onClose={() => {
             setIsReportModalOpen(false);
             setSelectedStudent(null);

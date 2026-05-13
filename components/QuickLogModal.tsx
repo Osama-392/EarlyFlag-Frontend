@@ -28,7 +28,7 @@ export default function QuickLogModal({ onClose }: QuickLogModalProps) {
 
         {/* Modal Content */}
         <div className="p-8">
-          <QuickLogPage />
+          <QuickLogPage onCancel={onClose} />
         </div>
       </div>
     </div>
