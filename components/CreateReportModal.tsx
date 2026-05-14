@@ -14,6 +14,8 @@ interface CreateReportModalProps {
     initial: string;
     bgColor: string;
   };
+  defaultSubject: string;
+  gradeSubjects: string[];
   onClose: () => void;
   onGenerate: (reportData: any) => void;
 }
@@ -21,12 +23,24 @@ interface CreateReportModalProps {
 export default function CreateReportModal({
   isOpen,
   student,
+  defaultSubject,
+  gradeSubjects,
   onClose,
   onGenerate,
 }: CreateReportModalProps) {
-  const [startDate, setStartDate] = useState('2025-02-01');
-  const [endDate, setEndDate] = useState('2026-04-21');
-  const [subject, setSubject] = useState('English Language');
+  // Calculate dynamic dates
+  const today = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(today.getDate() - 90);
+
+  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  const formatLabel = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const [startDate, setStartDate] = useState(formatDate(thirtyDaysAgo));
+  const [endDate, setEndDate] = useState(formatDate(today));
+  const [subject, setSubject] = useState(defaultSubject);
   const [includeTeachersNotes, setIncludeTeachersNotes] = useState(true);
   const [includeAIRecommendations, setIncludeAIRecommendations] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -130,9 +144,8 @@ export default function CreateReportModal({
                   onChange={(e) => setStartDate(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 >
-                  <option value="2025-02-01">Feb 1, 2025</option>
-                  <option value="2025-01-01">Jan 1, 2025</option>
-                  <option value="2024-12-01">Dec 1, 2024</option>
+                  <option value={formatDate(thirtyDaysAgo)}>Last 30 Days ({formatLabel(thirtyDaysAgo)})</option>
+                  <option value={formatDate(ninetyDaysAgo)}>Last 90 Days ({formatLabel(ninetyDaysAgo)})</option>
                 </select>
               </div>
 
@@ -146,9 +159,7 @@ export default function CreateReportModal({
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 >
-                  <option value="2026-04-21">Apr 21, 2026</option>
-                  <option value="2026-03-21">Mar 21, 2026</option>
-                  <option value="2026-05-21">May 21, 2026</option>
+                  <option value={formatDate(today)}>Today ({formatLabel(today)})</option>
                 </select>
               </div>
             </div>
@@ -168,11 +179,9 @@ export default function CreateReportModal({
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             >
-              <option>English Language</option>
-              <option>Mathematics</option>
-              <option>Science</option>
-              <option>History</option>
-              <option>Arts</option>
+              {(gradeSubjects?.length ? gradeSubjects : [defaultSubject]).map((subj, idx) => (
+                <option key={idx} value={subj}>{subj}</option>
+              ))}
             </select>
           </div>
 

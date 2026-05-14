@@ -3,14 +3,10 @@
 import { Edit2, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+import { Class } from '@/lib/classService';
+
 interface ClassCardProps {
-  classData: {
-    id: string;
-    name: string;
-    subject: string;
-    period: number;
-    gradeLevel: number;
-    studentCount: number;
+  classData: Class & {
     icon?: React.ReactNode;
     color?: string;
   };

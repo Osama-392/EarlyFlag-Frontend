@@ -14,6 +14,7 @@ export interface Class {
   start_date?: string;
   end_date?: string;
   max_students?: number;
+  studentCount?: number;
   created_at: string;
   updated_at: string;
 }
@@ -30,6 +31,8 @@ export interface CreateClassRequest {
   end_date?: string;
   max_students?: number;
 }
+
+
 
 // Get all classes for the authenticated teacher
 export const getTeacherClasses = async (): Promise<Class[]> => {

@@ -12,11 +12,16 @@ interface ReportViewProps {
     bgColor: string;
   };
   reportData: {
-    startDate: string;
-    endDate: string;
+    startDate?: string;
+    endDate?: string;
+    start_date?: string;
+    end_date?: string;
     subject: string;
-    includeTeachersNotes: boolean;
-    includeAIRecommendations: boolean;
+    includeTeachersNotes?: boolean;
+    includeAIRecommendations?: boolean;
+    include_teachers_notes?: boolean;
+    include_ai_recommendations?: boolean;
+    result?: any;
   };
   onBack: () => void;
 }
@@ -26,8 +31,28 @@ export default function ReportView({
   reportData,
   onBack,
 }: ReportViewProps) {
-  // Mock data for the report
-  const engagementMetrics = [
+  const report = reportData?.result?.report;
+
+  const engagementMetrics = report ? [
+    {
+      label: 'Positive Incidents',
+      value: String((report.summary_counts?.window_30d?.super_green || 0) + (report.summary_counts?.window_30d?.present || 0)),
+      color: 'bg-blue-50 text-blue-700',
+      bgGradient: 'from-blue-400 to-blue-600',
+    },
+    {
+      label: 'Yellow Flags',
+      value: String(report.summary_counts?.window_30d?.yellow || 0),
+      color: 'bg-purple-50 text-purple-700',
+      bgGradient: 'from-purple-400 to-purple-600',
+    },
+    {
+      label: 'Red Incidents',
+      value: String(report.summary_counts?.window_30d?.red || 0),
+      color: 'bg-red-50 text-red-700',
+      bgGradient: 'from-red-400 to-red-600',
+    },
+  ] : [
     {
       label: 'Blue Incidents',
       value: '1',
@@ -48,18 +73,28 @@ export default function ReportView({
     },
   ];
 
-  const chartData = [
-    { month: 'Jan', academic: 3, behavioral: 4 },
-    { month: 'Feb', academic: 5, behavioral: 2 },
-    { month: 'Mar', academic: 2, behavioral: 6 },
-    { month: 'Apr', academic: 4, behavioral: 3 },
-    { month: 'May', academic: 3, behavioral: 5 },
-    { month: 'Jun', academic: 2, behavioral: 4 },
-    { month: 'Jul', academic: 5, behavioral: 3 },
-    { month: 'Aug', academic: 4, behavioral: 2 },
+  const chartData = report ? report.timeline_30d?.map((day: any) => {
+    const dateObj = new Date(day.day);
+    const month = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return { month, yellow: day.counts?.yellow || 0, red: day.counts?.red || 0 };
+  }) || [] : [
+    { month: 'Jan', yellow: 3, red: 4 },
+    { month: 'Feb', yellow: 5, red: 2 },
+    { month: 'Mar', yellow: 2, red: 6 },
+    { month: 'Apr', yellow: 4, red: 3 },
+    { month: 'May', yellow: 3, red: 5 },
+    { month: 'Jun', yellow: 2, red: 4 },
+    { month: 'Jul', yellow: 5, red: 3 },
+    { month: 'Aug', yellow: 4, red: 2 },
   ];
 
-  const incidents = [
+  const maxChartValue = Math.max(6, ...chartData.flatMap((d: any) => [d.yellow || 0, d.red || 0]));
+
+  const incidents = report ? report.recent_notes?.map((note: any) => ({
+    type: note.class_name ? `Flag in ${note.class_name}` : 'Flag Note',
+    date: note.signal_date,
+    description: note.excerpt,
+  })) || [] : [
     {
       type: 'Academic Flag',
       date: 'Sep 10, 2025',
@@ -77,11 +112,13 @@ export default function ReportView({
     },
   ];
 
-  const recommendations = [
+  const recommendations = report ? report.talking_points || [] : [
     'Increase study time - additional sessions',
     'Behavioral support - positive reinforcement needed',
     'Parental communication - update on progress',
   ];
+
+  const teachersNotes = report ? report.one_ask_for_parents || 'No notes provided.' : 'Mia has shown improvement in recent weeks. She needs consistent support in managing time and staying focused on tasks. Regular communication with parents is recommended to reinforce positive behaviors at home.';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -107,9 +144,14 @@ export default function ReportView({
 
           {/* Date Range */}
           <div className="text-right text-sm text-gray-600">
-            <p>{reportData.startDate.split('-')[2]} {reportData.startDate.split('-')[1]}</p>
+            <p>
+              {(reportData.startDate || reportData.start_date || '').split('-')[2]}{' '}
+              {(reportData.startDate || reportData.start_date || '').split('-')[1]}
+            </p>
             <p className="font-medium">
-              {reportData.endDate.split('-')[2]} {reportData.endDate.split('-')[1]}, {reportData.endDate.split('-')[0]}
+              {(reportData.endDate || reportData.end_date || '').split('-')[2]}{' '}
+              {(reportData.endDate || reportData.end_date || '').split('-')[1]},{' '}
+              {(reportData.endDate || reportData.end_date || '').split('-')[0]}
             </p>
           </div>
         </div>
@@ -132,37 +174,37 @@ export default function ReportView({
 
         {/* Monthly Chart */}
         <section>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Monthly Flag Incidents</h2>
-          <div className="bg-white rounded-lg border border-gray-200 p-8">
-            <div className="flex items-end justify-around h-56 gap-2">
-              {chartData.map((data, idx) => (
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Daily Flag Incidents</h2>
+          <div className="bg-white rounded-lg border border-gray-200 p-8 overflow-x-auto">
+            <div className="flex items-end justify-around h-56 gap-2 min-w-[500px]">
+              {chartData.map((data: any, idx: number) => (
                 <div key={idx} className="flex flex-col items-center gap-2 flex-1">
                   <div className="w-full flex gap-1 items-end justify-center h-40">
-                    {/* Academic bar */}
+                    {/* Yellow bar */}
                     <div
-                      className="flex-1 bg-orange-400 rounded-t"
-                      style={{ height: `${(data.academic / 6) * 100}%` }}
+                      className="flex-1 bg-amber-400 rounded-t"
+                      style={{ height: `${(data.yellow / maxChartValue) * 100}%` }}
                     />
-                    {/* Behavioral bar */}
+                    {/* Red bar */}
                     <div
                       className="flex-1 bg-red-400 rounded-t"
-                      style={{ height: `${(data.behavioral / 6) * 100}%` }}
+                      style={{ height: `${(data.red / maxChartValue) * 100}%` }}
                     />
                   </div>
-                  <span className="text-xs text-gray-500">{data.month}</span>
+                  <span className="text-xs text-gray-500 whitespace-nowrap">{data.month}</span>
                 </div>
               ))}
             </div>
 
             {/* Legend */}
-            <div className="flex items-center justify-center gap-6 mt-6">
+            <div className="flex items-center justify-center gap-6 mt-6 min-w-[500px]">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-orange-400 rounded" />
-                <span className="text-sm text-gray-600">Academic</span>
+                <div className="w-4 h-4 bg-amber-400 rounded" />
+                <span className="text-sm text-gray-600">Yellow Flags</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-red-400 rounded" />
-                <span className="text-sm text-gray-600">Behavioral</span>
+                <span className="text-sm text-gray-600">Red Flags</span>
               </div>
             </div>
           </div>
@@ -172,7 +214,7 @@ export default function ReportView({
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Flag Details</h2>
           <div className="space-y-4">
-            {incidents.map((incident, idx) => (
+            {incidents.map((incident: any, idx: number) => (
               <div key={idx} className="bg-white rounded-lg border border-gray-200 p-4 flex gap-4">
                 <div className="flex-shrink-0">
                   <div
@@ -200,14 +242,14 @@ export default function ReportView({
         </section>
 
         {/* Recommendations */}
-        {reportData.includeAIRecommendations && (
+        {(reportData.includeAIRecommendations || reportData.include_ai_recommendations) && (
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Recommended Next Steps
             </h2>
             <div className="bg-blue-50 rounded-lg border border-blue-200 p-6">
               <ul className="space-y-3">
-                {recommendations.map((rec, idx) => (
+                {recommendations.map((rec: string, idx: number) => (
                   <li key={idx} className="flex gap-3 text-sm text-gray-700">
                     <span className="text-blue-600 font-semibold flex-shrink-0">•</span>
                     <span>{rec}</span>
@@ -219,12 +261,12 @@ export default function ReportView({
         )}
 
         {/* Teachers Notes */}
-        {reportData.includeTeachersNotes && (
+        {(reportData.includeTeachersNotes || reportData.include_teachers_notes) && (
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Teachers Notes</h2>
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <p className="text-gray-600 text-sm leading-relaxed">
-                Mia has shown improvement in recent weeks. She needs consistent support in managing time and staying focused on tasks. Regular communication with parents is recommended to reinforce positive behaviors at home.
+                {teachersNotes}
               </p>
             </div>
           </section>
@@ -238,7 +280,7 @@ export default function ReportView({
             onClick={() => logger.buttonClick('Print Report', 'ReportView')}
             className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium text-sm"
           >
-            <Print className="w-4 h-4" />
+            <Printer className="w-4 h-4" />
             <span>Print Report</span>
           </button>
 

@@ -87,8 +87,8 @@ export default function StudentHistoryModal({
                           {signal.signal_type} Signal
                           {signal.category && ` - ${signal.category}`}
                         </p>
-                        {signal.description && (
-                          <p className="text-sm mt-1 opacity-90">{signal.description}</p>
+                        {signal.note && (
+                          <p className="text-sm mt-1 opacity-90">{signal.note}</p>
                         )}
                       </div>
                     </div>
