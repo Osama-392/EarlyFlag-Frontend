@@ -2,12 +2,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Home, Users, Flag, BarChart3, FileText, Award } from 'lucide-react';
+import Image from 'next/image';
+import { Home, Users, BarChart3, FileText, Award, LogOut } from 'lucide-react';
+import { useAuth } from '@/app/providers';
+import { useRouter } from 'next/navigation';
 
 const menuItems = [
   { icon: Home, label: 'Dashboard', href: '/' },
   { icon: Users, label: 'Students', href: '/students' },
-  { icon: Flag, label: 'Flags', href: '/flags' },
   { icon: BarChart3, label: 'Analytics', href: '/analytics' },
   { icon: FileText, label: 'Reports', href: '/reports' },
   { icon: Award, label: 'Recognition', href: '/recognition' },
@@ -15,6 +17,8 @@ const menuItems = [
 
 export default function Sidebar() {
   const [currentPath, setCurrentPath] = useState<string>('/');
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     setCurrentPath(window.location.pathname);
@@ -27,9 +31,16 @@ export default function Sidebar() {
   };
 
   const handleNavigation = (href: string) => {
-    console.log('Navigating to:', href);
     window.location.href = href;
   };
+
+  const handleLogout = () => {
+    logout();
+    router.push('/auth');
+  };
+
+  const userInitials = user ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() : 'U';
+  const userName = user?.first_name || 'Teacher';
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
@@ -39,9 +50,13 @@ export default function Sidebar() {
           onClick={() => handleNavigation('/')}
           className="flex items-center space-x-2 hover:opacity-80 transition-opacity w-full"
         >
-          <div className="w-8 h-8 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center">
-            <Flag className="w-5 h-5 text-white" />
-          </div>
+          <Image
+            src="/logo.png"
+            alt="EarlyFlag Logo"
+            width={32}
+            height={32}
+            className="rounded-lg"
+          />
           <span className="text-xl font-bold text-gray-900">EarlyFlag</span>
         </button>
       </div>
@@ -71,18 +86,26 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      {/* User Info */}
-      <div className="p-4 border-t border-gray-200">
+      {/* User Info & Logout */}
+      <div className="p-4 border-t border-gray-200 space-y-3">
         <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50">
           <div className="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-medium flex-shrink-0">
-            NU
+            {userInitials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">Ms. Johnson</p>
-            <p className="text-xs text-gray-500 truncate">Period 3 Advisor</p>
+            <p className="text-sm font-medium text-gray-900 truncate">{userName}</p>
+            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
           </div>
         </div>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="font-medium">Logout</span>
+        </button>
       </div>
     </aside>
   );
 }
+

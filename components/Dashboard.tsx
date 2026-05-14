@@ -1,75 +1,201 @@
 'use client';
 
-import { Mail, Phone, Eye } from 'lucide-react';
+import { Mail, RefreshCw, AlertCircle, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { useProtectedRoute } from '@/lib/useProtectedRoute';
+import { useState, useEffect, useCallback } from 'react';
+import EmailCounselorModal from '@/components/EmailCounselorModal';
+import ParentNotifyModal from '@/components/ParentNotifyModal';
+import {
+  getTeacherDashboard,
+  TeacherDashboardResponse,
+  RedUrgentRow
+} from '@/lib/dashboardService';
+
+const formatRelativeTime = (dateStr?: string): string => {
+  if (!dateStr) return '—';
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch {
+    return dateStr;
+  }
+};
 
 export default function Dashboard() {
+  const { loading: authLoading } = useProtectedRoute();
+  const [dashboardData, setDashboardData] = useState<TeacherDashboardResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [emailModalStudent, setEmailModalStudent] = useState<RedUrgentRow | null>(null);
+  const [notifyModalStudent, setNotifyModalStudent] = useState<RedUrgentRow | null>(null);
 
-  const stats = [
+  const loadDashboard = useCallback(async (isRefresh = false) => {
+    try {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      setError(null);
+
+      const data = await getTeacherDashboard();
+      setDashboardData(data);
+    } catch (err: any) {
+      console.error('Dashboard load error:', err);
+      const detail = err?.response?.data?.detail;
+      setError(
+        typeof detail === 'string'
+          ? detail
+          : 'Failed to load dashboard data. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading) {
+      loadDashboard();
+    }
+  }, [authLoading, loadDashboard]);
+
+  if (authLoading || loading) {
+    return (
+      <div className="space-y-6">
+        <style>{`
+          @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+          }
+          .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+          }
+        `}</style>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-lg border border-gray-200 p-6">
+              <div className="skeleton h-4 w-2/3 mb-3" />
+              <div className="skeleton h-10 w-1/3 mb-2" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !dashboardData) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <AlertCircle size={48} className="text-red-400 mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load dashboard</h3>
+        <p className="text-gray-500 text-sm mb-6 text-center max-w-md">{error}</p>
+        <button
+          onClick={() => loadDashboard()}
+          className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm flex items-center gap-2"
+        >
+          <RefreshCw size={16} /> Try Again
+        </button>
+      </div>
+    );
+  }
+
+  if (!dashboardData) return null;
+
+  const {
+    kpis,
+    yellow_watch_list,
+    red_urgent,
+    super_green_highlights,
+    classes,
+    monday_brief,
+    recommendations
+  } = dashboardData;
+
+  const statCards = [
     {
-      label: 'Students Flagged This Week',
-      value: '12',
-      change: '+15%',
-      icon: '👥',
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-700',
-      badgeColor: 'bg-blue-100',
-    },
-    {
-      label: 'Yellow Flags (30 Days)',
-      value: '34',
-      change: '+8%',
+      label: 'Yellow Flags This Week',
+      value: kpis.yellow_total,
       icon: '⚠️',
       bgColor: 'bg-amber-50',
       textColor: 'text-amber-700',
-      badgeColor: 'bg-amber-100',
     },
     {
-      label: 'Red Flags (30 Days)',
-      value: '8',
-      change: '-12%',
+      label: 'Red Flags This Week',
+      value: kpis.red_total,
       icon: '🚨',
       bgColor: 'bg-red-50',
       textColor: 'text-red-700',
-      badgeColor: 'bg-red-100',
+    },
+    {
+      label: 'Super Greens This Week',
+      value: kpis.super_green_total,
+      icon: '⭐',
+      bgColor: 'bg-green-50',
+      textColor: 'text-green-700',
     },
   ];
 
-  const yellowFlagData = [
-    { name: 'Emma Rodriguez', academic: 2, behavioral: 1, total: 3, streak: '2 days ago', lastFlag: '2 days ago' },
-    { name: 'Tyler Chen', academic: 3, behavioral: 0, total: 3, streak: 'Today', lastFlag: 'Today' },
-    { name: 'Marcus Jefferson', academic: 1, behavioral: 1, total: 2, streak: 'Yesterday', lastFlag: '1 day ago' },
-  ];
-
-  const redUrgentData = [
-    { name: 'Sarah Williams', issue: 'Chronic absenteeism', color: 'bg-red-100', badge: '3M' },
-    { name: 'James Lee', issue: 'Academic regression pattern', color: 'bg-red-100', badge: '3M' },
-    { name: 'Maya Patel', issue: 'Behavioral escalation', color: 'bg-red-100', badge: '5d' },
-  ];
-
-  const recentActivity = [
-    { icon: '📋', text: 'Emma Rodriguez flagged for off-task behavior', time: '2 hrs ago' },
-    { icon: '💬', text: 'Smart Recommendations updated', time: '4 hrs ago', highlight: true },
-    { icon: '📊', text: 'Alex Kim reached 20-day green streak', time: '1 day ago' },
-    { icon: '📋', text: 'Weekly pattern report available', time: '1 day ago' },
-  ];
-
-  const superGreenStudents = [
-    { name: 'Alex Kim', grade: 'Grade 11, Period 2', days: '5 days' },
-    { name: 'Sofia Martinez', grade: 'Grade 12, Period 5', days: '7 days' },
-    { name: 'David Thompson', grade: 'Grade 10, Period 3', days: '3 days' },
-  ];
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Sora:wght@400;500;600;700&display=swap');
+      `}</style>
+      
+      {refreshing && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow-lg text-sm">
+          <RefreshCw size={14} className="animate-spin" /> Refreshing...
+        </div>
+      )}
+
+      {/* Monday Brief */}
+      {monday_brief?.active && (
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-6 text-white shadow-md relative overflow-hidden">
+          <div className="absolute right-0 top-0 opacity-10">
+            <AlertCircle size={150} />
+          </div>
+          <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'Sora' }}>Monday Morning Brief</h2>
+          <p className="text-blue-100 text-sm mb-4">Summary for {new Date(monday_brief.prior_week_start).toLocaleDateString()} – {new Date(monday_brief.prior_week_end).toLocaleDateString()}</p>
+          <div className="flex gap-4">
+            <div className="bg-white/20 rounded-lg p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-blue-100">Unresolved Criticals</p>
+              <p className="text-2xl font-bold">{monday_brief.prior_week_unresolved_critical}</p>
+            </div>
+            {monday_brief.top_students && monday_brief.top_students.length > 0 && (
+              <div className="bg-white/20 rounded-lg p-3 flex-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-blue-100 mb-1">Top Needs Support</p>
+                <div className="flex gap-2">
+                  {monday_brief.top_students.map(ts => (
+                     <span key={ts.student_id} className="bg-white/10 px-2 py-1 rounded text-sm font-medium">{ts.first_name} {ts.last_name} ({ts.total_signals})</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {stats.map((stat, idx) => (
-          <div key={idx} className={`${stat.bgColor} rounded-lg border border-gray-200 p-6`}>
+        {statCards.map((stat, idx) => (
+          <div key={idx} className={`${stat.bgColor} rounded-xl border border-gray-100 p-6 shadow-sm`}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-gray-600 font-medium">{stat.label}</p>
-                <p className="text-4xl font-bold text-gray-900 mt-2">{stat.value}</p>
-                <p className={`text-sm mt-2 ${stat.textColor}`}>{stat.change}</p>
+                <p className="text-4xl font-bold text-gray-900 mt-2" style={{ fontFamily: 'Sora' }}>{stat.value}</p>
               </div>
               <span className="text-2xl">{stat.icon}</span>
             </div>
@@ -77,211 +203,176 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
+          
           {/* Yellow Watch List */}
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 flex items-center space-x-2">
-                    <span>🟡</span>
-                    <span>Yellow Watch List</span>
-                  </h3>
-                </div>
-                <span className="text-sm font-semibold text-gray-600">3 or more</span>
-              </div>
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center space-x-2" style={{ fontFamily: 'Sora' }}>
+                <span>🟡</span><span>Yellow Watch List</span>
+              </h3>
+              <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-full">{yellow_watch_list.length}</span>
             </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left font-semibold text-gray-700">Student</th>
-                    <th className="px-6 py-3 text-left font-semibold text-gray-700">Academic</th>
-                    <th className="px-6 py-3 text-left font-semibold text-gray-700">Behavioral</th>
-                    <th className="px-6 py-3 text-left font-semibold text-gray-700">Total Flags</th>
-                    <th className="px-6 py-3 text-left font-semibold text-gray-700">Streak</th>
-                    <th className="px-6 py-3 text-left font-semibold text-gray-700">Last Flag</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {yellowFlagData.map((row, idx) => (
-                    <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                      <td className="px-6 py-4 font-medium text-gray-900">{row.name}</td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
-                          {row.academic}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">
-                          {row.behavioral}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-medium">
-                          {row.total}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">{row.streak}</td>
-                      <td className="px-6 py-4 text-gray-500">{row.lastFlag}</td>
+            {yellow_watch_list.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50/50">
+                    <tr>
+                      <th className="px-5 py-3 text-left font-semibold text-gray-600">Student</th>
+                      <th className="px-5 py-3 text-left font-semibold text-gray-600">Grade</th>
+                      <th className="px-5 py-3 text-left font-semibold text-gray-600">Acd / Beh</th>
+                      <th className="px-5 py-3 text-left font-semibold text-gray-600">Total</th>
+                      <th className="px-5 py-3 text-left font-semibold text-gray-600">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-              <button className="text-sm text-teal-600 hover:text-teal-700 font-medium">View All →</button>
-              <button className="text-sm text-gray-600 hover:text-gray-700 font-medium">Generate Report</button>
-            </div>
+                  </thead>
+                  <tbody>
+                    {yellow_watch_list.map((row) => (
+                      <tr key={row.student_id} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                        <td className="px-5 py-3 font-medium text-gray-900">{row.first_name} {row.last_name}</td>
+                        <td className="px-5 py-3 text-gray-500">Gr {row.grade_level}</td>
+                        <td className="px-5 py-3">
+                          <span className="text-blue-600 font-semibold">{row.yellow_academic_count}</span>
+                          <span className="text-gray-300 mx-1">/</span>
+                          <span className="text-purple-600 font-semibold">{row.yellow_behavioral_count}</span>
+                        </td>
+                        <td className="px-5 py-3 font-bold text-amber-600">{row.yellow_total}</td>
+                        <td className="px-5 py-3">
+                          {row.unresolved_alert_max_severity ? (
+                            <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded font-medium">{row.unresolved_alert_max_severity.toUpperCase()}</span>
+                          ) : (
+                            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded font-medium">WATCH</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-8 text-center text-gray-500">No students on the yellow watch list right now.</div>
+            )}
           </div>
 
-          {/* 7-Day Breakdown */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">7-Day Breakdown</h3>
-            <p className="text-sm text-gray-500 mb-4">Academic vs Behavioral Flags</p>
-
-            <div className="flex items-end space-x-3 h-48 justify-around">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, idx) => {
-                const academicHeight = Math.random() * 80 + 20;
-                const behavioralHeight = Math.random() * 80 + 20;
-                return (
-                  <div key={idx} className="flex flex-col items-center space-y-2 flex-1">
-                    <div className="flex gap-1 h-32 items-end">
-                      <div
-                        className="flex-1 bg-blue-500 rounded-t"
-                        style={{ height: `${academicHeight}%` }}
-                      ></div>
-                      <div
-                        className="flex-1 bg-purple-500 rounded-t"
-                        style={{ height: `${behavioralHeight}%` }}
-                      ></div>
+          {/* Class Logging Status */}
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+            <div className="p-5 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900" style={{ fontFamily: 'Sora' }}>Today's Class Logging Status</h3>
+            </div>
+            {classes.length > 0 ? (
+              <div className="divide-y divide-gray-100">
+                {classes.map(c => (
+                  <div key={c.class_id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                    <div>
+                      <p className="font-semibold text-gray-900">{c.class_name}</p>
+                      <p className="text-xs text-gray-500">{c.student_count_active} active students</p>
                     </div>
-                    <span className="text-xs text-gray-600 font-medium">{day}</span>
+                    {c.logged_today ? (
+                      <div className="flex items-center text-green-600 text-sm font-semibold gap-1"><CheckCircle2 size={16}/> Logged</div>
+                    ) : (
+                      <div className="flex items-center text-gray-400 text-sm font-medium gap-1"><AlertCircle size={16}/> Not Logged</div>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center justify-center space-x-6 text-xs mt-6">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                <span className="text-gray-600">Academic</span>
+                ))}
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-purple-500 rounded"></div>
-                <span className="text-gray-600">Behavioral</span>
-              </div>
-            </div>
-
-            <p className="text-center text-xs text-gray-500 mt-4">Week's Total: <span className="font-bold text-gray-900">75 Flags</span></p>
+            ) : (
+              <div className="p-8 text-center text-gray-500">No classes assigned.</div>
+            )}
           </div>
         </div>
 
-        {/* Right Column */}
         <div className="space-y-6">
           {/* Red Urgent */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">🔴 Red Urgent</h3>
-              <span className="text-sm font-bold text-red-700 bg-red-100 px-2 py-1 rounded">6</span>
+          <div className="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
+            <div className="bg-red-50 p-5 border-b border-red-100 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-red-900" style={{ fontFamily: 'Sora' }}>🔴 Red Urgent</h3>
+              <span className="text-xs font-bold text-red-700 bg-red-200 px-2 py-1 rounded-full">{red_urgent.length}</span>
             </div>
-
-            <div className="space-y-3">
-              {redUrgentData.map((item, idx) => (
-                <div key={idx} className={`${item.color} rounded-lg p-4 border border-red-200`}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{item.name}</p>
-                      <p className="text-sm text-gray-600 mt-1">{item.issue}</p>
-                    </div>
-                    <span className="text-xs font-bold text-red-700 bg-white px-2 py-1 rounded">
-                      {item.badge}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2 mt-3 text-xs">
-                    <button className="flex items-center space-x-1 text-gray-600 hover:text-gray-900">
-                      <Mail className="w-3 h-3" />
-                      <span>Email</span>
-                    </button>
-                    <button className="flex items-center space-x-1 text-gray-600 hover:text-gray-900">
-                      <Phone className="w-3 h-3" />
-                      <span>Call</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button className="w-full mt-4 py-2 text-sm text-teal-600 hover:bg-teal-50 rounded font-medium">
-              Page 1 of 2 • View All →
-            </button>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Recent Activity</h3>
-
-            <div className="space-y-3">
-              {recentActivity.map((item, idx) => (
-                <div key={idx} className="flex items-start space-x-3 pb-3 border-b border-gray-200 last:border-0">
-                  <span className="text-lg">{item.icon}</span>
-                  <div className="flex-1">
-                    {item.highlight ? (
-                      <div className="bg-blue-50 p-2 rounded border border-blue-200">
-                        <p className="text-sm text-gray-900">{item.text}</p>
-                        <div className="flex items-center space-x-2 mt-1 text-xs">
-                          <span className="text-blue-600 font-medium">13 Flags</span>
-                          <span className="text-blue-600 font-medium">Smart Recommendations</span>
+            <div className="p-5">
+              {red_urgent.length > 0 ? (
+                <div className="space-y-4">
+                  {red_urgent.map((item) => (
+                    <div key={item.alert_id} className="bg-white rounded-lg p-4 border border-red-100 shadow-sm">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="font-bold text-gray-900">{item.student.first_name} {item.student.last_name}</p>
+                          <p className="text-xs text-gray-500">Gr {item.student.grade_level}</p>
                         </div>
+                        <span className="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-1 rounded uppercase tracking-wider">{item.severity}</span>
                       </div>
-                    ) : (
-                      <p className="text-sm text-gray-700">{item.text}</p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1">{item.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button className="w-full mt-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded font-medium">
-              View All Activity →
-            </button>
-          </div>
-
-          {/* Super Green Recognition */}
-          <div className="bg-green-50 rounded-lg border border-green-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">⭐ Super Green Recognition</h3>
-              <span className="text-xs text-green-700 font-semibold">30+ days on Page</span>
-            </div>
-
-            <div className="space-y-2">
-              {superGreenStudents.map((student, idx) => (
-                <div key={idx} className="bg-white rounded-lg p-3 border border-green-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900 text-sm">{student.name}</p>
-                      <p className="text-xs text-gray-500">{student.grade}</p>
+                      <p className="text-sm text-gray-700 mb-3 bg-red-50 p-2 rounded">{item.rule_description}</p>
+                      <div className="flex gap-2">
+                        <button onClick={() => setEmailModalStudent(item)} className="flex-1 flex justify-center items-center gap-1 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded text-xs font-semibold transition border border-gray-200"><Mail size={12}/> Counselor</button>
+                        <button onClick={() => setNotifyModalStudent(item)} className="flex-1 flex justify-center items-center gap-1 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded text-xs font-semibold transition border border-gray-200"><MessageSquare size={12}/> Parent</button>
+                      </div>
                     </div>
-                    <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">
-                      {student.days}
-                    </span>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <div className="text-center py-4 text-gray-500">No urgent red alerts.</div>
+              )}
             </div>
-
-            <button className="w-full mt-4 py-2 text-sm text-green-700 hover:bg-green-100 rounded font-medium">
-              + Add Student
-            </button>
           </div>
+
+          {/* Super Green */}
+          <div className="bg-green-50 rounded-xl border border-green-200 shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-green-200/50 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-green-900" style={{ fontFamily: 'Sora' }}>⭐ Super Green</h3>
+              <span className="text-xs font-bold text-green-800 bg-green-200 px-2 py-1 rounded-full">{super_green_highlights.length}</span>
+            </div>
+            <div className="p-5">
+              {super_green_highlights.length > 0 ? (
+                <div className="space-y-3">
+                  {super_green_highlights.map((item) => (
+                    <div key={item.signal_id} className="bg-white rounded-lg p-3 border border-green-100 shadow-sm">
+                      <p className="font-bold text-gray-900 text-sm">{item.first_name} {item.last_name}</p>
+                      <p className="text-xs text-gray-500 mb-1">{item.reason_description || 'Positive Behavior'} • {new Date(item.signal_date).toLocaleDateString()}</p>
+                      {item.parent_email_on_file ? (
+                        <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold">Email Sent to Parent</span>
+                      ) : (
+                        <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-bold">No Email on File</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500">No recent super green highlights.</div>
+              )}
+            </div>
+          </div>
+
+          {/* Recommendations */}
+          {recommendations.length > 0 && (
+            <div className="bg-indigo-50 rounded-xl border border-indigo-100 shadow-sm p-5">
+              <h3 className="text-sm font-bold text-indigo-900 mb-3 uppercase tracking-wider">Recommendations</h3>
+              <ul className="space-y-2">
+                {recommendations.map((rec, i) => (
+                  <li key={i} className="text-sm text-indigo-800 flex gap-2"><span className="text-indigo-400">→</span> {rec}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
         </div>
       </div>
+
+      {emailModalStudent && (
+        <EmailCounselorModal
+          isOpen={!!emailModalStudent}
+          onClose={() => setEmailModalStudent(null)}
+          studentName={`${emailModalStudent.student.first_name} ${emailModalStudent.student.last_name}`}
+          studentId={emailModalStudent.student.student_id}
+        />
+      )}
+
+      {notifyModalStudent && (
+        <ParentNotifyModal
+          isOpen={!!notifyModalStudent}
+          onClose={() => setNotifyModalStudent(null)}
+          studentName={`${notifyModalStudent.student.first_name} ${notifyModalStudent.student.last_name}`}
+          studentId={notifyModalStudent.student.student_id}
+        />
+      )}
     </div>
   );
 }
