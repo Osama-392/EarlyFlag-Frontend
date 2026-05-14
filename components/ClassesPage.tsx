@@ -6,21 +6,7 @@ import Link from 'next/link';
 import ClassCard from '@/components/ClassCard';
 import ClassSetupModal from '@/components/ClassSetupModal';
 import { useClasses } from '@/lib/useClasses';
-
-interface Class {
-  id: string;
-  grade?: string;
-  subject: string;
-  period?: string;
-  room_number?: string;
-  studentCount?: number;
-  icon?: React.ReactNode;
-  color?: string;
-  teacher_id?: string;
-  school_id?: string;
-  created_at?: string;
-  updated_at?: string;
-}
+import { Class, CreateClassRequest } from '@/lib/classService';
 
 interface GradedClasses {
   [key: string]: Class[];
@@ -64,18 +50,18 @@ export default function ClassesPage() {
     setIsModalOpen(true);
   };
 
-  const handleSaveClass = async (classData: Partial<Class>) => {
+  const handleSaveClass = async (classData: Partial<CreateClassRequest>) => {
     try {
       setModalError(null);
       
       if (selectedClass) {
         // Edit existing class - not implemented in API yet
         setClasses((prev) => {
-          const grade = selectedClass.grade || 'Ungrouped';
+          const grade = selectedClass.grade_level || 'Ungrouped';
           return {
             ...prev,
             [grade]: prev[grade].map((c) =>
-              c.id === selectedClass.id ? { ...c, ...classData } : c
+              c.id === selectedClass.id ? { ...c, ...classData as any } : c
             ),
           };
         });

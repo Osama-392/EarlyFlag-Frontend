@@ -10,7 +10,7 @@ interface FlagModalProps {
     id: string;
     name: string;
     grade: number;
-    period: number;
+    period?: number | string;
     initial: string;
     bgColor: string;
   };

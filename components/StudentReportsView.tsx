@@ -14,12 +14,15 @@ interface StudentReportsProps {
     id: string;
     name: string;
     period: number;
+    subject?: string;
   };
+  gradeSubjects: string[];
   onBack: () => void;
 }
 
 export default function StudentReportsView({
   classData,
+  gradeSubjects,
   onBack,
 }: StudentReportsProps) {
   const router = useRouter();
@@ -92,7 +95,9 @@ export default function StudentReportsView({
         student={{
           id: generatedReport.student.id,
           name: `${generatedReport.student.first_name} ${generatedReport.student.last_name}`,
-          gradeLevel: generatedReport.student.grade_level
+          gradeLevel: parseInt(generatedReport.student.grade_level) || 9,
+          initial: `${generatedReport.student.first_name.charAt(0)}${generatedReport.student.last_name.charAt(0)}`.toUpperCase(),
+          bgColor: 'from-blue-400 to-blue-600'
         }}
         reportData={generatedReport.reportData}
         onBack={handleBackFromReport}
@@ -227,11 +232,12 @@ export default function StudentReportsView({
           student={{
             id: selectedStudent.id,
             name: `${selectedStudent.first_name} ${selectedStudent.last_name}`,
-            gradeLevel: selectedStudent.grade_level || 9,
             status: getStatusBadge(selectedStudent).text.toLowerCase() as any,
             initial: `${selectedStudent.first_name.charAt(0)}${selectedStudent.last_name.charAt(0)}`.toUpperCase(),
             bgColor: 'from-blue-400 to-blue-600'
           }}
+          defaultSubject={classData.subject || classData.name}
+          gradeSubjects={gradeSubjects}
           onClose={() => {
             setIsReportModalOpen(false);
             setSelectedStudent(null);

@@ -12,10 +12,13 @@ export default function PrincipalSettingsPage() {
   });
 
   const handleToggle = (key: string) => {
-    setSettings((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+    setSettings((prev) => {
+      const k = key as keyof typeof settings;
+      return {
+        ...prev,
+        [k]: !prev[k],
+      };
+    });
   };
 
   return (

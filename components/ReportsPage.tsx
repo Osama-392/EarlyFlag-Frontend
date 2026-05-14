@@ -42,13 +42,21 @@ export default function ReportsPage() {
   // If a class is selected, show the student reports view
   if (selectedClass) {
     logger.info(`Selected class: ${selectedClass.name}`, { period: selectedClass.period }, 'ReportsPage');
+    
+    const grade = selectedClass.grade_level?.toString() || 'Ungrouped';
+    const gradeClasses = groupedClasses[grade] || [];
+    // Extract unique subjects or class names for this grade
+    const gradeSubjects = Array.from(new Set(gradeClasses.map(c => c.subject || c.name)));
+
     return (
       <StudentReportsView
         classData={{
           id: selectedClass.id,
           name: selectedClass.name,
           period: selectedClass.period || 0,
+          subject: selectedClass.subject,
         }}
+        gradeSubjects={gradeSubjects}
         onBack={() => {
           logger.info('Back to Reports Page', undefined, 'ReportsPage');
           setSelectedClass(null);
