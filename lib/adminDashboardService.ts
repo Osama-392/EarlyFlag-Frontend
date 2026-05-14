@@ -425,6 +425,100 @@ export interface ReferralFilterParams {
   offset?: number;
 }
 
+// ─── Report Filter Params (shared across student/teacher/grade reports) ───
+
+export interface ReportFilterParams {
+  range?: '7d' | '30d';
+  from?: string;
+  to?: string;
+  grade_level?: number;
+  limit?: number;
+  offset?: number;
+}
+
+// ─── 11. Student-Wise Report ──────────────────────────────────────
+
+export interface StudentReportItem {
+  student_id: string;
+  external_student_id: string;
+  first_name: string;
+  last_name: string;
+  grade_level: number;
+  iep_status: boolean;
+  ell_status: boolean;
+  signal_counts: SignalCountsByType;
+  category_breakdown: ReportCategoryBreakdown;
+  weighted_score: number;
+  unresolved_alert_count: number;
+  open_referral_count: number;
+  last_flag_date: string | null;
+  enrolled_class_count: number;
+}
+
+export interface StudentReportBlock {
+  range_days: number;
+  range_start: string;
+  range_end: string;
+  limit: number;
+  offset: number;
+  total: number;
+  grade_level: number | null;
+  students: StudentReportItem[];
+}
+
+// ─── 12. Teacher-Wise Report ──────────────────────────────────────
+
+export interface TeacherReportItem {
+  teacher_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  class_count: number;
+  total_enrollments: number;
+  signal_counts: SignalCountsByType;
+  category_breakdown: ReportCategoryBreakdown;
+  unresolved_alert_count: number;
+  open_referral_count: number;
+  pending_observation_flag_count: number;
+  most_recent_signal_date: string | null;
+}
+
+export interface TeacherReportBlock {
+  range_days: number;
+  range_start: string;
+  range_end: string;
+  limit: number;
+  offset: number;
+  total: number;
+  teachers: TeacherReportItem[];
+}
+
+// ─── 13. Grade-Wise Report ────────────────────────────────────────
+
+export interface GradeReportItem {
+  grade_level: number;
+  student_count: number;
+  class_count: number;
+  teacher_count: number;
+  signal_counts: SignalCountsByType;
+  category_breakdown: ReportCategoryBreakdown;
+  unresolved_alert_count: number;
+  open_referral_count: number;
+  pending_observation_flag_count: number;
+  avg_flag_percentage: number;
+}
+
+export interface GradeReportBlock {
+  range_days: number;
+  range_start: string;
+  range_end: string;
+  limit: number;
+  offset: number;
+  total: number;
+  grade_level: number | null;
+  grades: GradeReportItem[];
+}
+
 
 // ═══════════════════════════════════════════════════════════════════
 //  API Functions
@@ -603,4 +697,64 @@ export const downloadSuperGreenCsv = async (): Promise<void> => {
   a.click();
   document.body.removeChild(a);
   window.URL.revokeObjectURL(url);
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  New Admin Report Endpoints
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/v1/admin/reports/students
+ * Student-wise report with signal counts, category breakdown, and weighted scores.
+ */
+export const getAdminStudentReports = async (
+  params?: ReportFilterParams,
+): Promise<StudentReportBlock> => {
+  const queryParams: Record<string, any> = {};
+  if (params?.range) queryParams.range = params.range;
+  if (params?.from) queryParams.from = params.from;
+  if (params?.to) queryParams.to = params.to;
+  if (params?.grade_level !== undefined) queryParams.grade_level = params.grade_level;
+  if (params?.limit) queryParams.limit = params.limit;
+  if (params?.offset !== undefined) queryParams.offset = params.offset;
+
+  const res = await api.get('/api/v1/admin/reports/students', { params: queryParams });
+  return res.data;
+};
+
+/**
+ * GET /api/v1/admin/reports/teachers
+ * Teacher-wise report with workload and signal metrics.
+ */
+export const getAdminTeacherReports = async (
+  params?: ReportFilterParams,
+): Promise<TeacherReportBlock> => {
+  const queryParams: Record<string, any> = {};
+  if (params?.range) queryParams.range = params.range;
+  if (params?.from) queryParams.from = params.from;
+  if (params?.to) queryParams.to = params.to;
+  if (params?.limit) queryParams.limit = params.limit;
+  if (params?.offset !== undefined) queryParams.offset = params.offset;
+
+  const res = await api.get('/api/v1/admin/reports/teachers', { params: queryParams });
+  return res.data;
+};
+
+/**
+ * GET /api/v1/admin/reports/grades
+ * Grade-wise aggregate report with population and flag metrics.
+ */
+export const getAdminGradeReports = async (
+  params?: ReportFilterParams,
+): Promise<GradeReportBlock> => {
+  const queryParams: Record<string, any> = {};
+  if (params?.range) queryParams.range = params.range;
+  if (params?.from) queryParams.from = params.from;
+  if (params?.to) queryParams.to = params.to;
+  if (params?.grade_level !== undefined) queryParams.grade_level = params.grade_level;
+  if (params?.limit) queryParams.limit = params.limit;
+  if (params?.offset !== undefined) queryParams.offset = params.offset;
+
+  const res = await api.get('/api/v1/admin/reports/grades', { params: queryParams });
+  return res.data;
 };

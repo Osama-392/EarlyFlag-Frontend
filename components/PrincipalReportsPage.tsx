@@ -3,11 +3,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   BarChart3, Download, AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight,
-  FileText, Filter, Sparkles, Users,
+  FileText, Filter, Sparkles, Users, GraduationCap, School, Calendar,
 } from 'lucide-react';
 import {
   getAdminReferrals, exportSuperGreenJson, downloadSuperGreenCsv,
+  getAdminStudentReports, getAdminTeacherReports, getAdminGradeReports,
   EscalationLogBlock, SuperGreenExportPayload, ReferralFilterParams,
+  StudentReportBlock, TeacherReportBlock, GradeReportBlock,
+  SignalCountsByType, ReportCategoryBreakdown,
 } from '@/lib/adminDashboardService';
 
 const priorityColors: Record<string, string> = {
@@ -20,13 +23,154 @@ const statusColors: Record<string, string> = {
   bounced: 'bg-red-100 text-red-700',
 };
 
-function formatDate(d: string) {
+function formatDate(d: string | null) {
+  if (!d) return '—';
   try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
   catch { return d; }
 }
 
+// ─── Reusable Helpers ─────────────────────────────────────────────
+
+function SignalCountBar({ counts }: { counts: SignalCountsByType }) {
+  const total = counts.super_green + counts.present + counts.yellow + counts.red + counts.absent;
+  if (total === 0) return <span className="text-xs text-gray-400">No signals</span>;
+  const pct = (val: number) => (val / total) * 100;
+  return (
+    <div className="w-24 h-3 rounded-full overflow-hidden flex bg-gray-100" title={`SG:${counts.super_green} P:${counts.present} Y:${counts.yellow} R:${counts.red} A:${counts.absent}`}>
+      {counts.super_green > 0 && <div className="bg-emerald-400" style={{ width: `${pct(counts.super_green)}%` }} />}
+      {counts.present > 0 && <div className="bg-blue-400" style={{ width: `${pct(counts.present)}%` }} />}
+      {counts.yellow > 0 && <div className="bg-yellow-400" style={{ width: `${pct(counts.yellow)}%` }} />}
+      {counts.red > 0 && <div className="bg-red-400" style={{ width: `${pct(counts.red)}%` }} />}
+      {counts.absent > 0 && <div className="bg-gray-400" style={{ width: `${pct(counts.absent)}%` }} />}
+    </div>
+  );
+}
+
+function CategoryBreakdownTooltip({ cat }: { cat: ReportCategoryBreakdown }) {
+  return (
+    <div className="text-xs text-gray-600 space-y-0.5">
+      <div className="flex justify-between gap-3"><span className="text-yellow-600">Yellow Academic</span><span className="font-medium">{cat.yellow_academic}</span></div>
+      <div className="flex justify-between gap-3"><span className="text-yellow-600">Yellow Behavioral</span><span className="font-medium">{cat.yellow_behavioral}</span></div>
+      <div className="flex justify-between gap-3"><span className="text-red-600">Red Academic</span><span className="font-medium">{cat.red_academic}</span></div>
+      <div className="flex justify-between gap-3"><span className="text-red-600">Red Behavioral</span><span className="font-medium">{cat.red_behavioral}</span></div>
+    </div>
+  );
+}
+
+function WeightedScoreBadge({ score }: { score: number }) {
+  let color = 'bg-gray-100 text-gray-700';
+  if (score >= 10) color = 'bg-red-100 text-red-700';
+  else if (score >= 6) color = 'bg-orange-100 text-orange-700';
+  else if (score >= 3) color = 'bg-yellow-100 text-yellow-700';
+  else if (score > 0) color = 'bg-blue-100 text-blue-700';
+  return <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{score}</span>;
+}
+
+function AvgFlagBadge({ pct }: { pct: number }) {
+  let color = 'bg-green-100 text-green-700';
+  if (pct >= 0.15) color = 'bg-red-100 text-red-700';
+  else if (pct >= 0.10) color = 'bg-orange-100 text-orange-700';
+  else if (pct >= 0.05) color = 'bg-yellow-100 text-yellow-700';
+  return <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{(pct * 100).toFixed(1)}%</span>;
+}
+
+function PaginationControls({
+  page, totalPages, total, pageSize, onChange,
+}: {
+  page: number; totalPages: number; total: number; pageSize: number; onChange: (p: number) => void;
+}) {
+  const start = total === 0 ? 0 : page * pageSize + 1;
+  const end = Math.min((page + 1) * pageSize, total);
+  return (
+    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
+      <p className="text-xs text-gray-500">Showing {start}–{end} of {total}</p>
+      <div className="flex items-center gap-2">
+        <button disabled={page === 0} onClick={() => onChange(page - 1)}
+          className="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 transition"><ChevronLeft size={16} /></button>
+        <span className="text-sm text-gray-700">{page + 1} / {Math.max(totalPages, 1)}</span>
+        <button disabled={page >= totalPages - 1} onClick={() => onChange(page + 1)}
+          className="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 transition"><ChevronRight size={16} /></button>
+      </div>
+    </div>
+  );
+}
+
+function ReportFilterBar({
+  range, setRange, from, setFrom, to, setTo, gradeLevel, setGradeLevel, showGrade, onRefresh, loading,
+}: {
+  range: '7d' | '30d'; setRange: (r: '7d' | '30d') => void;
+  from: string; setFrom: (v: string) => void;
+  to: string; setTo: (v: string) => void;
+  gradeLevel: string; setGradeLevel: (v: string) => void;
+  showGrade: boolean; onRefresh: () => void; loading: boolean;
+}) {
+  const hasCustomDate = from && to;
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-3">
+      <div className="flex items-center gap-2 mb-1 text-sm font-medium text-gray-700"><Filter size={14} /> Filters</div>
+      <div className="flex flex-wrap items-end gap-4">
+        {/* Range */}
+        <div>
+          <p className="text-xs text-gray-500 mb-1.5">Date Range</p>
+          <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+            {(['7d', '30d'] as const).map(r => (
+              <button key={r} onClick={() => setRange(r)}
+                className={`px-3 py-1.5 text-xs font-medium transition ${range === r && !hasCustomDate ? 'bg-teal-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                {r === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+              </button>
+            ))}
+          </div>
+        </div>
+        {/* Custom date */}
+        <div>
+          <p className="text-xs text-gray-500 mb-1.5">Custom Date (overrides range)</p>
+          <div className="flex items-center gap-2">
+            <input type="date" value={from} onChange={e => setFrom(e.target.value)}
+              className="px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500" />
+            <span className="text-xs text-gray-400">to</span>
+            <input type="date" value={to} onChange={e => setTo(e.target.value)}
+              className="px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500" />
+          </div>
+        </div>
+        {/* Grade filter */}
+        {showGrade && (
+          <div>
+            <p className="text-xs text-gray-500 mb-1.5">Grade</p>
+            <select value={gradeLevel} onChange={e => setGradeLevel(e.target.value)}
+              className="px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white">
+              <option value="">All Grades</option>
+              {[6, 7, 8, 9, 10, 11, 12].map(g => <option key={g} value={g}>Grade {g}</option>)}
+            </select>
+          </div>
+        )}
+        {/* Refresh */}
+        <button onClick={onRefresh} disabled={loading}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-lg transition disabled:opacity-50">
+          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> Refresh
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function LoadingSkeleton({ rows = 5 }: { rows?: number }) {
+  return <div className="space-y-3 animate-pulse">{Array.from({ length: rows }).map((_, i) => <div key={i} className="h-16 bg-gray-200 rounded-lg" />)}</div>;
+}
+
+function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="text-center py-12">
+      <AlertCircle size={32} className="mx-auto text-red-400 mb-3" />
+      <p className="text-gray-600">{message}</p>
+      <button onClick={onRetry} className="mt-3 text-teal-600 text-sm font-medium">Retry</button>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────
+
 export default function PrincipalReportsPage() {
-  const [tab, setTab] = useState<'referrals' | 'supergreen'>('referrals');
+  const [tab, setTab] = useState<'referrals' | 'supergreen' | 'student-reports' | 'teacher-reports' | 'grade-reports'>('referrals');
 
   // Referrals state
   const [referrals, setReferrals] = useState<EscalationLogBlock | null>(null);
@@ -35,7 +179,7 @@ export default function PrincipalReportsPage() {
   const [refPage, setRefPage] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
-  const PAGE_SIZE = 20;
+  const REF_PAGE_SIZE = 20;
 
   // Super Green state
   const [sgData, setSgData] = useState<SuperGreenExportPayload | null>(null);
@@ -43,10 +187,42 @@ export default function PrincipalReportsPage() {
   const [sgError, setSgError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
 
+  // Student Reports state
+  const [studentData, setStudentData] = useState<StudentReportBlock | null>(null);
+  const [studentLoading, setStudentLoading] = useState(false);
+  const [studentError, setStudentError] = useState<string | null>(null);
+  const [studentPage, setStudentPage] = useState(0);
+  const [studentRange, setStudentRange] = useState<'7d' | '30d'>('7d');
+  const [studentFrom, setStudentFrom] = useState('');
+  const [studentTo, setStudentTo] = useState('');
+  const [studentGrade, setStudentGrade] = useState('');
+  const REPORT_PAGE_SIZE = 50;
+
+  // Teacher Reports state
+  const [teacherData, setTeacherData] = useState<TeacherReportBlock | null>(null);
+  const [teacherLoading, setTeacherLoading] = useState(false);
+  const [teacherError, setTeacherError] = useState<string | null>(null);
+  const [teacherPage, setTeacherPage] = useState(0);
+  const [teacherRange, setTeacherRange] = useState<'7d' | '30d'>('7d');
+  const [teacherFrom, setTeacherFrom] = useState('');
+  const [teacherTo, setTeacherTo] = useState('');
+
+  // Grade Reports state
+  const [gradeData, setGradeData] = useState<GradeReportBlock | null>(null);
+  const [gradeLoading, setGradeLoading] = useState(false);
+  const [gradeError, setGradeError] = useState<string | null>(null);
+  const [gradePage, setGradePage] = useState(0);
+  const [gradeRange, setGradeRange] = useState<'7d' | '30d'>('7d');
+  const [gradeFrom, setGradeFrom] = useState('');
+  const [gradeTo, setGradeTo] = useState('');
+  const [gradeGrade, setGradeGrade] = useState('');
+
+  // ─── Fetchers ──────────────────────────────────────────────────
+
   const fetchReferrals = useCallback(async () => {
     try {
       setRefLoading(true); setRefError(null);
-      const params: ReferralFilterParams = { limit: PAGE_SIZE, offset: refPage * PAGE_SIZE };
+      const params: ReferralFilterParams = { limit: REF_PAGE_SIZE, offset: refPage * REF_PAGE_SIZE };
       if (statusFilter.length) params.status = statusFilter;
       if (priorityFilter.length) params.priority = priorityFilter;
       const data = await getAdminReferrals(params);
@@ -70,6 +246,65 @@ export default function PrincipalReportsPage() {
 
   useEffect(() => { if (tab === 'supergreen' && !sgData) fetchSuperGreen(); }, [tab]);
 
+  const fetchStudentReports = useCallback(async () => {
+    try {
+      setStudentLoading(true); setStudentError(null);
+      const params: any = { limit: REPORT_PAGE_SIZE, offset: studentPage * REPORT_PAGE_SIZE };
+      if (studentFrom && studentTo) {
+        params.from = studentFrom;
+        params.to = studentTo;
+      } else {
+        params.range = studentRange;
+      }
+      if (studentGrade) params.grade_level = parseInt(studentGrade);
+      const data = await getAdminStudentReports(params);
+      setStudentData(data);
+    } catch (err: any) {
+      setStudentError(err?.response?.data?.detail || 'Failed to load student reports.');
+    } finally { setStudentLoading(false); }
+  }, [studentPage, studentRange, studentFrom, studentTo, studentGrade]);
+
+  useEffect(() => { if (tab === 'student-reports') fetchStudentReports(); }, [fetchStudentReports, tab]);
+
+  const fetchTeacherReports = useCallback(async () => {
+    try {
+      setTeacherLoading(true); setTeacherError(null);
+      const params: any = { limit: REPORT_PAGE_SIZE, offset: teacherPage * REPORT_PAGE_SIZE };
+      if (teacherFrom && teacherTo) {
+        params.from = teacherFrom;
+        params.to = teacherTo;
+      } else {
+        params.range = teacherRange;
+      }
+      const data = await getAdminTeacherReports(params);
+      setTeacherData(data);
+    } catch (err: any) {
+      setTeacherError(err?.response?.data?.detail || 'Failed to load teacher reports.');
+    } finally { setTeacherLoading(false); }
+  }, [teacherPage, teacherRange, teacherFrom, teacherTo]);
+
+  useEffect(() => { if (tab === 'teacher-reports') fetchTeacherReports(); }, [fetchTeacherReports, tab]);
+
+  const fetchGradeReports = useCallback(async () => {
+    try {
+      setGradeLoading(true); setGradeError(null);
+      const params: any = { limit: REPORT_PAGE_SIZE, offset: gradePage * REPORT_PAGE_SIZE };
+      if (gradeFrom && gradeTo) {
+        params.from = gradeFrom;
+        params.to = gradeTo;
+      } else {
+        params.range = gradeRange;
+      }
+      if (gradeGrade) params.grade_level = parseInt(gradeGrade);
+      const data = await getAdminGradeReports(params);
+      setGradeData(data);
+    } catch (err: any) {
+      setGradeError(err?.response?.data?.detail || 'Failed to load grade reports.');
+    } finally { setGradeLoading(false); }
+  }, [gradePage, gradeRange, gradeFrom, gradeTo, gradeGrade]);
+
+  useEffect(() => { if (tab === 'grade-reports') fetchGradeReports(); }, [fetchGradeReports, tab]);
+
   const handleDownloadCsv = async () => {
     try { setDownloading(true); await downloadSuperGreenCsv(); }
     catch (err) { console.error('CSV download failed:', err); }
@@ -81,7 +316,10 @@ export default function PrincipalReportsPage() {
     setRefPage(0);
   };
 
-  const totalPages = referrals ? Math.ceil(referrals.total / PAGE_SIZE) : 0;
+  const totalRefPages = referrals ? Math.ceil(referrals.total / REF_PAGE_SIZE) : 0;
+  const totalStudentPages = studentData ? Math.ceil(studentData.total / REPORT_PAGE_SIZE) : 0;
+  const totalTeacherPages = teacherData ? Math.ceil(teacherData.total / REPORT_PAGE_SIZE) : 0;
+  const totalGradePages = gradeData ? Math.ceil(gradeData.total / REPORT_PAGE_SIZE) : 0;
 
   return (
     <div className="space-y-6">
@@ -89,17 +327,20 @@ export default function PrincipalReportsPage() {
 
       <div className="space-y-2">
         <h1 className="text-4xl font-bold text-gray-900" style={{ fontFamily: 'Playfair Display' }}>Reports</h1>
-        <p className="text-gray-600">Counselor escalation log and recognition exports</p>
+        <p className="text-gray-600">Counselor escalation log, recognition exports, and admin analytics</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-gray-200 overflow-x-auto">
         {[
           { id: 'referrals' as const, label: 'Counselor Escalation Log', icon: FileText },
           { id: 'supergreen' as const, label: 'Super Green Export', icon: Sparkles },
+          { id: 'student-reports' as const, label: 'Student Report', icon: Users },
+          { id: 'teacher-reports' as const, label: 'Teacher Report', icon: GraduationCap },
+          { id: 'grade-reports' as const, label: 'Grade Report', icon: School },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all ${
+            className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
               tab === t.id ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
             <t.icon size={16} />{t.label}
           </button>
@@ -140,13 +381,9 @@ export default function PrincipalReportsPage() {
 
           {/* Table */}
           {refLoading ? (
-            <div className="space-y-3 animate-pulse">{[1,2,3,4,5].map(i => <div key={i} className="h-16 bg-gray-200 rounded-lg" />)}</div>
+            <LoadingSkeleton rows={5} />
           ) : refError ? (
-            <div className="text-center py-12">
-              <AlertCircle size={32} className="mx-auto text-red-400 mb-3" />
-              <p className="text-gray-600">{refError}</p>
-              <button onClick={fetchReferrals} className="mt-3 text-teal-600 text-sm font-medium">Retry</button>
-            </div>
+            <ErrorState message={refError} onRetry={fetchReferrals} />
           ) : (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
@@ -182,17 +419,8 @@ export default function PrincipalReportsPage() {
                 </table>
               </div>
               {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
-                  <p className="text-xs text-gray-500">{referrals?.total || 0} total referrals</p>
-                  <div className="flex items-center gap-2">
-                    <button disabled={refPage === 0} onClick={() => setRefPage(p => p - 1)}
-                      className="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 transition"><ChevronLeft size={16} /></button>
-                    <span className="text-sm text-gray-700">{refPage + 1} / {totalPages}</span>
-                    <button disabled={refPage >= totalPages - 1} onClick={() => setRefPage(p => p + 1)}
-                      className="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 transition"><ChevronRight size={16} /></button>
-                  </div>
-                </div>
+              {totalRefPages > 1 && (
+                <PaginationControls page={refPage} totalPages={totalRefPages} total={referrals?.total || 0} pageSize={REF_PAGE_SIZE} onChange={setRefPage} />
               )}
             </div>
           )}
@@ -203,13 +431,9 @@ export default function PrincipalReportsPage() {
       {tab === 'supergreen' && (
         <div className="space-y-4">
           {sgLoading ? (
-            <div className="space-y-3 animate-pulse"><div className="h-20 bg-gray-200 rounded-xl" /><div className="h-64 bg-gray-200 rounded-xl" /></div>
+            <LoadingSkeleton rows={3} />
           ) : sgError ? (
-            <div className="text-center py-12">
-              <AlertCircle size={32} className="mx-auto text-red-400 mb-3" />
-              <p className="text-gray-600">{sgError}</p>
-              <button onClick={fetchSuperGreen} className="mt-3 text-teal-600 text-sm font-medium">Retry</button>
-            </div>
+            <ErrorState message={sgError} onRetry={fetchSuperGreen} />
           ) : sgData && (
             <>
               {/* Summary Card */}
@@ -274,6 +498,230 @@ export default function PrincipalReportsPage() {
                 </div>
               </div>
             </>
+          )}
+        </div>
+      )}
+
+      {/* ── Student Reports Tab ────────────────────────────────── */}
+      {tab === 'student-reports' && (
+        <div className="space-y-4">
+          <ReportFilterBar
+            range={studentRange} setRange={setStudentRange}
+            from={studentFrom} setFrom={setStudentFrom}
+            to={studentTo} setTo={setStudentTo}
+            gradeLevel={studentGrade} setGradeLevel={setStudentGrade}
+            showGrade={true} onRefresh={fetchStudentReports} loading={studentLoading}
+          />
+          {studentLoading ? (
+            <LoadingSkeleton rows={5} />
+          ) : studentError ? (
+            <ErrorState message={studentError} onRetry={fetchStudentReports} />
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Student</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Signals</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Categories</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Score</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Alerts</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Referrals</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Last Flag</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Classes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(studentData?.students || []).map(s => (
+                      <tr key={s.student_id} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                        <td className="px-4 py-3">
+                          <p className="text-sm font-medium text-gray-900">{s.first_name} {s.last_name}</p>
+                          <p className="text-xs text-gray-500">{s.external_student_id} · Grade {s.grade_level}</p>
+                          <div className="flex gap-1 mt-1">
+                            {s.iep_status && <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-bold">IEP</span>}
+                            {s.ell_status && <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-bold">ELL</span>}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3"><SignalCountBar counts={s.signal_counts} /></td>
+                        <td className="px-4 py-3">
+                          <div className="group relative inline-block">
+                            <span className="text-xs text-gray-500 cursor-help underline decoration-dotted">
+                              Y:{s.category_breakdown.yellow_academic + s.category_breakdown.yellow_behavioral} R:{s.category_breakdown.red_academic + s.category_breakdown.red_behavioral}
+                            </span>
+                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-44">
+                              <CategoryBreakdownTooltip cat={s.category_breakdown} />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3"><WeightedScoreBadge score={s.weighted_score} /></td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{s.unresolved_alert_count}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{s.open_referral_count}</td>
+                        <td className="px-4 py-3 text-xs text-gray-500">{formatDate(s.last_flag_date)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{s.enrolled_class_count}</td>
+                      </tr>
+                    ))}
+                    {(studentData?.students || []).length === 0 && (
+                      <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400 text-sm">No students found for selected filters</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {totalStudentPages > 1 && (
+                <PaginationControls page={studentPage} totalPages={totalStudentPages} total={studentData?.total || 0} pageSize={REPORT_PAGE_SIZE} onChange={setStudentPage} />
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Teacher Reports Tab ────────────────────────────────── */}
+      {tab === 'teacher-reports' && (
+        <div className="space-y-4">
+          <ReportFilterBar
+            range={teacherRange} setRange={setTeacherRange}
+            from={teacherFrom} setFrom={setTeacherFrom}
+            to={teacherTo} setTo={setTeacherTo}
+            gradeLevel="" setGradeLevel={() => {}}
+            showGrade={false} onRefresh={fetchTeacherReports} loading={teacherLoading}
+          />
+          {teacherLoading ? (
+            <LoadingSkeleton rows={5} />
+          ) : teacherError ? (
+            <ErrorState message={teacherError} onRetry={fetchTeacherReports} />
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Teacher</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Workload</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Signals</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Categories</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Alerts</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Referrals</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Obs. Flags</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Last Signal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(teacherData?.teachers || []).map(t => (
+                      <tr key={t.teacher_id} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                        <td className="px-4 py-3">
+                          <p className="text-sm font-medium text-gray-900">{t.first_name} {t.last_name}</p>
+                          <p className="text-xs text-gray-500">{t.email}</p>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{t.class_count} classes · {t.total_enrollments} students</td>
+                        <td className="px-4 py-3"><SignalCountBar counts={t.signal_counts} /></td>
+                        <td className="px-4 py-3">
+                          <div className="group relative inline-block">
+                            <span className="text-xs text-gray-500 cursor-help underline decoration-dotted">
+                              Y:{t.category_breakdown.yellow_academic + t.category_breakdown.yellow_behavioral} R:{t.category_breakdown.red_academic + t.category_breakdown.red_behavioral}
+                            </span>
+                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-44">
+                              <CategoryBreakdownTooltip cat={t.category_breakdown} />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{t.unresolved_alert_count}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{t.open_referral_count}</td>
+                        <td className="px-4 py-3">
+                          {t.pending_observation_flag_count > 0 ? (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700" title="Class triggered 30% yellow threshold">
+                              {t.pending_observation_flag_count}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-500">{formatDate(t.most_recent_signal_date)}</td>
+                      </tr>
+                    ))}
+                    {(teacherData?.teachers || []).length === 0 && (
+                      <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400 text-sm">No teachers found for selected filters</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {totalTeacherPages > 1 && (
+                <PaginationControls page={teacherPage} totalPages={totalTeacherPages} total={teacherData?.total || 0} pageSize={REPORT_PAGE_SIZE} onChange={setTeacherPage} />
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Grade Reports Tab ──────────────────────────────────── */}
+      {tab === 'grade-reports' && (
+        <div className="space-y-4">
+          <ReportFilterBar
+            range={gradeRange} setRange={setGradeRange}
+            from={gradeFrom} setFrom={setGradeFrom}
+            to={gradeTo} setTo={setGradeTo}
+            gradeLevel={gradeGrade} setGradeLevel={setGradeGrade}
+            showGrade={true} onRefresh={fetchGradeReports} loading={gradeLoading}
+          />
+          {gradeLoading ? (
+            <LoadingSkeleton rows={5} />
+          ) : gradeError ? (
+            <ErrorState message={gradeError} onRetry={fetchGradeReports} />
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Grade</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Population</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Signals</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Categories</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Alerts</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Referrals</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Obs. Flags</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Avg Flag %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(gradeData?.grades || []).map(g => (
+                      <tr key={g.grade_level} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">Grade {g.grade_level}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{g.student_count} students · {g.class_count} classes · {g.teacher_count} teachers</td>
+                        <td className="px-4 py-3"><SignalCountBar counts={g.signal_counts} /></td>
+                        <td className="px-4 py-3">
+                          <div className="group relative inline-block">
+                            <span className="text-xs text-gray-500 cursor-help underline decoration-dotted">
+                              Y:{g.category_breakdown.yellow_academic + g.category_breakdown.yellow_behavioral} R:{g.category_breakdown.red_academic + g.category_breakdown.red_behavioral}
+                            </span>
+                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-44">
+                              <CategoryBreakdownTooltip cat={g.category_breakdown} />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{g.unresolved_alert_count}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{g.open_referral_count}</td>
+                        <td className="px-4 py-3">
+                          {g.pending_observation_flag_count > 0 ? (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
+                              {g.pending_observation_flag_count}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3"><AvgFlagBadge pct={g.avg_flag_percentage} /></td>
+                      </tr>
+                    ))}
+                    {(gradeData?.grades || []).length === 0 && (
+                      <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400 text-sm">No grades found for selected filters</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {totalGradePages > 1 && (
+                <PaginationControls page={gradePage} totalPages={totalGradePages} total={gradeData?.total || 0} pageSize={REPORT_PAGE_SIZE} onChange={setGradePage} />
+              )}
+            </div>
           )}
         </div>
       )}
