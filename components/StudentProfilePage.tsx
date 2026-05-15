@@ -2,6 +2,6 @@
 
 import StudentProfile from '@/components/StudentProfile';
 
-export default function StudentProfilePage({ params }: { params: { id: string } }) {
-  return <StudentProfile params={params} />;
+export default function StudentProfilePage() {
+  return <StudentProfile />;
 }
