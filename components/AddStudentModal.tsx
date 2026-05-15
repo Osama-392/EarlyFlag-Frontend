@@ -132,7 +132,17 @@ export default function AddStudentModal({
 
       onClose();
     } catch (err: any) {
-      const message = err?.response?.data?.detail?.[0]?.msg || err.message || 'Failed to create student';
+      let message = 'Failed to create student';
+      const detail = err?.response?.data?.detail;
+      
+      if (typeof detail === 'string') {
+        message = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        message = detail[0]?.msg || message;
+      } else if (err.message) {
+        message = err.message;
+      }
+
       setError(message);
       console.error('Error creating student:', err);
     } finally {
