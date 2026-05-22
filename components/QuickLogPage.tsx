@@ -162,9 +162,7 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
     };
   });
 
-  const totalPages = Math.ceil(mappedStudents.length / itemsPerPage) || 1;
-  const startIdx = (currentPage - 1) * itemsPerPage;
-  const paginatedStudents = mappedStudents.slice(startIdx, startIdx + itemsPerPage);
+
 
   const toggleStatus = (studentId: string, status: keyof LogEntry) => {
     logger.formChange(`student-status-${status}`, true, 'QuickLog');
@@ -300,7 +298,7 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
 
   const getStatusIndicator = (studentId: string, status: keyof LogEntry) => {
     const isActive = logData[studentId]?.[status];
-    const student = paginatedStudents.find((s) => s.id === studentId);
+    const student = mappedStudents.find((s) => s.id === studentId);
     
     if (status === 'absent') {
       return (
@@ -454,8 +452,8 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
       )}
 
       {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
+        <div className="overflow-y-auto max-h-[calc(100vh-320px)]">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
@@ -495,18 +493,18 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
                     Loading students...
                   </td>
                 </tr>
-              ) : paginatedStudents.length === 0 ? (
+              ) : mappedStudents.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                     No students found in this class.
                   </td>
                 </tr>
               ) : (
-                paginatedStudents.map((student, idx) => (
+                mappedStudents.map((student, idx) => (
                 <tr
                   key={student.id}
                   className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                    idx === paginatedStudents.length - 1 ? 'border-b-0' : ''
+                    idx === mappedStudents.length - 1 ? 'border-b-0' : ''
                   }`}
                 >
                   <td className="px-4 py-2">
@@ -551,60 +549,7 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
         </div>
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => {
-            logger.buttonClick('Previous page', 'QuickLog');
-            setCurrentPage((p) => Math.max(1, p - 1));
-          }}
-          disabled={currentPage === 1}
-          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
 
-        <div className="flex items-center space-x-2">
-          {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
-            const pageNum = i + 1;
-            return (
-              <button
-                key={pageNum}
-                onClick={() => {
-                  logger.buttonClick(`Page ${pageNum}`, 'QuickLog');
-                  setCurrentPage(pageNum);
-                }}
-                className={`w-8 h-8 rounded-lg font-medium transition-colors ${
-                  currentPage === pageNum
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {pageNum}
-              </button>
-            );
-          })}
-          {totalPages > 7 && (
-            <>
-              <span className="text-gray-400">...</span>
-              <span className="text-sm text-gray-600">
-                Page {currentPage} of {totalPages}
-              </span>
-            </>
-          )}
-        </div>
-
-        <button
-          onClick={() => {
-            logger.buttonClick('Next page', 'QuickLog');
-            setCurrentPage((p) => Math.min(totalPages, p + 1));
-          }}
-          disabled={currentPage === totalPages}
-          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      </div>
 
       {/* Flag Legend - compact inline */}
       <div className="flex items-center flex-wrap gap-4 px-2 text-xs text-gray-500">
