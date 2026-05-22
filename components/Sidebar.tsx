@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 
 const menuItems = [
   { icon: Home, label: 'Dashboard', href: '/' },
-  { icon: Users, label: 'Students', href: '/students' },
+  { icon: Users, label: 'Classes', href: '/students' },
   { icon: BarChart3, label: 'Analytics', href: '/analytics' },
   { icon: FileText, label: 'Reports', href: '/reports' },
   { icon: Award, label: 'Recognition', href: '/recognition' },

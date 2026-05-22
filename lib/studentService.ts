@@ -26,6 +26,23 @@ export interface Signal {
   updated_at: string;
 }
 
+export interface IncompleteSignal {
+  student_id: string;
+  signal_type: 'present' | 'yellow' | 'red' | 'super_green' | 'absent';
+  category?: string;
+  reasons?: string[];
+  note?: string;
+}
+
+export interface IncompleteLogSession {
+  session_id: string;
+  class_id: string;
+  class_name?: string;
+  signal_date: string;
+  signals: IncompleteSignal[];
+  started_at: string;
+}
+
 export interface SignalPayload {
   student_id: string;
   signal_type: 'green' | 'yellow' | 'red';
@@ -36,6 +53,7 @@ export interface SignalPayload {
 }
 
 export interface BatchSignalPayload {
+  session_id?: string;
   signals: SignalPayload[];
 }
 
@@ -77,6 +95,30 @@ export const logSignals = async (batch: BatchSignalPayload): Promise<any> => {
   } catch (error: any) {
     console.error('Failed to log signals:', error?.response?.data);
     throw error;
+  }
+};
+
+// Get available dates for signal backlogging (last 3 days)
+export const getAvailableSignalDates = async (): Promise<string[]> => {
+  try {
+    const response = await api.get<{ dates: string[] }>('/api/v1/teacher/signals/available-dates');
+    return response.data.dates;
+  } catch (error: any) {
+    console.error('Failed to fetch available signal dates:', error?.response?.data);
+    // Fallback to today only
+    return [new Date().toISOString().split('T')[0]];
+  }
+};
+
+// Get incomplete quick log sessions
+export const getIncompleteQuickLogs = async (): Promise<IncompleteLogSession[]> => {
+  try {
+    const response = await api.get<{ sessions: IncompleteLogSession[] }>('/api/v1/teacher/quick-logs/incomplete');
+    return response.data.sessions || [];
+  } catch (error: any) {
+    console.error('Failed to fetch incomplete quick logs:', error?.response?.data);
+    // Return empty array on failure as this feature might not be implemented in backend yet
+    return [];
   }
 };
 

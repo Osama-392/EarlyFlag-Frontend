@@ -26,6 +26,7 @@ export default function FlagModal({
 }: FlagModalProps) {
   const [selectedCategory, setSelectedCategory] = useState<'academic' | 'behavioral'>('academic');
   const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
+  const [note, setNote] = useState('');
 
   const flagConfig = {
     'super-green': {
@@ -144,6 +145,7 @@ export default function FlagModal({
       studentId: student.id,
       category: selectedCategory,
       reasons: selectedReasons,
+      note: note.trim() || undefined,
     });
     onClose();
   };
@@ -247,6 +249,20 @@ export default function FlagModal({
               <p className="text-sm text-red-700">
                 This will trigger a <span className="font-semibold">counselor notification</span>
               </p>
+            </div>
+          )}
+
+          {/* Optional Notes (Yellow & Red only) */}
+          {(flagType === 'yellow' || flagType === 'red') && (
+            <div className="mt-4">
+              <label className="text-[15px] font-medium text-slate-700 mb-2 block">Notes <span className="text-slate-400 font-normal">(optional)</span></label>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Add context for this flag..."
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-transparent resize-none"
+              />
             </div>
           )}
         </div>

@@ -23,6 +23,15 @@ export interface ClassLoggingStatusRow {
   student_count_active: number;
 }
 
+export interface UnfinishedLogRow {
+  session_id: string;
+  class_id: string;
+  class_name: string;
+  started_at: string; // ISO date string
+  elapsed_hours: number;
+  student_count: number;
+}
+
 export interface YellowWatchListRow {
   student_id: string;
   first_name: string;
@@ -104,4 +113,23 @@ export const getTeacherDashboard = async (forceRefresh = false): Promise<Teacher
     },
     forceRefresh
   );
+};
+
+export const getUnfinishedAlerts = async (): Promise<UnfinishedLogRow[]> => {
+  try {
+    const response = await api.get<{ alerts: UnfinishedLogRow[] }>('/api/v1/teacher/morning-brief/unfinished-alerts');
+    return response.data.alerts || [];
+  } catch (error: any) {
+    console.error('Failed to fetch unfinished alerts:', error?.response?.data);
+    return [];
+  }
+};
+
+export const dismissUnfinishedAlert = async (sessionId: string): Promise<void> => {
+  try {
+    await api.post(`/api/v1/teacher/morning-brief/unfinished-alerts/${sessionId}/dismiss`);
+  } catch (error: any) {
+    console.error(`Failed to dismiss unfinished alert ${sessionId}:`, error?.response?.data);
+    throw error;
+  }
 };
