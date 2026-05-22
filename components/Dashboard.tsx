@@ -8,7 +8,10 @@ import ParentNotifyModal from '@/components/ParentNotifyModal';
 import {
   getTeacherDashboard,
   TeacherDashboardResponse,
-  RedUrgentRow
+  RedUrgentRow,
+  UnfinishedLogRow,
+  getUnfinishedAlerts,
+  dismissUnfinishedAlert
 } from '@/lib/dashboardService';
 
 const formatRelativeTime = (dateStr?: string): string => {
@@ -41,6 +44,7 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [emailModalStudent, setEmailModalStudent] = useState<RedUrgentRow | null>(null);
   const [notifyModalStudent, setNotifyModalStudent] = useState<RedUrgentRow | null>(null);
+  const [unfinishedAlerts, setUnfinishedAlerts] = useState<UnfinishedLogRow[]>([]);
 
   const loadDashboard = useCallback(async (isRefresh = false) => {
     try {
@@ -48,8 +52,12 @@ export default function Dashboard() {
       else setLoading(true);
       setError(null);
 
-      const data = await getTeacherDashboard();
+      const [data, alerts] = await Promise.all([
+        getTeacherDashboard(),
+        getUnfinishedAlerts()
+      ]);
       setDashboardData(data);
+      setUnfinishedAlerts(alerts);
     } catch (err: any) {
       console.error('Dashboard load error:', err);
       const detail = err?.response?.data?.detail;
@@ -69,6 +77,15 @@ export default function Dashboard() {
       loadDashboard();
     }
   }, [authLoading, loadDashboard]);
+
+  const handleDismissAlert = async (sessionId: string) => {
+    try {
+      await dismissUnfinishedAlert(sessionId);
+      setUnfinishedAlerts(prev => prev.filter(a => a.session_id !== sessionId));
+    } catch (err) {
+      console.error('Failed to dismiss alert:', err);
+    }
+  };
 
   if (authLoading || loading) {
     return (
@@ -184,6 +201,38 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 12-Hour Unfinished Alerts */}
+      {unfinishedAlerts.length > 0 && (
+        <div className="bg-amber-50 border-l-4 border-amber-500 rounded-r-xl p-4 shadow-sm mb-6 flex items-start gap-4">
+          <AlertCircle className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="text-amber-800 font-bold text-lg mb-1">Unfinished Quick Logs (12+ hours)</h3>
+            <p className="text-amber-700 text-sm mb-3">
+              You started logging signals for the following classes but did not submit them. Would you like to resume?
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {unfinishedAlerts.map(log => (
+                <div key={log.session_id} className="bg-white border border-amber-200 px-3 py-2 rounded-lg flex items-center gap-3">
+                  <div>
+                    <span className="font-semibold text-gray-900 block text-sm">{log.class_name}</span>
+                    <span className="text-xs text-gray-500">
+                      Started {log.elapsed_hours}h ago &bull; {log.student_count} student{log.student_count !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <button 
+                    onClick={() => handleDismissAlert(log.session_id)}
+                    className="ml-2 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                    title="Dismiss alert"
+                  >
+                    &times;
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

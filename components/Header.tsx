@@ -1,13 +1,27 @@
 'use client';
 
-import { Search, Bell, ChevronDown, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Bell, ChevronDown, Plus, Play } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import QuickLogModal from '@/components/QuickLogModal';
 import { logger } from '@/lib/logger';
+import { getIncompleteQuickLogs } from '@/lib/studentService';
 
 export default function Header() {
   const [period, setPeriod] = useState('Period 3');
   const [isQuickLogOpen, setIsQuickLogOpen] = useState(false);
+  const [hasIncompleteLogs, setHasIncompleteLogs] = useState(false);
+
+  useEffect(() => {
+    const fetchIncompleteLogs = async () => {
+      try {
+        const logs = await getIncompleteQuickLogs();
+        setHasIncompleteLogs(logs && logs.length > 0);
+      } catch (err) {
+        console.error('Failed to fetch incomplete logs for header', err);
+      }
+    };
+    fetchIncompleteLogs();
+  }, []);
 
   return (
     <>
@@ -29,15 +43,15 @@ export default function Header() {
           <div className="flex items-center space-x-3 ml-8">
 
             {/* Quick Log Button */}
-            <button 
+            <button
               onClick={() => {
                 logger.buttonClick('Open Quick Log', 'Header');
                 setIsQuickLogOpen(true);
               }}
-              className="flex items-center space-x-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors"
+              className="flex items-center space-x-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-lg transition-colors"
             >
-              <span>Quick Log</span>
-              <Plus className="w-4 h-4" />
+              <span>{hasIncompleteLogs ? 'Resume Quick Log' : 'Quick Log'}</span>
+              {hasIncompleteLogs ? <Play className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
             </button>
 
             {/* Notifications */}
