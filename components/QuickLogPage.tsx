@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Check, X, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, Loader2, Calendar } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import FlagModal from '@/components/FlagModal';
 import { useClasses } from '@/lib/useClasses';
-import { getClassStudents, logSignals, Student as ApiStudent } from '@/lib/studentService';
+import { getClassStudents, logSignals, getAvailableSignalDates, getIncompleteQuickLogs, Student as ApiStudent, IncompleteLogSession } from '@/lib/studentService';
 import { cacheInvalidate } from '@/lib/dataCache';
 
 interface Student {
@@ -28,7 +28,9 @@ interface LogEntry {
     type: string;
     category: string;
     reasons: string[];
+    note?: string;
   };
+  isDraft?: boolean;
 }
 
 interface QuickLogPageProps {
@@ -43,6 +45,9 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [incompleteSessions, setIncompleteSessions] = useState<IncompleteLogSession[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [logData, setLogData] = useState<Record<string, LogEntry>>({});
@@ -50,7 +55,27 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
     type: 'super-green' | 'green' | 'yellow' | 'red' | 'absent';
     student: Student;
   } | null>(null);
-  const itemsPerPage = 7;
+  const itemsPerPage = 5;
+
+  // Fetch available dates and incomplete sessions on mount
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const [dates, sessions] = await Promise.all([
+          getAvailableSignalDates(),
+          getIncompleteQuickLogs()
+        ]);
+        setAvailableDates(dates);
+        if (dates.length > 0 && !selectedDate) {
+          setSelectedDate(dates[0]); // Default to today (first date)
+        }
+        setIncompleteSessions(sessions);
+      } catch (err) {
+        console.error('Failed to fetch initial QuickLog data', err);
+      }
+    };
+    fetchInitialData();
+  }, []);
 
   // Fetch classes and set active class
   useEffect(() => {
@@ -68,17 +93,43 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
         const data = await getClassStudents(activeClassId);
         setApiStudents(data);
         
-        // Initialize logData with green signals by default
+        // Find if we have an incomplete session for this class and date
+        const targetDate = selectedDate || new Date().toISOString().split('T')[0];
+        const draftSession = incompleteSessions.find(
+          s => s.class_id === activeClassId && s.signal_date === targetDate
+        );
+
+        // Initialize logData with green signals by default, or draft signals if they exist
         const initialLogData: Record<string, LogEntry> = {};
         data.forEach(s => {
-          initialLogData[s.id] = {
-            studentId: s.id,
-            green: true,
-            superGreen: false,
-            yellow: false,
-            red: false,
-            absent: false
-          };
+          const draftSignal = draftSession?.signals.find(sig => sig.student_id === s.id);
+          
+          if (draftSignal) {
+            initialLogData[s.id] = {
+              studentId: s.id,
+              green: draftSignal.signal_type === 'present',
+              superGreen: draftSignal.signal_type === 'super_green',
+              yellow: draftSignal.signal_type === 'yellow',
+              red: draftSignal.signal_type === 'red',
+              absent: draftSignal.signal_type === 'absent',
+              isDraft: true,
+              flagData: draftSignal.signal_type === 'yellow' || draftSignal.signal_type === 'red' || draftSignal.signal_type === 'super_green' ? {
+                type: draftSignal.signal_type,
+                category: draftSignal.category || 'academic',
+                reasons: draftSignal.reasons || [],
+                note: draftSignal.note
+              } : undefined
+            };
+          } else {
+            initialLogData[s.id] = {
+              studentId: s.id,
+              green: true,
+              superGreen: false,
+              yellow: false,
+              red: false,
+              absent: false
+            };
+          }
         });
         setLogData(initialLogData);
       } catch (err) {
@@ -88,7 +139,7 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
       }
     };
     fetchStudents();
-  }, [activeClassId]);
+  }, [activeClassId, selectedDate, incompleteSessions]);
 
   // Map API students to local Student interface
   const mappedStudents: Student[] = apiStudents.map((s, idx) => {
@@ -178,15 +229,15 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
           return {
             student_id: studentId,
             class_id: activeClassId,
-            signal_date: new Date().toISOString().split('T')[0],
+            signal_date: selectedDate || new Date().toISOString().split('T')[0],
             signal_type: signalType,
             category: (signalType === 'yellow' || signalType === 'red') 
               ? (entry.flagData?.category || 'academic') 
               : undefined,
             reason_code: mappedReasonCode,
             reason_description: reasonsText || undefined,
-            note: reasonsText || (signalType === 'red' ? 'Needs review' : ''),
-            save_for_later: signalType === 'red' && !reasonsText,
+            note: entry.flagData?.note || reasonsText || (signalType === 'red' ? 'Needs review' : ''),
+            save_for_later: signalType === 'red' && !reasonsText && !entry.flagData?.note,
           };
         });
 
@@ -196,7 +247,17 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
         return;
       }
 
-      await logSignals({ signals: signalsToLog as any });
+      const targetDate = selectedDate || new Date().toISOString().split('T')[0];
+      const draftSession = incompleteSessions.find(
+        s => s.class_id === activeClassId && s.signal_date === targetDate
+      );
+
+      const payload: any = { signals: signalsToLog };
+      if (draftSession) {
+        payload.session_id = draftSession.session_id;
+      }
+
+      await logSignals(payload);
       
       logger.formSubmit('QuickLog', { 
         date: new Date().toLocaleDateString(),
@@ -216,6 +277,10 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
       setTimeout(() => {
         setSaveSuccess(false);
         setLogData({});
+        // Auto-close the modal after showing success message
+        if (onCancel) {
+          onCancel();
+        }
       }, 2000);
     } catch (err: any) {
       console.error('Failed to save quick log:', err);
@@ -238,18 +303,22 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
     const student = paginatedStudents.find((s) => s.id === studentId);
     
     if (status === 'absent') {
-      return isActive ? (
-        <button
-          onClick={() => toggleStatus(studentId, status)}
-          className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center hover:bg-gray-400 transition-colors"
-        >
-          <Check className="w-4 h-4 text-white" />
-        </button>
-      ) : (
-        <button
-          onClick={() => toggleStatus(studentId, status)}
-          className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-        />
+      return (
+        <div className="flex justify-center">
+          {isActive ? (
+            <button
+              onClick={() => toggleStatus(studentId, status)}
+              className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center hover:bg-gray-400 transition-colors"
+            >
+              <Check className="w-4 h-4 text-white" />
+            </button>
+          ) : (
+            <button
+              onClick={() => toggleStatus(studentId, status)}
+              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+            />
+          )}
+        </div>
       );
     }
 
@@ -288,7 +357,7 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Flag Modal */}
       {selectedFlagModal && (
         <FlagModal
@@ -319,23 +388,56 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Daily Quick Log</h2>
-          <p className="text-sm text-gray-500 mt-1">Monitor top student concerns day to day performance</p>
+          <h2 className="text-xl font-bold text-gray-900">Daily Quick Log</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Monitor top student concerns day to day performance</p>
         </div>
-        {classes.length > 0 && (
+        <div className="flex items-center gap-3">
+          {/* Date Selector */}
+          {availableDates.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-gray-400" />
+              <select
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+              >
+                {availableDates.map((date) => {
+                  const d = new Date(date + 'T00:00:00');
+                  const isToday = date === new Date().toISOString().split('T')[0];
+                  const label = isToday
+                    ? `Today – ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                    : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                  return (
+                    <option key={date} value={date}>{label}</option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+
+          {/* Class Selector */}
           <select
             value={activeClassId || ''}
             onChange={(e) => {
               setActiveClassId(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+            disabled={classesLoading || classes.length === 0}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white min-w-[150px]"
           >
-            {classes.map(c => (
-              <option key={c.id} value={c.id}>{c.name} - Period {c.period}</option>
-            ))}
+            {classesLoading ? (
+              <option value="">Loading classes...</option>
+            ) : classes.length > 0 ? (
+              classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} - Period {c.period}
+                </option>
+              ))
+            ) : (
+              <option value="">No classes found</option>
+            )}
           </select>
-        )}
+        </div>
       </div>
 
       {saveSuccess && (
@@ -357,45 +459,45 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Name</th>
-                <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
+                <th className="px-4 py-2.5 text-left text-sm font-semibold text-gray-900">Name</th>
+                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900">
                   <div className="flex items-center justify-center space-x-1">
-                    <div className="w-4 h-4 rounded-full bg-emerald-500" />
+                    <div className="w-3 h-3 rounded-full bg-emerald-500" />
                     <span>Super Green</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
+                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900">
                   <div className="flex items-center justify-center space-x-1">
-                    <div className="w-4 h-4 rounded-full bg-emerald-300" />
+                    <div className="w-3 h-3 rounded-full bg-emerald-300" />
                     <span>Green</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
+                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900">
                   <div className="flex items-center justify-center space-x-1">
-                    <div className="w-4 h-4 rounded-full bg-amber-300" />
+                    <div className="w-3 h-3 rounded-full bg-amber-300" />
                     <span>Yellow</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
+                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900">
                   <div className="flex items-center justify-center space-x-1">
-                    <div className="w-4 h-4 rounded-full bg-rose-300" />
+                    <div className="w-3 h-3 rounded-full bg-rose-300" />
                     <span>Red</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">Absent</th>
+                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900">Absent</th>
               </tr>
             </thead>
             <tbody>
               {classesLoading || studentsLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
                     Loading students...
                   </td>
                 </tr>
               ) : paginatedStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                     No students found in this class.
                   </td>
                 </tr>
@@ -407,32 +509,39 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
                     idx === paginatedStudents.length - 1 ? 'border-b-0' : ''
                   }`}
                 >
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-3">
+                  <td className="px-4 py-2">
+                    <div className="flex items-center space-x-2">
                       <div
-                        className={`w-10 h-10 rounded-full bg-gradient-to-br ${student.bgColor} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}
+                        className={`w-8 h-8 rounded-full bg-gradient-to-br ${student.bgColor} flex items-center justify-center text-white font-bold text-xs flex-shrink-0`}
                       >
                         {student.initial}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{student.name}</p>
-                        <p className="text-sm text-gray-500">Grade {student.grade}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-gray-900 text-sm">{student.name}</p>
+                          {logData[student.id]?.isDraft && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase tracking-wider">
+                              Draft
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">Grade {student.grade}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-4 py-2 text-center">
                     {getStatusIndicator(student.id, 'superGreen')}
                   </td>
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-4 py-2 text-center">
                     {getStatusIndicator(student.id, 'green')}
                   </td>
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-4 py-2 text-center">
                     {getStatusIndicator(student.id, 'yellow')}
                   </td>
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-4 py-2 text-center">
                     {getStatusIndicator(student.id, 'red')}
                   </td>
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-4 py-2 text-center">
                     {getStatusIndicator(student.id, 'absent')}
                   </td>
                 </tr>
@@ -497,71 +606,18 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
         </button>
       </div>
 
-      {/* Flag Legend */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">About the Flags</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="flex items-start space-x-3">
-            <div className="flex-shrink-0 mt-1">
-              <div className="w-4 h-4 rounded-full bg-emerald-500" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Super Green</p>
-              <p className="text-sm text-gray-600">Going above and beyond</p>
-            </div>
-          </div>
-
-          <div className="flex items-start space-x-3">
-            <div className="flex-shrink-0 mt-1">
-              <div className="w-4 h-4 rounded-full bg-emerald-300" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Green</p>
-              <p className="text-sm text-gray-600">Doing fine / normal</p>
-            </div>
-          </div>
-
-          <div className="flex items-start space-x-3">
-            <div className="flex-shrink-0 mt-1">
-              <div className="w-4 h-4 rounded-full bg-amber-300" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Yellow</p>
-              <p className="text-sm text-gray-600">Mild warning or light issue</p>
-            </div>
-          </div>
-
-          <div className="flex items-start space-x-3">
-            <div className="flex-shrink-0 mt-1">
-              <div className="w-4 h-4 rounded-full bg-rose-300" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Red</p>
-              <p className="text-sm text-gray-600">Urgent problem</p>
-            </div>
-          </div>
-
-          <div className="flex items-start space-x-3">
-            <div className="flex-shrink-0 mt-1">
-              <div className="w-4 h-4 rounded-full bg-gray-300" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Neutral</p>
-              <p className="text-sm text-gray-600">Not Present / no data</p>
-            </div>
-          </div>
-        </div>
+      {/* Flag Legend - compact inline */}
+      <div className="flex items-center flex-wrap gap-4 px-2 text-xs text-gray-500">
+        <span className="font-medium text-gray-700">Flags:</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> Super Green</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-emerald-300 inline-block" /> Green</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-amber-300 inline-block" /> Yellow</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-rose-300 inline-block" /> Red</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-gray-300 inline-block" /> Absent</span>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-end space-x-3">
-        <button
-          onClick={handleCancel}
-          disabled={saving}
-          className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
-        >
-          Cancel
-        </button>
+      <div className="flex items-center justify-end">
         <button
           onClick={handleSaveLog}
           disabled={saving || Object.keys(logData).length === 0}

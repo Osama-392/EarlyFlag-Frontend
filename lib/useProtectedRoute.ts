@@ -13,8 +13,12 @@ export function useProtectedRoute() {
     if (loading) return;
 
     // If not authenticated and not on auth pages, redirect to login
-    if (!isAuthenticated && !pathname?.startsWith('/auth') && pathname !== '/pending-approval') {
-      router.push('/auth');
+    if (!isAuthenticated && !pathname?.startsWith('/auth') && !pathname?.startsWith('/principal-auth') && !pathname?.startsWith('/principal-signup') && pathname !== '/pending-approval') {
+      if (pathname?.startsWith('/principal-')) {
+        router.push('/principal-auth');
+      } else {
+        router.push('/auth');
+      }
     }
 
     // If pending approval and not on pending page, redirect
