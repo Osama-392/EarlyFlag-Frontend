@@ -1,4 +1,5 @@
 import api from './api';
+import { getTeacherClasses } from './classService';
 
 export interface Student {
   id: string;
@@ -117,7 +118,6 @@ export const getIncompleteQuickLogs = async (): Promise<IncompleteLogSession[]> 
     return response.data.sessions || [];
   } catch (error: any) {
     console.error('Failed to fetch incomplete quick logs:', error?.response?.data);
-    // Return empty array on failure as this feature might not be implemented in backend yet
     return [];
   }
 };

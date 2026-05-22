@@ -37,11 +37,22 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem('refresh_token');
         if (!refreshToken) {
           // No refresh token, redirect to login
+          let loginRoute = '/auth';
+          const userStr = localStorage.getItem('user');
+          if (userStr) {
+            try {
+              const user = JSON.parse(userStr);
+              if (user.role === 'principal' || user.role === 'admin') {
+                loginRoute = '/principal-auth';
+              }
+            } catch (e) {}
+          }
+
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
           localStorage.removeItem('user');
           if (typeof window !== 'undefined') {
-            window.location.href = '/auth';
+            window.location.href = loginRoute;
           }
           return Promise.reject(error);
         }
@@ -61,11 +72,22 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         // Refresh failed, redirect to login
+        let loginRoute = '/auth';
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            if (user.role === 'principal' || user.role === 'admin') {
+              loginRoute = '/principal-auth';
+            }
+          } catch (e) {}
+        }
+
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
         if (typeof window !== 'undefined') {
-          window.location.href = '/auth';
+          window.location.href = loginRoute;
         }
         return Promise.reject(refreshError);
       }
