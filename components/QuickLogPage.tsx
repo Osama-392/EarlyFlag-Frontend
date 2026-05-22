@@ -107,7 +107,7 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
           if (draftSignal) {
             initialLogData[s.id] = {
               studentId: s.id,
-              green: draftSignal.signal_type === 'present' || draftSignal.signal_type === 'green',
+              green: draftSignal.signal_type === 'present',
               superGreen: draftSignal.signal_type === 'super_green',
               yellow: draftSignal.signal_type === 'yellow',
               red: draftSignal.signal_type === 'red',
