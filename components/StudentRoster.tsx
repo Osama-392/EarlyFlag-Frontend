@@ -130,24 +130,18 @@ export default function StudentRoster() {
       )
     : [];
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12" style={{ fontFamily: 'Inter, sans-serif' }}>
-      {/* Back to Dashboard */}
+      {/* Back to Classes */}
       <div>
         <Link
-          href="/"
+          href="/students"
           className="inline-flex items-center text-sm text-blue-500 bg-white border border-gray-200 px-4 py-2 rounded-full hover:bg-gray-50 transition-colors"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
+          Back to Classes
         </Link>
       </div>
 

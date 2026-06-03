@@ -61,6 +61,15 @@ export default function PrincipalTeachersPage() {
     loadPending();
   }, [loadPending]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') === 'pending') {
+        setTab('pending');
+      }
+    }
+  }, []);
+
   const loadObsFlags = useCallback(async () => {
     try {
       setObsFlagsLoading(true);
