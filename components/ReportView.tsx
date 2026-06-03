@@ -1,7 +1,10 @@
 'use client';
 
-import { Download, Printer, ArrowLeft } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Download, Printer, ArrowLeft, Loader2 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface ReportViewProps {
   student: {
@@ -31,99 +34,150 @@ export default function ReportView({
   reportData,
   onBack,
 }: ReportViewProps) {
+  const reportContentRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
   const report = reportData?.result?.report;
 
-  const engagementMetrics = report ? [
+  // Helper to format YYYY-MM-DD into a readable date
+  const formatDisplayDate = (dateStr: string | undefined) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const startDateStr = reportData.startDate || reportData.start_date || '';
+  const endDateStr = reportData.endDate || reportData.end_date || '';
+
+  const handlePrint = () => {
+    logger.buttonClick('Print Report', 'ReportView');
+    window.print();
+  };
+
+  const handleExportPDF = async () => {
+    if (!reportContentRef.current) return;
+    logger.buttonClick('Export as PDF', 'ReportView');
+    setExporting(true);
+    try {
+      const canvas = await html2canvas(reportContentRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#f9fafb',
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const usableWidth = pageWidth - margin * 2;
+      const imgWidth = usableWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const usableHeight = pageHeight - margin * 2;
+
+      let yOffset = 0;
+      let page = 0;
+
+      while (yOffset < imgHeight) {
+        if (page > 0) pdf.addPage();
+        // Calculate the source region of the image for this page
+        const sourceY = (yOffset / imgHeight) * canvas.height;
+        const sourceH = (usableHeight / imgHeight) * canvas.height;
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = Math.min(sourceH, canvas.height - sourceY);
+        const ctx = pageCanvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(
+            canvas,
+            0, sourceY, canvas.width, pageCanvas.height,
+            0, 0, canvas.width, pageCanvas.height,
+          );
+          const pageImg = pageCanvas.toDataURL('image/png');
+          const drawHeight = (pageCanvas.height * imgWidth) / canvas.width;
+          pdf.addImage(pageImg, 'PNG', margin, margin, imgWidth, drawHeight);
+        }
+        yOffset += usableHeight;
+        page++;
+      }
+
+      const safeName = student.name.replace(/[^a-zA-Z0-9]/g, '_');
+      pdf.save(`${safeName}_Report.pdf`);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Use custom window counts if available, otherwise fall back to 30d window
+  const summaryCounts = report?.summary_counts?.window_custom || report?.summary_counts?.window_30d;
+
+  const engagementMetrics = summaryCounts ? [
     {
       label: 'Positive Incidents',
-      value: String((report.summary_counts?.window_30d?.super_green || 0) + (report.summary_counts?.window_30d?.present || 0)),
+      value: String((summaryCounts.super_green || 0) + (summaryCounts.present || 0)),
       color: 'bg-blue-50 text-blue-700',
       bgGradient: 'from-blue-400 to-blue-600',
     },
     {
       label: 'Yellow Flags',
-      value: String(report.summary_counts?.window_30d?.yellow || 0),
+      value: String(summaryCounts.yellow || 0),
       color: 'bg-purple-50 text-purple-700',
       bgGradient: 'from-purple-400 to-purple-600',
     },
     {
       label: 'Red Incidents',
-      value: String(report.summary_counts?.window_30d?.red || 0),
+      value: String(summaryCounts.red || 0),
       color: 'bg-red-50 text-red-700',
       bgGradient: 'from-red-400 to-red-600',
     },
   ] : [
-    {
-      label: 'Blue Incidents',
-      value: '1',
-      color: 'bg-blue-50 text-blue-700',
-      bgGradient: 'from-blue-400 to-blue-600',
-    },
-    {
-      label: 'Yellow Flags / week',
-      value: '9',
-      color: 'bg-purple-50 text-purple-700',
-      bgGradient: 'from-purple-400 to-purple-600',
-    },
-    {
-      label: 'Red Incidents',
-      value: '2',
-      color: 'bg-red-50 text-red-700',
-      bgGradient: 'from-red-400 to-red-600',
-    },
+    { label: 'Positive Incidents', value: '0', color: 'bg-blue-50 text-blue-700', bgGradient: 'from-blue-400 to-blue-600' },
+    { label: 'Yellow Flags', value: '0', color: 'bg-purple-50 text-purple-700', bgGradient: 'from-purple-400 to-purple-600' },
+    { label: 'Red Incidents', value: '0', color: 'bg-red-50 text-red-700', bgGradient: 'from-red-400 to-red-600' },
   ];
 
-  const chartData = report ? report.timeline_30d?.map((day: any) => {
-    const dateObj = new Date(day.day);
-    const month = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return { month, yellow: day.counts?.yellow || 0, red: day.counts?.red || 0 };
-  }) || [] : [
-    { month: 'Jan', yellow: 3, red: 4 },
-    { month: 'Feb', yellow: 5, red: 2 },
-    { month: 'Mar', yellow: 2, red: 6 },
-    { month: 'Apr', yellow: 4, red: 3 },
-    { month: 'May', yellow: 3, red: 5 },
-    { month: 'Jun', yellow: 2, red: 4 },
-    { month: 'Jul', yellow: 5, red: 3 },
-    { month: 'Aug', yellow: 4, red: 2 },
-  ];
+  // Use timeline from the API — check both 'timeline' (custom range) and 'timeline_30d' fields
+  const timelineRaw = report?.timeline || report?.timeline_30d || [];
+  const chartData = timelineRaw.map((day: any) => {
+    const dateObj = new Date(day.day + 'T00:00:00');
+    const label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return { month: label, yellow: day.counts?.yellow || 0, red: day.counts?.red || 0 };
+  });
 
   const maxChartValue = Math.max(6, ...chartData.flatMap((d: any) => [d.yellow || 0, d.red || 0]));
 
-  const incidents = report ? report.recent_notes?.map((note: any) => ({
+  const incidents = report?.recent_notes?.map((note: any) => ({
     type: note.class_name ? `Flag in ${note.class_name}` : 'Flag Note',
-    date: note.signal_date,
+    date: formatDisplayDate(note.signal_date) || note.signal_date,
     description: note.excerpt,
-  })) || [] : [
-    {
-      type: 'Academic Flag',
-      date: 'Sep 10, 2025',
-      description: 'Missing assignment in Math class',
-    },
-    {
-      type: 'Behavioral Flag',
-      date: 'Sep 12, 2025',
-      description: 'Off-task during lesson',
-    },
-    {
-      type: 'Academic Flag',
-      date: 'Sep 15, 2025',
-      description: 'Low test performance',
-    },
-  ];
+  })) || [];
 
-  const recommendations = report ? report.talking_points || [] : [
-    'Increase study time - additional sessions',
-    'Behavioral support - positive reinforcement needed',
-    'Parental communication - update on progress',
-  ];
+  const recommendations = report?.talking_points || [];
 
-  const teachersNotes = report ? report.one_ask_for_parents || 'No notes provided.' : 'Mia has shown improvement in recent weeks. She needs consistent support in managing time and staying focused on tasks. Regular communication with parents is recommended to reinforce positive behaviors at home.';
+  const teachersNotes = report?.one_ask_for_parents || (report ? 'No notes provided.' : '');
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Print-friendly styles */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .report-print-area, .report-print-area * { visibility: visible; }
+          .report-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-40 no-print">
         <div className="max-w-6xl mx-auto px-8 py-6 flex items-center justify-between">
           <div className="flex-1">
             <button
@@ -144,21 +198,14 @@ export default function ReportView({
 
           {/* Date Range */}
           <div className="text-right text-sm text-gray-600">
-            <p>
-              {(reportData.startDate || reportData.start_date || '').split('-')[2]}{' '}
-              {(reportData.startDate || reportData.start_date || '').split('-')[1]}
-            </p>
-            <p className="font-medium">
-              {(reportData.endDate || reportData.end_date || '').split('-')[2]}{' '}
-              {(reportData.endDate || reportData.end_date || '').split('-')[1]},{' '}
-              {(reportData.endDate || reportData.end_date || '').split('-')[0]}
-            </p>
+            <p>{formatDisplayDate(startDateStr)}</p>
+            <p className="font-medium">to {formatDisplayDate(endDateStr)}</p>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-8 py-8 space-y-8">
+      <div ref={reportContentRef} className="report-print-area max-w-6xl mx-auto px-8 py-8 space-y-8">
         {/* Engagement Summary */}
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Engagement Summary</h2>
@@ -274,10 +321,10 @@ export default function ReportView({
       </div>
 
       {/* Footer Actions */}
-      <div className="bg-white border-t border-gray-200 sticky bottom-0 z-40">
+      <div className="bg-white border-t border-gray-200 sticky bottom-0 z-40 no-print">
         <div className="max-w-6xl mx-auto px-8 py-6 flex items-center justify-between">
           <button 
-            onClick={() => logger.buttonClick('Print Report', 'ReportView')}
+            onClick={handlePrint}
             className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium text-sm"
           >
             <Printer className="w-4 h-4" />
@@ -285,11 +332,12 @@ export default function ReportView({
           </button>
 
           <button 
-            onClick={() => logger.buttonClick('Export as PDF', 'ReportView')}
-            className="flex items-center space-x-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold text-sm"
+            onClick={handleExportPDF}
+            disabled={exporting}
+            className="flex items-center space-x-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-semibold text-sm"
           >
-            <Download className="w-4 h-4" />
-            <span>Export as PDF</span>
+            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            <span>{exporting ? 'Exporting...' : 'Export as PDF'}</span>
           </button>
         </div>
       </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Download, AlertCircle } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { generateStudentReport } from '@/lib/studentService';
 
@@ -13,6 +13,8 @@ interface CreateReportModalProps {
     status: string;
     initial: string;
     bgColor: string;
+    redCount?: number;
+    yellowCount?: number;
   };
   defaultSubject: string;
   gradeSubjects: string[];
@@ -90,22 +92,25 @@ export default function CreateReportModal({
             <div>
               <h3 className="font-semibold text-gray-900 text-sm">{student.name}</h3>
               <div className="flex items-center space-x-1 mt-0.5">
-                <span className="inline-flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full">
-                  1
-                </span>
-                <span className="inline-flex items-center justify-center w-5 h-5 bg-yellow-400 text-white text-xs font-bold rounded-full">
-                  2
-                </span>
+                {(student.redCount ?? 0) > 0 && (
+                  <span className="inline-flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full">
+                    {student.redCount}
+                  </span>
+                )}
+                {(student.yellowCount ?? 0) > 0 && (
+                  <span className="inline-flex items-center justify-center w-5 h-5 bg-yellow-400 text-white text-xs font-bold rounded-full">
+                    {student.yellowCount}
+                  </span>
+                )}
+                {(student.redCount ?? 0) === 0 && (student.yellowCount ?? 0) === 0 && (
+                  <span className="text-xs text-gray-400">No active flags</span>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Export & Close Buttons */}
+          {/* Close Button */}
           <div className="flex items-center space-x-2">
-            <button className="flex items-center space-x-1 px-3 py-1.5 bg-yellow-400 hover:bg-yellow-500 text-white rounded-lg transition-colors font-medium text-sm">
-              <Download className="w-4 h-4" />
-              <span>Export</span>
-            </button>
             <button
               disabled={loading}
               onClick={() => {
@@ -136,33 +141,54 @@ export default function CreateReportModal({
             <label className="block text-sm font-medium text-gray-600 mb-3">
               Select a timeline for the Report
             </label>
+            {/* Preset Range Buttons */}
+            <div className="flex gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => { setStartDate(formatDate(thirtyDaysAgo)); setEndDate(formatDate(today)); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                  startDate === formatDate(thirtyDaysAgo) && endDate === formatDate(today)
+                    ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Last 30 Days
+              </button>
+              <button
+                type="button"
+                onClick={() => { setStartDate(formatDate(ninetyDaysAgo)); setEndDate(formatDate(today)); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                  startDate === formatDate(ninetyDaysAgo) && endDate === formatDate(today)
+                    ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Last 90 Days
+              </button>
+            </div>
+            {/* Custom Date Range */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Start Date */}
               <div>
-                <select
+                <label className="block text-xs text-gray-500 mb-1">From</label>
+                <input
+                  type="date"
                   value={startDate}
+                  max={endDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                >
-                  <option value={formatDate(thirtyDaysAgo)}>Last 30 Days ({formatLabel(thirtyDaysAgo)})</option>
-                  <option value={formatDate(ninetyDaysAgo)}>Last 90 Days ({formatLabel(ninetyDaysAgo)})</option>
-                </select>
+                />
               </div>
-
-              {/* End Date */}
               <div>
-                <select
+                <label className="block text-xs text-gray-500 mb-1">To</label>
+                <input
+                  type="date"
                   value={endDate}
-                  onChange={(e) => {
-                    logger.formChange('endDate', e.target.value, 'CreateReportModal');
-                    setEndDate(e.target.value);
-                  }}
+                  min={startDate}
+                  max={formatDate(today)}
+                  onChange={(e) => setEndDate(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                >
-                  <option value={formatDate(today)}>Today ({formatLabel(today)})</option>
-                </select>
+                />
               </div>
             </div>
+            <p className="text-xs text-gray-400 mt-2">{formatLabel(new Date(startDate))} — {formatLabel(new Date(endDate))}</p>
           </div>
 
           {/* Subject Selection */}
