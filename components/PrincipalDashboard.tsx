@@ -11,6 +11,7 @@ import {
   getAdminDashboard, getAdminHeatmap, resolvePatternAlert,
   AdminDashboardResponse, HeatmapBlock, HeatmapBand,
 } from '@/lib/adminDashboardService';
+import { getPendingTeachers } from '@/lib/adminService';
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -54,16 +55,23 @@ export default function PrincipalDashboard() {
   const [resolveNote, setResolveNote] = useState('');
   const [resolving, setResolving] = useState(false);
 
+  // Pending teachers state
+  const [pendingCount, setPendingCount] = useState<number>(0);
+  const [showPendingAlert, setShowPendingAlert] = useState(false);
+
   const fetchData = useCallback(async (showRefresh = false) => {
     try {
       if (showRefresh) setRefreshing(true); else setLoading(true);
       setError(null);
-      const [dashData, heatData] = await Promise.all([
+      const [dashData, heatData, pendingData] = await Promise.all([
         getAdminDashboard(range),
         getAdminHeatmap(range),
+        getPendingTeachers().catch(() => []),
       ]);
       setDashboard(dashData);
       setHeatmap(heatData);
+      setPendingCount(pendingData.length);
+      setShowPendingAlert(pendingData.length > 0);
     } catch (err: any) {
       console.error('Admin dashboard fetch failed:', err);
       setError(err?.response?.data?.detail || 'Failed to load dashboard data.');
@@ -132,6 +140,40 @@ export default function PrincipalDashboard() {
         .fade-up:nth-child(3){animation-delay:.15s} .fade-up:nth-child(4){animation-delay:.2s}
         .fade-up:nth-child(5){animation-delay:.25s} .fade-up:nth-child(6){animation-delay:.3s}
       `}</style>
+
+      {/* Pending Teachers Approval Notification Bar */}
+      {showPendingAlert && pendingCount > 0 && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 shadow-sm flex items-center justify-between gap-4 transition-all duration-300">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
+              <Clock size={20} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                Teacher approvals pending
+              </p>
+              <p className="text-xs text-gray-600">
+                There {pendingCount === 1 ? 'is 1 teacher' : `are ${pendingCount} teachers`} waiting for your approval.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/principal-teachers?tab=pending')}
+              className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shadow-sm hover:shadow transition"
+            >
+              Review Requests
+            </button>
+            <button
+              onClick={() => setShowPendingAlert(false)}
+              className="p-1 hover:bg-amber-100 rounded-lg text-amber-700 transition"
+              aria-label="Dismiss notification"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Header + Controls */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">

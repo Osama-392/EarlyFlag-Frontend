@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   BarChart3, Download, AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight,
-  FileText, Filter, Sparkles, Users, GraduationCap, School, Calendar,
+  FileText, Filter, Sparkles, Users, GraduationCap, School, Calendar, Printer, Loader2,
 } from 'lucide-react';
 import {
   getAdminReferrals, exportSuperGreenJson, downloadSuperGreenCsv,
@@ -12,6 +12,8 @@ import {
   StudentReportBlock, TeacherReportBlock, GradeReportBlock,
   SignalCountsByType, ReportCategoryBreakdown,
 } from '@/lib/adminDashboardService';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const priorityColors: Record<string, string> = {
   urgent: 'bg-red-100 text-red-700', high: 'bg-orange-100 text-orange-700',
@@ -171,6 +173,8 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 
 export default function PrincipalReportsPage() {
   const [tab, setTab] = useState<'referrals' | 'supergreen' | 'student-reports' | 'teacher-reports' | 'grade-reports'>('referrals');
+  const studentTableRef = useRef<HTMLDivElement>(null);
+  const [studentExporting, setStudentExporting] = useState(false);
 
   // Referrals state
   const [referrals, setReferrals] = useState<EscalationLogBlock | null>(null);
@@ -321,8 +325,78 @@ export default function PrincipalReportsPage() {
   const totalTeacherPages = teacherData ? Math.ceil(teacherData.total / REPORT_PAGE_SIZE) : 0;
   const totalGradePages = gradeData ? Math.ceil(gradeData.total / REPORT_PAGE_SIZE) : 0;
 
+  const handleStudentPrint = () => {
+    window.print();
+  };
+
+  const handleStudentExportPDF = async () => {
+    if (!studentTableRef.current) return;
+    setStudentExporting(true);
+    try {
+      const canvas = await html2canvas(studentTableRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4',
+      });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 8;
+      const usableWidth = pageWidth - margin * 2;
+      const imgWidth = usableWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const usableHeight = pageHeight - margin * 2;
+
+      let yOffset = 0;
+      let page = 0;
+
+      while (yOffset < imgHeight) {
+        if (page > 0) pdf.addPage();
+        const sourceY = (yOffset / imgHeight) * canvas.height;
+        const sourceH = (usableHeight / imgHeight) * canvas.height;
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = Math.min(sourceH, canvas.height - sourceY);
+        const ctx = pageCanvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(
+            canvas,
+            0, sourceY, canvas.width, pageCanvas.height,
+            0, 0, canvas.width, pageCanvas.height,
+          );
+          const pageImg = pageCanvas.toDataURL('image/png');
+          const drawHeight = (pageCanvas.height * imgWidth) / canvas.width;
+          pdf.addImage(pageImg, 'PNG', margin, margin, imgWidth, drawHeight);
+        }
+        yOffset += usableHeight;
+        page++;
+      }
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      pdf.save(`Student_Reports_${dateStr}.pdf`);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+    } finally {
+      setStudentExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Print-friendly styles */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .principal-report-print-area, .principal-report-print-area * { visibility: visible; }
+          .principal-report-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Sora:wght@400;500;600;700&display=swap');`}</style>
 
       <div className="space-y-2">
@@ -512,12 +586,32 @@ export default function PrincipalReportsPage() {
             gradeLevel={studentGrade} setGradeLevel={setStudentGrade}
             showGrade={true} onRefresh={fetchStudentReports} loading={studentLoading}
           />
+          {/* Export Buttons */}
+          {!studentLoading && !studentError && (studentData?.students || []).length > 0 && (
+            <div className="flex items-center gap-3 no-print">
+              <button
+                onClick={handleStudentPrint}
+                className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg transition-colors font-medium text-sm shadow-sm"
+              >
+                <Printer size={16} />
+                Print Report
+              </button>
+              <button
+                onClick={handleStudentExportPDF}
+                disabled={studentExporting}
+                className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors font-medium text-sm shadow-sm"
+              >
+                {studentExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                {studentExporting ? 'Exporting...' : 'Export as PDF'}
+              </button>
+            </div>
+          )}
           {studentLoading ? (
             <LoadingSkeleton rows={5} />
           ) : studentError ? (
             <ErrorState message={studentError} onRetry={fetchStudentReports} />
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div ref={studentTableRef} className="principal-report-print-area bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">

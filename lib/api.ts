@@ -23,11 +23,47 @@ api.interceptors.request.use(
   }
 );
 
+// Determine the correct login route based on stored user data and current URL
+function getLoginRoute(): string {
+  // First, check stored user data
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      if (user.role === 'principal' || user.role === 'admin') {
+        return '/principal-auth';
+      }
+    } catch (e) {}
+  }
+
+  // Fallback: check the current URL path to determine context
+  // If we're on a principal page, redirect to principal login
+  if (typeof window !== 'undefined') {
+    const path = window.location.pathname;
+    if (path.startsWith('/principal')) {
+      return '/principal-auth';
+    }
+  }
+
+  return '/auth';
+}
+
 // Handle token refresh and errors
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as any;
+
+    // Don't intercept auth endpoints (login, signup, refresh) —
+    // let the calling code handle those errors directly
+    const requestUrl = originalRequest?.url || '';
+    if (
+      requestUrl.includes('/auth/login') ||
+      requestUrl.includes('/auth/signup') ||
+      requestUrl.includes('/auth/refresh')
+    ) {
+      return Promise.reject(error);
+    }
 
     // Handle 401 (Unauthorized) - try to refresh token
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -37,16 +73,7 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem('refresh_token');
         if (!refreshToken) {
           // No refresh token, redirect to login
-          let loginRoute = '/auth';
-          const userStr = localStorage.getItem('user');
-          if (userStr) {
-            try {
-              const user = JSON.parse(userStr);
-              if (user.role === 'principal' || user.role === 'admin') {
-                loginRoute = '/principal-auth';
-              }
-            } catch (e) {}
-          }
+          const loginRoute = getLoginRoute();
 
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
@@ -72,16 +99,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         // Refresh failed, redirect to login
-        let loginRoute = '/auth';
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-          try {
-            const user = JSON.parse(userStr);
-            if (user.role === 'principal' || user.role === 'admin') {
-              loginRoute = '/principal-auth';
-            }
-          } catch (e) {}
-        }
+        const loginRoute = getLoginRoute();
 
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');

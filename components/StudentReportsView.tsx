@@ -116,7 +116,7 @@ export default function StudentReportsView({
         className="inline-flex items-center text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors"
       >
         <ArrowLeft className="w-4 h-4 mr-1" />
-        Back to Dashboard
+        Back to Classes
       </button>
 
       {/* Header */}
@@ -234,7 +234,9 @@ export default function StudentReportsView({
             name: `${selectedStudent.first_name} ${selectedStudent.last_name}`,
             status: getStatusBadge(selectedStudent).text.toLowerCase() as any,
             initial: `${selectedStudent.first_name.charAt(0)}${selectedStudent.last_name.charAt(0)}`.toUpperCase(),
-            bgColor: 'from-blue-400 to-blue-600'
+            bgColor: 'from-blue-400 to-blue-600',
+            redCount: getSignalCounts(selectedStudent).red,
+            yellowCount: getSignalCounts(selectedStudent).yellow,
           }}
           defaultSubject={classData.subject || classData.name}
           gradeSubjects={gradeSubjects}
