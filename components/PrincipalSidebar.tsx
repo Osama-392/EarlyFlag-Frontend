@@ -41,7 +41,7 @@ export default function PrincipalSidebar() {
       icon: Globe,
     },
     {
-      label: 'Students',
+      label: 'Classes',
       href: '/principal-students',
       icon: Users,
     },
