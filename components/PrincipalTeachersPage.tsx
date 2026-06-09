@@ -3,7 +3,7 @@
 import { Users, Search, Clock, CheckCircle2, XCircle, UserCheck, UserX, RefreshCw, Mail, Calendar, Shield, AlertCircle, Eye, Flag } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { getPendingTeachers, approveTeacher, rejectTeacher, PendingTeacher } from '@/lib/adminService';
-import { getAdminTeacherFlags, acknowledgeTeacherFlag, TeacherObservationFlagRow } from '@/lib/adminDashboardService';
+import { getAdminTeacherFlags, acknowledgeTeacherFlag, TeacherObservationFlagRow, getAdminTeacherReports, TeacherReportItem } from '@/lib/adminDashboardService';
 
 type ToastType = 'success' | 'error';
 
@@ -14,10 +14,12 @@ interface Toast {
 }
 
 export default function PrincipalTeachersPage() {
-  const [tab, setTab] = useState<'observation' | 'pending'>('observation');
+  const [tab, setTab] = useState<'observation' | 'pending' | 'approved'>('observation');
   const [searchTerm, setSearchTerm] = useState('');
   const [pending, setPending] = useState<PendingTeacher[]>([]);
   const [loadingPending, setLoadingPending] = useState(true);
+  const [approvedTeachers, setApprovedTeachers] = useState<TeacherReportItem[]>([]);
+  const [loadingApproved, setLoadingApproved] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [confirmAction, setConfirmAction] = useState<{ type: 'approve' | 'reject'; teacher: PendingTeacher } | null>(null);
@@ -29,8 +31,8 @@ export default function PrincipalTeachersPage() {
   const [obsFlagStatus, setObsFlagStatus] = useState<'open' | 'all'>('open');
   const [ackLoading, setAckLoading] = useState<string | null>(null);
 
-  // Stats derived from pending list
-  const approvedCount = 0; // No endpoint to get all teachers yet
+  // Stats derived from pending/approved list
+  const approvedCount = approvedTeachers.length;
   const pendingCount = pending.length;
 
   const showToast = (message: string, type: ToastType) => {
@@ -57,15 +59,33 @@ export default function PrincipalTeachersPage() {
     }
   }, []);
 
+  const loadApproved = useCallback(async (showRefreshIndicator = false) => {
+    try {
+      if (showRefreshIndicator) setRefreshing(true);
+      else setLoadingApproved(true);
+
+      const data = await getAdminTeacherReports({ range: '30d' });
+      setApprovedTeachers(data.teachers || []);
+    } catch (err) {
+      console.error('Failed to load approved teachers', err);
+      showToast('Failed to load approved teachers. Please try again.', 'error');
+    } finally {
+      setLoadingApproved(false);
+      setRefreshing(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadPending();
-  }, [loadPending]);
+    loadApproved();
+  }, [loadPending, loadApproved]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('tab') === 'pending') {
-        setTab('pending');
+      const urlTab = params.get('tab');
+      if (urlTab === 'pending' || urlTab === 'approved' || urlTab === 'observation') {
+        setTab(urlTab as any);
       }
     }
   }, []);
@@ -105,6 +125,7 @@ export default function PrincipalTeachersPage() {
       await approveTeacher(teacher.id);
       setPending((p) => p.filter((t) => t.id !== teacher.id));
       showToast(`${teacher.first_name} ${teacher.last_name} has been approved!`, 'success');
+      loadApproved();
     } catch (err) {
       console.error('Approve failed', err);
       showToast(`Failed to approve ${teacher.first_name} ${teacher.last_name}. Please try again.`, 'error');
@@ -129,6 +150,12 @@ export default function PrincipalTeachersPage() {
   };
 
   const filteredPending = pending.filter((t) => {
+    const fullName = `${t.first_name} ${t.last_name}`.toLowerCase();
+    const term = searchTerm.toLowerCase();
+    return fullName.includes(term) || t.email.toLowerCase().includes(term);
+  });
+
+  const filteredApproved = approvedTeachers.filter((t) => {
     const fullName = `${t.first_name} ${t.last_name}`.toLowerCase();
     const term = searchTerm.toLowerCase();
     return fullName.includes(term) || t.email.toLowerCase().includes(term);
@@ -353,15 +380,15 @@ export default function PrincipalTeachersPage() {
             {pendingCount === 0 ? 'All clear!' : pendingCount === 1 ? 'Needs your review' : 'Need your review'}
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-emerald-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-xl border border-emerald-200 p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => setTab('approved')}>
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-emerald-100 rounded-lg">
               <CheckCircle2 size={18} className="text-emerald-600" />
             </div>
             <p className="text-gray-600 text-xs font-semibold uppercase tracking-wide">Approved</p>
           </div>
-          <p className="text-3xl font-bold text-emerald-600">—</p>
-          <p className="text-xs text-gray-500 mt-2">Endpoint coming soon</p>
+          <p className="text-3xl font-bold text-emerald-600">{approvedCount}</p>
+          <p className="text-xs text-gray-500 mt-2">Active teachers in platform</p>
         </div>
         <div className="bg-white rounded-xl border border-red-200 p-5 shadow-sm hover:shadow-md transition-shadow col-span-2 md:col-span-1">
           <div className="flex items-center gap-3 mb-3">
@@ -380,6 +407,7 @@ export default function PrincipalTeachersPage() {
         {[
           { id: 'observation' as const, label: 'Teacher Observation', icon: Flag },
           { id: 'pending' as const, label: 'Pending Teacher Approval', icon: Clock },
+          { id: 'approved' as const, label: 'Approved Teachers', icon: CheckCircle2 },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all ${
@@ -607,6 +635,147 @@ export default function PrincipalTeachersPage() {
             <div className="text-center py-16">
               <Search size={40} className="mx-auto text-gray-300 mb-4" />
               <p className="text-gray-600 font-medium">No matching teachers found</p>
+              <p className="text-gray-500 text-sm mt-1">Try a different search term</p>
+              <button
+                onClick={() => setSearchTerm('')}
+                className="mt-4 text-blue-600 text-sm font-medium hover:text-blue-700 transition"
+              >
+                Clear search
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Approved Teachers Tab ─────────────────────────────── */}
+      {tab === 'approved' && (
+        <div className="space-y-6">
+          {/* Toolbar */}
+          <div className="flex flex-col lg:flex-row gap-4 items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Search Approved Teachers</label>
+              <div className="relative">
+                <Search size={18} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  id="approved-teacher-search-input"
+                  placeholder="Search by name or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm"
+                />
+              </div>
+            </div>
+            <button
+              id="refresh-approved-teachers-btn"
+              onClick={() => loadApproved(true)}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm font-medium text-gray-700 hover:text-gray-900 disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={refreshing ? 'refresh-spin' : ''} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
+
+          {/* Loading State */}
+          {loadingApproved && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="skeleton w-12 h-12 rounded-full" />
+                    <div className="flex-1">
+                      <div className="skeleton h-4 w-3/4 mb-2" />
+                      <div className="skeleton h-3 w-1/2" />
+                    </div>
+                  </div>
+                  <div className="skeleton h-3 w-full mb-3" />
+                  <div className="skeleton h-3 w-2/3 mb-5" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Approved Teacher Cards */}
+          {!loadingApproved && filteredApproved.length > 0 && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredApproved.map((teacher) => (
+                <div
+                  key={teacher.teacher_id}
+                  className="teacher-card bg-white border border-emerald-100 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group"
+                >
+                  {/* Header with Avatar */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm font-semibold"
+                        style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                      >
+                        {getInitials(teacher.first_name, teacher.last_name)}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-900">{teacher.first_name} {teacher.last_name}</h3>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold mt-1">
+                          <CheckCircle2 size={10} />
+                          Approved
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Info Rows */}
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg">
+                      <Mail size={14} className="text-gray-400 flex-shrink-0" />
+                      <span className="text-xs text-gray-700 truncate">{teacher.email}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2.5 bg-gray-50 rounded-lg text-center">
+                        <span className="text-[10px] text-gray-500 block uppercase font-bold tracking-wider">Classes</span>
+                        <span className="text-base font-bold text-gray-800">{teacher.class_count}</span>
+                      </div>
+                      <div className="p-2.5 bg-gray-50 rounded-lg text-center">
+                        <span className="text-[10px] text-gray-500 block uppercase font-bold tracking-wider">Students</span>
+                        <span className="text-base font-bold text-gray-800">{teacher.total_enrollments}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Activity and alerts indicators */}
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 text-xs text-gray-500">
+                    <span>
+                      {teacher.most_recent_signal_date
+                        ? `Active ${formatDate(teacher.most_recent_signal_date)}`
+                        : 'No activity logged'}
+                    </span>
+                    {(teacher.pending_observation_flag_count || 0) > 0 && (
+                      <span className="text-red-600 font-semibold flex items-center gap-1">
+                        <Flag size={12} /> {teacher.pending_observation_flag_count} alerts
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Empty State - No approved teachers */}
+          {!loadingApproved && approvedTeachers.length === 0 && (
+            <div className="text-center py-20">
+              <div className="mx-auto w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+                <Users size={40} className="text-gray-300" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2" style={{ fontFamily: 'Sora' }}>No Approved Teachers</h3>
+              <p className="text-gray-500 text-sm max-w-md mx-auto mb-6">
+                There are no approved teachers registered in your school yet. Pending approval requests in the "Pending" tab can be reviewed to approve them.
+              </p>
+            </div>
+          )}
+
+          {/* Empty State - Search returned no results */}
+          {!loadingApproved && approvedTeachers.length > 0 && filteredApproved.length === 0 && (
+            <div className="text-center py-16">
+              <Search size={40} className="mx-auto text-gray-300 mb-4" />
+              <p className="text-gray-600 font-medium">No matching approved teachers found</p>
               <p className="text-gray-500 text-sm mt-1">Try a different search term</p>
               <button
                 onClick={() => setSearchTerm('')}

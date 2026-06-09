@@ -14,6 +14,7 @@ import EditSignalModal from '@/components/EditSignalModal';
 import AddStudentModal from '@/components/AddStudentModal';
 import BulkUploadModal from '@/components/BulkUploadModal';
 import { updateSignal } from '@/lib/studentService';
+import { useToast } from '@/components/Toast';
 import { ArrowLeft, Search, Upload, Plus, Edit2 } from 'lucide-react';
 
 export default function StudentRoster() {
@@ -21,6 +22,7 @@ export default function StudentRoster() {
   const router = useRouter();
   const classId = params.classId as string;
   const { students, loading, error, loadStudents, loadStudentHistory, studentHistory, logStudentSignal } = useStudentRoster();
+  const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudentForHistory, setSelectedStudentForHistory] = useState<Student | null>(null);
   const [selectedStudentForSignal, setSelectedStudentForSignal] = useState<Student | null>(null);
@@ -53,29 +55,31 @@ export default function StudentRoster() {
   };
 
   const handleSignalLogged = async (signalType: 'green' | 'yellow' | 'red', category?: string, note?: string, reasonCode?: string) => {
-    console.log('handleSignalLogged called with:', {
-      signalType,
-      category,
-      note,
-      reasonCode,
-      student: selectedStudentForSignal?.first_name,
-    });
-
     if (!selectedStudentForSignal) {
       console.error('No student selected');
       return false;
     }
-    
-    const success = await logStudentSignal(selectedStudentForSignal.id, signalType, category, note, reasonCode);
-    console.log('logStudentSignal returned:', success);
 
-    if (success) {
-      console.log('Signal logged successfully, refreshing students...');
-      // Refresh students list
-      await loadStudents(classId);
-      setSelectedStudentForSignal(null);
-    }
-    return success;
+    const studentName = `${selectedStudentForSignal.first_name} ${selectedStudentForSignal.last_name}`;
+    
+    // Optimistic: close modal immediately
+    setSelectedStudentForSignal(null);
+
+    // Fire API in background
+    logStudentSignal(selectedStudentForSignal.id, signalType, category, note, reasonCode)
+      .then((success) => {
+        if (success) {
+          showToast(`Signal logged for ${studentName}`, 'success');
+          loadStudents(classId);
+        } else {
+          showToast(`Failed to log signal for ${studentName}`, 'error');
+        }
+      })
+      .catch(() => {
+        showToast(`Failed to log signal for ${studentName}`, 'error');
+      });
+
+    return true;
   };
 
   const handleUpdateSignal = async (
