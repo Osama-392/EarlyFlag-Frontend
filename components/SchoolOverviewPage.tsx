@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { getAdminTrends, AdminTrendsBlock } from '@/lib/adminDashboardService';
 
 export default function SchoolOverviewPage() {
-  const [range, setRange] = useState<'7d' | '30d'>('30d');
+  const [range, setRange] = useState<'1d' | '7d' | '30d'>('30d');
   const [trends, setTrends] = useState<AdminTrendsBlock | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,10 +69,10 @@ export default function SchoolOverviewPage() {
         </div>
         <div className="flex items-center gap-3">
           <div className="flex bg-gray-100 rounded-lg p-1">
-            {(['7d','30d'] as const).map(r => (
+            {(['1d', '7d', '30d'] as const).map(r => (
               <button key={r} onClick={() => setRange(r)}
                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${range === r ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-600'}`}>
-                {r === '7d' ? '7 Days' : '30 Days'}
+                {r === '1d' ? 'Today' : r === '7d' ? '7 Days' : '30 Days'}
               </button>
             ))}
           </div>
@@ -89,9 +89,9 @@ export default function SchoolOverviewPage() {
           <p className="text-xs text-gray-500 font-semibold uppercase">Total Flags</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">{totalFlags}</p>
         </div>
-        <div className="bg-white rounded-xl border border-yellow-200 p-4 shadow-sm">
+        <div className="bg-white rounded-xl border border-amber-200 p-4 shadow-sm">
           <p className="text-xs text-gray-500 font-semibold uppercase">Yellow</p>
-          <p className="text-2xl font-bold text-yellow-600 mt-1">{daily.reduce((s, d) => s + d.yellow, 0)}</p>
+          <p className="text-2xl font-bold text-amber-600 mt-1">{daily.reduce((s, d) => s + d.yellow, 0)}</p>
         </div>
         <div className="bg-white rounded-xl border border-red-200 p-4 shadow-sm">
           <p className="text-xs text-gray-500 font-semibold uppercase">Red</p>
@@ -113,22 +113,26 @@ export default function SchoolOverviewPage() {
               <div key={i} className="flex-1 flex flex-col items-center gap-1 group cursor-default"
                 title={`${d.date}: Y${d.yellow} R${d.red} A${d.absent} SG${d.super_green}`}>
                 <div className="w-full flex flex-col justify-end" style={{ height: '160px' }}>
-                  {d.red > 0 && <div className="bg-red-400 rounded-t-sm w-full transition-all group-hover:opacity-80" style={{ height: `${(d.red / maxDailyTotal) * 100}%`, minHeight: '2px' }} />}
-                  {d.yellow > 0 && <div className="bg-yellow-400 w-full transition-all group-hover:opacity-80" style={{ height: `${(d.yellow / maxDailyTotal) * 100}%`, minHeight: '2px' }} />}
-                  {d.absent > 0 && <div className="bg-gray-300 rounded-b-sm w-full transition-all group-hover:opacity-80" style={{ height: `${(d.absent / maxDailyTotal) * 100}%`, minHeight: '2px' }} />}
-                  {total === 0 && <div className="bg-green-200 rounded-sm w-full" style={{ height: '2px' }} />}
+                  {d.red > 0 && <div className="bg-red-500 rounded-t-sm w-full transition-all group-hover:opacity-80" style={{ height: `${(d.red / maxDailyTotal) * 100}%`, minHeight: '2px' }} />}
+                  {d.yellow > 0 && <div className="bg-amber-400 w-full transition-all group-hover:opacity-80" style={{ height: `${(d.yellow / maxDailyTotal) * 100}%`, minHeight: '2px' }} />}
+                  {d.absent > 0 && <div className="bg-slate-300 rounded-b-sm w-full transition-all group-hover:opacity-80" style={{ height: `${(d.absent / maxDailyTotal) * 100}%`, minHeight: '2px' }} />}
+                  {total === 0 && <div className="bg-emerald-400 rounded-sm w-full" style={{ height: '2px' }} />}
                 </div>
-                {(i % (range === '7d' ? 1 : 5) === 0) && (
-                  <span className="text-[10px] text-gray-500">{new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                )}
+                <div className="h-4 flex items-center justify-center">
+                  {(range === '1d' || i % (range === '7d' ? 1 : 5) === 0) ? (
+                    <span className="text-[10px] text-gray-500 whitespace-nowrap">{new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  ) : (
+                    <span className="text-[10px] opacity-0 pointer-events-none select-none">-</span>
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
         <div className="flex gap-6 justify-center pt-3 border-t border-gray-100">
-          <span className="flex items-center gap-1.5 text-xs text-gray-600"><span className="w-3 h-3 bg-red-400 rounded-full" />Red</span>
-          <span className="flex items-center gap-1.5 text-xs text-gray-600"><span className="w-3 h-3 bg-yellow-400 rounded-full" />Yellow</span>
-          <span className="flex items-center gap-1.5 text-xs text-gray-600"><span className="w-3 h-3 bg-gray-300 rounded-full" />Absent</span>
+          <span className="flex items-center gap-1.5 text-xs text-gray-600"><span className="w-3 h-3 bg-red-500 rounded-full" />Red</span>
+          <span className="flex items-center gap-1.5 text-xs text-gray-600"><span className="w-3 h-3 bg-amber-400 rounded-full" />Yellow</span>
+          <span className="flex items-center gap-1.5 text-xs text-gray-600"><span className="w-3 h-3 bg-slate-300 rounded-full" />Absent</span>
         </div>
       </div>
 
@@ -141,12 +145,16 @@ export default function SchoolOverviewPage() {
               <div key={i} className="flex-1 flex flex-col items-center gap-1 group"
                 title={`${a.date}: ${a.absent_count} absent`}>
                 <div className="w-full flex flex-col justify-end" style={{ height: '100px' }}>
-                  <div className={`w-full rounded-t-sm transition-all group-hover:opacity-80 ${a.absent_count > 0 ? 'bg-orange-400' : 'bg-green-200'}`}
+                  <div className={`w-full rounded-t-sm transition-all group-hover:opacity-80 ${a.absent_count > 0 ? 'bg-orange-500' : 'bg-emerald-400'}`}
                     style={{ height: a.absent_count > 0 ? `${Math.max(4, (a.absent_count / maxAbsent) * 100)}%` : '2px' }} />
                 </div>
-                {(i % (range === '7d' ? 1 : 5) === 0) && (
-                  <span className="text-[10px] text-gray-500">{new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                )}
+                <div className="h-4 flex items-center justify-center">
+                  {(range === '1d' || i % (range === '7d' ? 1 : 5) === 0) ? (
+                    <span className="text-[10px] text-gray-500 whitespace-nowrap">{new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  ) : (
+                    <span className="text-[10px] opacity-0 pointer-events-none select-none">-</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
