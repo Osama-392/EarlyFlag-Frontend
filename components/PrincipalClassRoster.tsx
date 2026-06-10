@@ -73,9 +73,9 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
 
   const stats = {
     total: students.length,
-    critical: students.filter(s => getStatusFromScore(s.weighted_score) === 'critical').length,
-    atRisk: students.filter(s => getStatusFromScore(s.weighted_score) === 'at-risk').length,
-    onTrack: students.filter(s => getStatusFromScore(s.weighted_score) === 'on-track').length,
+    greenFlags: students.filter(s => s.yellow_count === 0 && s.red_count === 0).length,
+    yellowFlags: students.reduce((sum, s) => sum + (s.yellow_count || 0), 0),
+    redFlags: students.reduce((sum, s) => sum + (s.red_count || 0), 0),
   };
 
   return (
@@ -122,17 +122,17 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
           <p className="text-gray-600 text-xs font-semibold uppercase tracking-wide">Total Students</p>
           <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total}</p>
         </div>
-        <div className="bg-white rounded-xl border border-green-200 p-5 shadow-sm">
-          <p className="text-gray-600 text-xs font-semibold uppercase tracking-wide">Low Risk</p>
-          <p className="text-3xl font-bold text-green-600 mt-2">{stats.onTrack}</p>
+        <div className="bg-white rounded-xl border-emerald-200 p-5 shadow-sm">
+          <p className="text-emerald-600 text-xs font-semibold uppercase tracking-wide">Green Flags</p>
+          <p className="text-3xl font-bold text-emerald-600 mt-2">{stats.greenFlags}</p>
         </div>
-        <div className="bg-white rounded-xl border border-yellow-200 p-5 shadow-sm">
-          <p className="text-gray-600 text-xs font-semibold uppercase tracking-wide">At-Risk</p>
-          <p className="text-3xl font-bold text-yellow-600 mt-2">{stats.atRisk}</p>
+        <div className="bg-white rounded-xl border border-amber-200 p-5 shadow-sm">
+          <p className="text-amber-600 text-xs font-semibold uppercase tracking-wide">Yellow Flags</p>
+          <p className="text-3xl font-bold text-amber-600 mt-2">{stats.yellowFlags}</p>
         </div>
         <div className="bg-white rounded-xl border border-red-200 p-5 shadow-sm">
-          <p className="text-gray-600 text-xs font-semibold uppercase tracking-wide">Critical</p>
-          <p className="text-3xl font-bold text-red-600 mt-2">{stats.critical}</p>
+          <p className="text-red-600 text-xs font-semibold uppercase tracking-wide">Red Flags</p>
+          <p className="text-3xl font-bold text-red-600 mt-2">{stats.redFlags}</p>
         </div>
       </div>
 
@@ -154,14 +154,14 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
         {filteredStudents.map(student => {
           const status = getStatusFromScore(student.weighted_score);
           const styles = statusStyles[status];
+          const isGreen = student.yellow_count === 0 && student.red_count === 0;
           return (
             <div key={student.student_id}
               onClick={() => router.push(`/principal-students/${student.student_id}`)}
-              className={`student-card ${styles.bg} border-2 ${styles.border} rounded-xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group`}>
+              className="student-card bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 bg-white rounded-lg flex items-center justify-center text-sm font-bold shadow-sm border border-gray-200"
-                    style={{ background: status === 'critical' ? 'linear-gradient(135deg, #fee2e2, #fecaca)' : status === 'at-risk' ? 'linear-gradient(135deg, #fef9c3, #fef08a)' : 'linear-gradient(135deg, #dcfce7, #bbf7d0)' }}>
+                  <div className="w-11 h-11 bg-slate-100 rounded-lg flex items-center justify-center text-sm font-bold shadow-sm border border-gray-200 text-slate-600">
                     {student.first_name[0]}{student.last_name[0]}
                   </div>
                   <div>
@@ -169,7 +169,6 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
                     <p className="text-xs text-gray-600">{student.external_student_id}</p>
                   </div>
                 </div>
-                <div className={`w-3 h-3 rounded-full ${styles.dot}`} />
               </div>
 
               {/* Badges */}
@@ -180,35 +179,24 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
                 </div>
               )}
 
-              {/* Severity Score */}
-              <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100 mb-3">
-                <div className="flex items-center gap-2">
-                  <AlertCircle size={14} className={styles.icon} />
-                  <span className="text-xs font-medium text-gray-600">Severity Score</span>
-                </div>
-                <span className="text-lg font-bold text-gray-900">{student.weighted_score}</span>
-              </div>
-
               {/* Breakdowns */}
-              <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
-                <div className="bg-white rounded-lg p-2 border border-gray-100">
+              <div className="grid grid-cols-4 gap-2 text-center text-xs mb-3">
+                <div className="bg-white rounded-xl p-2 border border-gray-100">
+                  <p className="font-bold text-emerald-600">{isGreen ? 1 : 0}</p><p className="text-gray-500">Green</p>
+                </div>
+                <div className="bg-white rounded-xl p-2 border border-gray-100">
+                  <p className="font-bold text-amber-600">{student.yellow_count}</p><p className="text-gray-500">Yellow</p>
+                </div>
+                <div className="bg-white rounded-xl p-2 border border-gray-100">
                   <p className="font-bold text-red-600">{student.red_count}</p><p className="text-gray-500">Red</p>
                 </div>
-                <div className="bg-white rounded-lg p-2 border border-gray-100">
-                  <p className="font-bold text-yellow-600">{student.yellow_count}</p><p className="text-gray-500">Yellow</p>
-                </div>
-                <div className="bg-white rounded-lg p-2 border border-gray-100">
+                <div className="bg-white rounded-xl p-2 border border-gray-100">
                   <p className="font-bold text-gray-600">{student.absent_count}</p><p className="text-gray-500">Absent</p>
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${styles.badge}`}>
-                  {status === 'on-track' && '✓ Low Risk'}
-                  {status === 'at-risk' && '⚠️ At-Risk'}
-                  {status === 'critical' && '🚩 Critical'}
-                </span>
+              <div className="flex items-center justify-end pt-3 border-t border-gray-200">
                 <div className="flex items-center gap-1 text-xs text-gray-500 group-hover:text-blue-600 transition">
                   <span>View Profile</span>
                   <ArrowRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />

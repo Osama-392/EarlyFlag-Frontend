@@ -247,19 +247,19 @@ export default function FlagModal({
             <div className="border border-red-200 bg-red-50 rounded-lg p-3 flex items-center space-x-2 mb-2">
               <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
               <p className="text-sm text-red-700">
-                This will trigger a <span className="font-semibold">counselor notification</span>
+                This will trigger an <span className="font-semibold">admin notification</span>
               </p>
             </div>
           )}
 
-          {/* Optional Notes (Yellow & Red only) */}
-          {(flagType === 'yellow' || flagType === 'red') && (
+          {/* Optional Notes (Super Green, Yellow & Red) */}
+          {(flagType === 'super-green' || flagType === 'yellow' || flagType === 'red') && (
             <div className="mt-4">
               <label className="text-[15px] font-medium text-slate-700 mb-2 block">Notes <span className="text-slate-400 font-normal">(optional)</span></label>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Add context for this flag..."
+                placeholder={flagType === 'super-green' ? 'Add details about this recognition...' : 'Add context for this flag...'}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-transparent resize-none"
               />

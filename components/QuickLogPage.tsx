@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Check, X, Loader2, Calendar } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { useToast } from '@/components/Toast';
 import FlagModal from '@/components/FlagModal';
 import { useClasses } from '@/lib/useClasses';
 import { getClassStudents, logSignals, getAvailableSignalDates, getIncompleteQuickLogs, Student as ApiStudent, IncompleteLogSession } from '@/lib/studentService';
@@ -38,6 +39,7 @@ interface QuickLogPageProps {
 }
 
 export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
+  const { showToast } = useToast();
   const { classes, loading: classesLoading } = useClasses();
   const [activeClassId, setActiveClassId] = useState<string | null>(null);
   const [apiStudents, setApiStudents] = useState<ApiStudent[]>([]);
@@ -197,95 +199,89 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
   };
 
   const handleSaveLog = async () => {
-    setSaving(true);
     setSaveError(null);
     setSaveSuccess(false);
 
-    try {
-      const signalsToLog = Object.entries(logData)
-        .filter(([_, entry]) => entry.superGreen || entry.green || entry.yellow || entry.red || entry.absent)
-        .map(([studentId, entry]) => {
-          let signalType: 'present' | 'yellow' | 'red' | 'super_green' | 'absent' = 'present';
-          if (entry.red) signalType = 'red';
-          else if (entry.yellow) signalType = 'yellow';
-          else if (entry.superGreen) signalType = 'super_green';
-          else if (entry.absent) signalType = 'absent';
+    const signalsToLog = Object.entries(logData)
+      .filter(([_, entry]) => entry.superGreen || entry.green || entry.yellow || entry.red || entry.absent)
+      .map(([studentId, entry]) => {
+        let signalType: 'present' | 'yellow' | 'red' | 'super_green' | 'absent' = 'present';
+        if (entry.red) signalType = 'red';
+        else if (entry.yellow) signalType = 'yellow';
+        else if (entry.superGreen) signalType = 'super_green';
+        else if (entry.absent) signalType = 'absent';
 
-          const reasonsText = entry.flagData?.reasons?.join(', ') || '';
-          let mappedReasonCode: string | undefined = undefined;
+        const reasonsText = entry.flagData?.reasons?.join(', ') || '';
+        let mappedReasonCode: string | undefined = undefined;
 
-          // Backend validation rules require specific reason codes for certain signals
-          if (signalType === 'super_green' && entry.flagData?.reasons?.length) {
-             const firstReason = entry.flagData.reasons[0].toLowerCase().replace(/ /g, '_');
-             mappedReasonCode = firstReason;
-          } else if (signalType === 'red' && entry.flagData?.category === 'academic') {
-             if (reasonsText.toLowerCase().includes('cheating')) {
-                mappedReasonCode = 'cheating';
-             }
-          }
-
-          return {
-            student_id: studentId,
-            class_id: activeClassId,
-            signal_date: selectedDate || new Date().toISOString().split('T')[0],
-            signal_type: signalType,
-            category: (signalType === 'yellow' || signalType === 'red') 
-              ? (entry.flagData?.category || 'academic') 
-              : undefined,
-            reason_code: mappedReasonCode,
-            reason_description: reasonsText || undefined,
-            note: entry.flagData?.note || reasonsText || (signalType === 'red' ? 'Needs review' : ''),
-            save_for_later: signalType === 'red' && !reasonsText && !entry.flagData?.note,
-          };
-        });
-
-      if (signalsToLog.length === 0) {
-        setSaveError('No signals selected to log.');
-        setSaving(false);
-        return;
-      }
-
-      const targetDate = selectedDate || new Date().toISOString().split('T')[0];
-      const draftSession = incompleteSessions.find(
-        s => s.class_id === activeClassId && s.signal_date === targetDate
-      );
-
-      const payload: any = { signals: signalsToLog };
-      if (draftSession) {
-        payload.session_id = draftSession.session_id;
-      }
-
-      await logSignals(payload);
-      
-      logger.formSubmit('QuickLog', { 
-        date: new Date().toLocaleDateString(),
-        entries: signalsToLog.length 
-      });
-      
-      setSaveSuccess(true);
-      
-      // Invalidate cache so dashboard & classes refresh on next visit
-      cacheInvalidate();
-
-      // Notify other components (like Dashboard) to refresh their data
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('dashboard-refresh'));
-      }
-
-      setTimeout(() => {
-        setSaveSuccess(false);
-        setLogData({});
-        // Auto-close the modal after showing success message
-        if (onCancel) {
-          onCancel();
+        // Backend validation rules require specific reason codes for certain signals
+        if (signalType === 'super_green' && entry.flagData?.reasons?.length) {
+           const firstReason = entry.flagData.reasons[0].toLowerCase().replace(/ /g, '_');
+           mappedReasonCode = firstReason;
+        } else if (signalType === 'red' && entry.flagData?.category === 'academic') {
+           if (reasonsText.toLowerCase().includes('cheating')) {
+              mappedReasonCode = 'cheating';
+           }
         }
-      }, 2000);
-    } catch (err: any) {
-      console.error('Failed to save quick log:', err);
-      setSaveError(err?.response?.data?.detail?.[0]?.msg || err?.response?.data?.detail || 'Failed to save logs.');
-    } finally {
-      setSaving(false);
+
+        return {
+          student_id: studentId,
+          class_id: activeClassId,
+          signal_date: selectedDate || new Date().toISOString().split('T')[0],
+          signal_type: signalType,
+          category: (signalType === 'yellow' || signalType === 'red') 
+            ? (entry.flagData?.category || 'academic') 
+            : undefined,
+          reason_code: mappedReasonCode,
+          reason_description: reasonsText || undefined,
+          note: entry.flagData?.note || reasonsText || (signalType === 'red' ? 'Needs review' : ''),
+          save_for_later: signalType === 'red' && !reasonsText && !entry.flagData?.note,
+        };
+      });
+
+    if (signalsToLog.length === 0) {
+      setSaveError('No signals selected to log.');
+      return;
     }
+
+    const targetDate = selectedDate || new Date().toISOString().split('T')[0];
+    const draftSession = incompleteSessions.find(
+      s => s.class_id === activeClassId && s.signal_date === targetDate
+    );
+
+    const payload: any = { signals: signalsToLog };
+    if (draftSession) {
+      payload.session_id = draftSession.session_id;
+    }
+
+    // ── Optimistic UI: close immediately, save in background ──
+    logger.formSubmit('QuickLog', { 
+      date: new Date().toLocaleDateString(),
+      entries: signalsToLog.length 
+    });
+
+    setLogData({});
+    if (onCancel) {
+      onCancel();
+    }
+    showToast(`Saving ${signalsToLog.length} signal${signalsToLog.length > 1 ? 's' : ''}...`, 'success');
+
+    // Fire API call in background — don't block the UI
+    logSignals(payload)
+      .then(() => {
+        showToast(`${signalsToLog.length} signal${signalsToLog.length > 1 ? 's' : ''} saved successfully`, 'success');
+        // Invalidate cache so dashboard & classes refresh on next visit
+        cacheInvalidate();
+        // Notify other components (like Dashboard) to refresh their data
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('dashboard-refresh'));
+        }
+      })
+      .catch((err: any) => {
+        console.error('Failed to save quick log:', err);
+        const errorMsg = err?.response?.data?.detail?.[0]?.msg || err?.response?.data?.detail || 'Failed to save signals. Please try again.';
+        showToast(errorMsg, 'error');
+      });
   };
 
   const handleCancel = () => {
