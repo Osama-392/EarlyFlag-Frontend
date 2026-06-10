@@ -64,22 +64,12 @@ export default function SignalLogModal({
     setError('');
 
     try {
-      console.log('Logging signal:', {
-        selectedSignal,
-        category,
-        note,
-        reasonCode,
-        saveForLater,
-      });
-
       const success = await onLog(
         selectedSignal!,
         category || undefined,
         note || undefined,
         reasonCode || undefined
       );
-
-      console.log('Signal log response:', success);
 
       if (success) {
         setSelectedSignal(null);

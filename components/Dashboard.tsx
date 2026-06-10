@@ -102,8 +102,8 @@ export default function Dashboard() {
             border-radius: 8px;
           }
         `}</style>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="rounded-lg border border-gray-200 p-6">
               <div className="skeleton h-4 w-2/3 mb-3" />
               <div className="skeleton h-10 w-1/3 mb-2" />
@@ -163,6 +163,13 @@ export default function Dashboard() {
       icon: '⭐',
       bgColor: 'bg-green-50',
       textColor: 'text-green-700',
+    },
+    {
+      label: 'Absences This Week',
+      value: kpis.absent_total || 0,
+      icon: '📅',
+      bgColor: 'bg-slate-100',
+      textColor: 'text-slate-700',
     },
   ];
 
@@ -238,7 +245,7 @@ export default function Dashboard() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, idx) => (
           <div key={idx} className={`${stat.bgColor} rounded-xl border border-gray-100 p-6 shadow-sm`}>
             <div className="flex items-start justify-between">

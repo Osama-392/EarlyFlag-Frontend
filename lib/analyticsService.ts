@@ -31,14 +31,14 @@ export const getSignalStats = async (windowDays: number = 7): Promise<SignalStat
 
 // Fetch stats for multiple windows in parallel
 export const getMultiWindowStats = async (): Promise<{
+  today: SignalStats;
   week: SignalStats;
   month: SignalStats;
-  quarter: SignalStats;
 }> => {
-  const [week, month, quarter] = await Promise.all([
+  const [today, week, month] = await Promise.all([
+    getSignalStats(1),
     getSignalStats(7),
     getSignalStats(30),
-    getSignalStats(90),
   ]);
-  return { week, month, quarter };
+  return { today, week, month };
 };

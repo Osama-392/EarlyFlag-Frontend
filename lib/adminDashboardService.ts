@@ -649,7 +649,7 @@ export const acknowledgeTeacherFlag = async (
  * Daily stacked counts + weekly accumulation + attendance trend.
  */
 export const getAdminTrends = async (
-  range: '7d' | '30d' = '7d',
+  range: '1d' | '7d' | '30d' = '7d',
 ): Promise<AdminTrendsBlock> => {
   const res = await api.get('/api/v1/admin/trends', { params: { range } });
   return res.data;

@@ -8,7 +8,7 @@ import {
   Users, Activity,
 } from 'lucide-react';
 import {
-  getAdminDashboard, getAdminHeatmap, resolvePatternAlert,
+  getAdminDashboard, getAdminHeatmap,
   AdminDashboardResponse, HeatmapBlock, HeatmapBand,
 } from '@/lib/adminDashboardService';
 import { getPendingTeachers } from '@/lib/adminService';
@@ -50,10 +50,7 @@ export default function PrincipalDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Resolve alert modal
-  const [resolveAlertId, setResolveAlertId] = useState<string | null>(null);
-  const [resolveNote, setResolveNote] = useState('');
-  const [resolving, setResolving] = useState(false);
+
 
   // Pending teachers state
   const [pendingCount, setPendingCount] = useState<number>(0);
@@ -83,20 +80,7 @@ export default function PrincipalDashboard() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleResolve = async () => {
-    if (!resolveAlertId || !resolveNote.trim()) return;
-    try {
-      setResolving(true);
-      await resolvePatternAlert(resolveAlertId, resolveNote);
-      setResolveAlertId(null);
-      setResolveNote('');
-      fetchData(true);
-    } catch (err: any) {
-      console.error('Resolve failed:', err);
-    } finally {
-      setResolving(false);
-    }
-  };
+
 
   const kpis = dashboard?.kpis;
   const totalClasses = heatmap?.grade_buckets?.reduce((s, b) => s + b.tiles.length, 0) ?? 0;
@@ -235,14 +219,12 @@ export default function PrincipalDashboard() {
 
       {/* ── KPI Stats Cards ─────────────────────────────────────── */}
       {kpis && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: 'Yellow Flags', value: kpis.yellow_total, icon: Zap, color: 'yellow', border: 'border-yellow-200' },
             { label: 'Red Flags', value: kpis.red_total, icon: AlertTriangle, color: 'red', border: 'border-red-200' },
             { label: 'Super Green', value: kpis.super_green_total, icon: Sparkles, color: 'emerald', border: 'border-emerald-200' },
             { label: 'Absent', value: kpis.absent_total, icon: Clock, color: 'gray', border: 'border-gray-200' },
-            { label: 'Unresolved Alerts', value: kpis.unresolved_alerts_total, icon: AlertCircle, color: 'orange', border: 'border-orange-200' },
-            { label: 'Open Referrals', value: kpis.open_referrals_total, icon: FileText, color: 'blue', border: 'border-blue-200' },
           ].map((card, i) => {
             const Icon = card.icon;
             return (
@@ -327,37 +309,7 @@ export default function PrincipalDashboard() {
         </div>
       )}
 
-      {/* ── Urgent Alerts ───────────────────────────────────────── */}
-      {dashboard && dashboard.urgent_alerts.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-gray-200 flex items-center gap-3">
-            <AlertTriangle size={20} className="text-red-500" />
-            <h3 className="text-lg font-bold text-gray-900">Urgent Alerts</h3>
-            <span className="ml-auto text-sm text-gray-500">{dashboard.urgent_alerts.length} unresolved</span>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {dashboard.urgent_alerts.map(alert => (
-              <div key={alert.alert_id} className="p-4 hover:bg-gray-50 transition flex items-center gap-4">
-                <div className={`px-2.5 py-1 rounded-full text-xs font-bold border ${severityStyles[alert.severity] || severityStyles.medium}`}>
-                  {alert.severity}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">
-                    {alert.student.first_name} {alert.student.last_name}
-                    <span className="font-normal text-gray-500 ml-2">Grade {alert.student.grade_level}</span>
-                  </p>
-                  <p className="text-xs text-gray-600 mt-0.5">{alert.rule_description}</p>
-                </div>
-                <span className="text-xs text-gray-400 whitespace-nowrap">{timeAgo(alert.triggered_at)}</span>
-                <button onClick={() => router.push(`/principal-students/${alert.student.student_id}`)}
-                  className="text-xs text-teal-600 hover:text-teal-700 font-medium whitespace-nowrap">View</button>
-                <button onClick={() => { setResolveAlertId(alert.alert_id); setResolveNote(''); }}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium whitespace-nowrap">Resolve</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
 
       {/* ── Two-Column: Teacher Flags + Recommendations ──────── */}
       <div className="grid lg:grid-cols-2 gap-6">
@@ -409,28 +361,7 @@ export default function PrincipalDashboard() {
         )}
       </div>
 
-      {/* ── Resolve Alert Modal ──────────────────────────────── */}
-      {resolveAlertId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100" style={{ animation: 'slideUp 0.3s ease-out' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Resolve Alert</h3>
-              <button onClick={() => setResolveAlertId(null)} className="p-1 hover:bg-gray-100 rounded-lg"><X size={18} /></button>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">Describe how this alert was resolved:</p>
-            <textarea value={resolveNote} onChange={e => setResolveNote(e.target.value)} rows={4} placeholder="e.g. Met with student and parent; remediation plan in place."
-              className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none resize-none" />
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setResolveAlertId(null)}
-                className="flex-1 px-4 py-2.5 border-2 border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">Cancel</button>
-              <button onClick={handleResolve} disabled={resolving || !resolveNote.trim()}
-                className="flex-1 px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-semibold hover:bg-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                {resolving ? 'Resolving...' : 'Mark Resolved'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

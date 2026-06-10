@@ -8,12 +8,12 @@ import {
 import { getMultiWindowStats, SignalStats } from '@/lib/analyticsService';
 import { getTeacherDashboard, TeacherDashboardResponse } from '@/lib/dashboardService';
 
-type TimeWindow = 'week' | 'month' | 'quarter';
+type TimeWindow = 'today' | 'week' | 'month';
 
 const WINDOW_LABELS: Record<TimeWindow, string> = {
+  today: 'Today',
   week: 'This Week',
-  month: 'Last 30 Days',
-  quarter: 'Last 90 Days',
+  month: '30 Days',
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────
@@ -26,12 +26,12 @@ function pct(value: number, total: number): number {
 // ─── Component ──────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
-  const [stats, setStats] = useState<{ week: SignalStats; month: SignalStats; quarter: SignalStats } | null>(null);
+  const [stats, setStats] = useState<{ today: SignalStats; week: SignalStats; month: SignalStats } | null>(null);
   const [dashboardData, setDashboardData] = useState<TeacherDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeWindow, setActiveWindow] = useState<TimeWindow>('week');
+  const [activeWindow, setActiveWindow] = useState<TimeWindow>('today');
 
   const fetchData = useCallback(async (isRefresh = false) => {
     try {
@@ -177,30 +177,30 @@ export default function AnalyticsPage() {
   const comparisonMetrics = [
     {
       label: 'Yellow Flags',
+      today: stats.today.yellow_count,
       week: stats.week.yellow_count,
       month: stats.month.yellow_count,
-      quarter: stats.quarter.yellow_count,
       invertGood: true,
     },
     {
       label: 'Red Flags',
+      today: stats.today.red_count,
       week: stats.week.red_count,
       month: stats.month.red_count,
-      quarter: stats.quarter.red_count,
       invertGood: true,
     },
     {
       label: 'Super Greens',
+      today: stats.today.super_green_count,
       week: stats.week.super_green_count,
       month: stats.month.super_green_count,
-      quarter: stats.quarter.super_green_count,
       invertGood: false,
     },
     {
       label: 'Absent',
+      today: stats.today.absent_count,
       week: stats.week.absent_count,
       month: stats.month.absent_count,
-      quarter: stats.quarter.absent_count,
       invertGood: true,
     },
   ];
@@ -220,6 +220,43 @@ export default function AnalyticsPage() {
       {refreshing && (
         <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg shadow-lg text-sm">
           <RefreshCw size={14} className="animate-spin" /> Refreshing...
+        </div>
+      )}
+      {/* ─── Signal Health Summary (top of page) ────────────────── */}
+      {current.total_signals > 0 && (
+        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 text-white shadow-lg">
+          <h3 className="text-base font-bold font-sora mb-4 flex items-center gap-2">
+            <Activity className="w-4 h-4 text-teal-400" />
+            Signal Health Summary
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Engagement Rate</p>
+              <p className="text-2xl font-bold font-sora mt-1">
+                {pct(current.super_green_count + current.present_count, current.total_signals)}%
+              </p>
+              <p className="text-xs text-slate-400 mt-1">Green + Present</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Concern Rate</p>
+              <p className="text-2xl font-bold font-sora mt-1">
+                {pct(current.yellow_count + current.red_count, current.total_signals)}%
+              </p>
+              <p className="text-xs text-slate-400 mt-1">Yellow + Red</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Absence Rate</p>
+              <p className="text-2xl font-bold font-sora mt-1">
+                {pct(current.absent_count, current.total_signals)}%
+              </p>
+              <p className="text-xs text-slate-400 mt-1">Absent signals</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Active Alerts</p>
+              <p className="text-2xl font-bold font-sora mt-1">{red_urgent.length}</p>
+              <p className="text-xs text-slate-400 mt-1">Unresolved red</p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -399,9 +436,9 @@ export default function AnalyticsPage() {
             <thead>
               <tr className="bg-gray-50/80">
                 <th className="px-5 py-3.5 text-left font-semibold text-gray-600">Metric</th>
+                <th className="px-5 py-3.5 text-center font-semibold text-gray-600">Today</th>
                 <th className="px-5 py-3.5 text-center font-semibold text-gray-600">7 Days</th>
                 <th className="px-5 py-3.5 text-center font-semibold text-gray-600">30 Days</th>
-                <th className="px-5 py-3.5 text-center font-semibold text-gray-600">90 Days</th>
                 <th className="px-5 py-3.5 text-center font-semibold text-gray-600">Trend (7d vs 30d avg)</th>
               </tr>
             </thead>
@@ -419,9 +456,9 @@ export default function AnalyticsPage() {
                 return (
                   <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 transition">
                     <td className="px-5 py-3.5 font-medium text-gray-900">{metric.label}</td>
+                    <td className="px-5 py-3.5 text-center text-gray-600">{metric.today}</td>
                     <td className="px-5 py-3.5 text-center font-bold text-gray-900">{metric.week}</td>
                     <td className="px-5 py-3.5 text-center text-gray-600">{metric.month}</td>
-                    <td className="px-5 py-3.5 text-center text-gray-600">{metric.quarter}</td>
                     <td className="px-5 py-3.5 text-center">
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold ${trendClass}`}>
                         {trendDir === 'up' && <ArrowUpRight className="w-3.5 h-3.5" />}
@@ -514,44 +551,6 @@ export default function AnalyticsPage() {
           )}
         </div>
       </div>
-
-      {/* ─── Signal Health Score ────────────────────────────────────── */}
-      {current.total_signals > 0 && (
-        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 text-white shadow-lg">
-          <h3 className="text-base font-bold font-sora mb-4 flex items-center gap-2">
-            <Activity className="w-4 h-4 text-teal-400" />
-            Signal Health Summary
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white/10 rounded-lg p-4">
-              <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Engagement Rate</p>
-              <p className="text-2xl font-bold font-sora mt-1">
-                {pct(current.super_green_count + current.present_count, current.total_signals)}%
-              </p>
-              <p className="text-xs text-slate-400 mt-1">Green + Present</p>
-            </div>
-            <div className="bg-white/10 rounded-lg p-4">
-              <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Concern Rate</p>
-              <p className="text-2xl font-bold font-sora mt-1">
-                {pct(current.yellow_count + current.red_count, current.total_signals)}%
-              </p>
-              <p className="text-xs text-slate-400 mt-1">Yellow + Red</p>
-            </div>
-            <div className="bg-white/10 rounded-lg p-4">
-              <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Absence Rate</p>
-              <p className="text-2xl font-bold font-sora mt-1">
-                {pct(current.absent_count, current.total_signals)}%
-              </p>
-              <p className="text-xs text-slate-400 mt-1">Absent signals</p>
-            </div>
-            <div className="bg-white/10 rounded-lg p-4">
-              <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Active Alerts</p>
-              <p className="text-2xl font-bold font-sora mt-1">{red_urgent.length}</p>
-              <p className="text-xs text-slate-400 mt-1">Unresolved red</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Download, Printer, ArrowLeft, Loader2 } from 'lucide-react';
+import { Download, Printer, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -120,40 +120,20 @@ export default function ReportView({
   // Use custom window counts if available, otherwise fall back to 30d window
   const summaryCounts = report?.summary_counts?.window_custom || report?.summary_counts?.window_30d;
 
-  const engagementMetrics = summaryCounts ? [
-    {
-      label: 'Positive Incidents',
-      value: String((summaryCounts.super_green || 0) + (summaryCounts.present || 0)),
-      color: 'bg-blue-50 text-blue-700',
-      bgGradient: 'from-blue-400 to-blue-600',
-    },
-    {
-      label: 'Yellow Flags',
-      value: String(summaryCounts.yellow || 0),
-      color: 'bg-purple-50 text-purple-700',
-      bgGradient: 'from-purple-400 to-purple-600',
-    },
-    {
-      label: 'Red Incidents',
-      value: String(summaryCounts.red || 0),
-      color: 'bg-red-50 text-red-700',
-      bgGradient: 'from-red-400 to-red-600',
-    },
-  ] : [
-    { label: 'Positive Incidents', value: '0', color: 'bg-blue-50 text-blue-700', bgGradient: 'from-blue-400 to-blue-600' },
-    { label: 'Yellow Flags', value: '0', color: 'bg-purple-50 text-purple-700', bgGradient: 'from-purple-400 to-purple-600' },
-    { label: 'Red Incidents', value: '0', color: 'bg-red-50 text-red-700', bgGradient: 'from-red-400 to-red-600' },
-  ];
+  // Determine overall status based on count severities
+  let statusText = 'Super Green';
+  if ((summaryCounts?.red || 0) > 0) {
+    statusText = 'Red';
+  } else if ((summaryCounts?.yellow || 0) > 0) {
+    statusText = 'Yellow';
+  }
 
-  // Use timeline from the API — check both 'timeline' (custom range) and 'timeline_30d' fields
-  const timelineRaw = report?.timeline || report?.timeline_30d || [];
-  const chartData = timelineRaw.map((day: any) => {
-    const dateObj = new Date(day.day + 'T00:00:00');
-    const label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return { month: label, yellow: day.counts?.yellow || 0, red: day.counts?.red || 0 };
-  });
-
-  const maxChartValue = Math.max(6, ...chartData.flatMap((d: any) => [d.yellow || 0, d.red || 0]));
+  // Calculate percentages for the summary bar
+  const totalCounts = (summaryCounts?.red || 0) + (summaryCounts?.yellow || 0) + ((summaryCounts?.super_green || 0) + (summaryCounts?.present || 0));
+  const divisor = totalCounts || 1;
+  const redPercent = Math.round(((summaryCounts?.red || 0) / divisor) * 100);
+  const yellowPercent = Math.round(((summaryCounts?.yellow || 0) / divisor) * 100);
+  const positivePercent = Math.round((((summaryCounts?.super_green || 0) + (summaryCounts?.present || 0)) / divisor) * 100);
 
   const incidents = report?.recent_notes?.map((note: any) => ({
     type: note.class_name ? `Flag in ${note.class_name}` : 'Flag Note',
@@ -162,11 +142,10 @@ export default function ReportView({
   })) || [];
 
   const recommendations = report?.talking_points || [];
-
   const teachersNotes = report?.one_ask_for_parents || (report ? 'No notes provided.' : '');
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" style={{ fontFamily: 'Inter, sans-serif' }}>
       {/* Print-friendly styles */}
       <style>{`
         @media print {
@@ -176,6 +155,7 @@ export default function ReportView({
           .no-print { display: none !important; }
         }
       `}</style>
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40 no-print">
         <div className="max-w-6xl mx-auto px-8 py-6 flex items-center justify-between">
@@ -185,9 +165,9 @@ export default function ReportView({
                 logger.buttonClick('Back from Report', 'ReportView');
                 onBack();
               }}
-              className="text-sm text-teal-600 hover:text-teal-700 font-medium flex items-center space-x-1 mb-2"
+              className="inline-flex items-center text-sm text-blue-500 bg-white border border-blue-100 px-4 py-2 rounded-full hover:bg-gray-50 transition-colors shadow-sm font-medium mb-2"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4 mr-2" />
               <span>Back to Reports</span>
             </button>
             <h1 className="text-2xl font-bold text-gray-900">{student.name}</h1>
@@ -205,96 +185,160 @@ export default function ReportView({
       </div>
 
       {/* Main Content */}
-      <div ref={reportContentRef} className="report-print-area max-w-6xl mx-auto px-8 py-8 space-y-8">
-        {/* Engagement Summary */}
-        <section>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Engagement Summary</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {engagementMetrics.map((metric, idx) => (
-              <div key={idx} className={`${metric.color} rounded-lg p-6 border border-gray-200`}>
-                <p className="text-sm font-medium text-gray-600 mb-2">{metric.label}</p>
-                <p className="text-5xl font-bold">{metric.value}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Monthly Chart */}
-        <section>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Daily Flag Incidents</h2>
-          <div className="bg-white rounded-lg border border-gray-200 p-8 overflow-x-auto">
-            <div className="flex items-end justify-around h-56 gap-2 min-w-[500px]">
-              {chartData.map((data: any, idx: number) => (
-                <div key={idx} className="flex flex-col items-center gap-2 flex-1">
-                  <div className="w-full flex gap-1 items-end justify-center h-40">
-                    {/* Yellow bar */}
-                    <div
-                      className="flex-1 bg-amber-400 rounded-t"
-                      style={{ height: `${(data.yellow / maxChartValue) * 100}%` }}
-                    />
-                    {/* Red bar */}
-                    <div
-                      className="flex-1 bg-red-400 rounded-t"
-                      style={{ height: `${(data.red / maxChartValue) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-xs text-gray-500 whitespace-nowrap">{data.month}</span>
-                </div>
-              ))}
+      <div ref={reportContentRef} className="report-print-area max-w-6xl mx-auto px-8 py-8 space-y-6">
+        
+        {/* Profile Header Card */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 flex items-center justify-between">
+          <div className="flex items-center space-x-6">
+            {/* Avatar */}
+            <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center border-4 border-white shadow-md text-3xl font-bold text-slate-400 overflow-hidden">
+              {student.initial || '??'}
             </div>
-
-            {/* Legend */}
-            <div className="flex items-center justify-center gap-6 mt-6 min-w-[500px]">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-amber-400 rounded" />
-                <span className="text-sm text-gray-600">Yellow Flags</span>
+            
+            <div>
+              <div className="flex items-center mb-1">
+                {statusText === 'Red' && <span className="px-2.5 py-0.5 bg-red-400 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Red</span>}
+                {statusText === 'Yellow' && <span className="px-2.5 py-0.5 bg-amber-400 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Yellow</span>}
+                {statusText === 'Super Green' && <span className="px-2.5 py-0.5 bg-emerald-500 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Super Green</span>}
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-400 rounded" />
-                <span className="text-sm text-gray-600">Red Flags</span>
-              </div>
+              <h1 className="text-3xl font-bold text-slate-800" style={{ fontFamily: 'Playfair Display, serif' }}>
+                {student.name}
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Grade {student.gradeLevel} • {reportData.subject}
+              </p>
             </div>
           </div>
-        </section>
 
-        {/* Incidents Timeline */}
-        <section>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Flag Details</h2>
+          <div className="flex items-center gap-3">
+            <div className="px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-100 shadow-sm">
+              Status : {statusText} Active
+            </div>
+            <div className="px-4 py-2 bg-gray-100 text-slate-700 text-xs font-bold rounded-lg border border-gray-200 shadow-sm">
+              Total Signals : {incidents.length}
+            </div>
+            <div className="px-4 py-2 bg-amber-100/50 text-amber-700 text-xs font-bold rounded-lg border border-amber-200/50 shadow-sm">
+              Period : {formatDisplayDate(startDateStr)} - {formatDisplayDate(endDateStr)}
+            </div>
+          </div>
+        </div>
+
+        {/* Middle Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column: Flags Summary */}
           <div className="space-y-4">
-            {incidents.map((incident: any, idx: number) => (
-              <div key={idx} className="bg-white rounded-lg border border-gray-200 p-4 flex gap-4">
-                <div className="flex-shrink-0">
-                  <div
-                    className={`w-3 h-3 rounded-full mt-1 ${
-                      incident.type.includes('Academic')
-                        ? 'bg-orange-400'
-                        : 'bg-red-400'
-                    }`}
-                  />
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1.5 bg-blue-50 text-blue-500 rounded-lg">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-[15px] font-bold text-slate-800">Flags Summary</h2>
+                <p className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold">Report Period</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+              {/* Positive Incidents / Super Green */}
+              <div className="bg-slate-50 rounded-xl p-5 relative border border-slate-100">
+                <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-slate-400 mb-3 shadow-sm">
+                  <span className="font-bold text-sm text-emerald-500">P</span>
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-semibold text-gray-900">{incident.type}</p>
-                      <p className="text-sm text-gray-600 mt-1">{incident.description}</p>
-                    </div>
-                    <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
-                      {incident.date}
-                    </span>
-                  </div>
+                <div className="text-4xl font-bold text-emerald-500 mb-1">
+                  {(summaryCounts?.super_green || 0) + (summaryCounts?.present || 0)}
+                </div>
+                <h3 className="text-sm font-bold text-slate-700">Positive Incidents</h3>
+                <p className="text-xs text-gray-400 mt-1">Super Green / Present signals</p>
+              </div>
+
+              {/* Yellow Flags */}
+              <div className="bg-amber-50 rounded-xl p-5 relative border border-amber-100">
+                <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-3 shadow-sm">
+                  <AlertCircle className="w-4 h-4 text-amber-500" />
+                </div>
+                <div className="text-4xl font-bold text-amber-500 mb-1">{summaryCounts?.yellow || 0}</div>
+                <h3 className="text-sm font-bold text-slate-700">Yellow Flags</h3>
+                <p className="text-xs text-amber-500/80 mt-1">Light concerns tracked</p>
+              </div>
+
+              {/* Red Flags */}
+              <div className="bg-red-50 rounded-xl p-5 relative border border-red-100">
+                <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-3 shadow-sm">
+                  <AlertCircle className="w-4 h-4 text-red-500" />
+                </div>
+                <div className="text-4xl font-bold text-red-500 mb-1">{summaryCounts?.red || 0}</div>
+                <h3 className="text-sm font-bold text-slate-700">Red Incidents</h3>
+                <p className="text-xs text-red-400/80 mt-1">Urgent interventions</p>
+              </div>
+
+              {/* Bar Chart Summary */}
+              <div className="pt-4">
+                <div className="flex justify-between text-xs text-gray-500 font-semibold mb-2">
+                  <span>Positive</span>
+                  <span>Yellow</span>
+                  <span>Red</span>
+                </div>
+                <div className="flex h-2.5 rounded-full overflow-hidden bg-gray-100">
+                  <div style={{ width: `${positivePercent}%` }} className="bg-emerald-400 relative" />
+                  <div style={{ width: `${yellowPercent}%` }} className="bg-amber-400 relative" />
+                  <div style={{ width: `${redPercent}%` }} className="bg-red-400 relative" />
                 </div>
               </div>
-            ))}
+            </div>
           </div>
-        </section>
 
-        {/* Recommendations */}
+          {/* Right Column: Flag Details / History */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1.5 bg-amber-50 text-amber-500 rounded-lg">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path>
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-[15px] font-bold text-slate-800">Flag History</h2>
+                <p className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold">Timeline</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 h-[560px] overflow-y-auto">
+              {incidents.length > 0 ? (
+                <div className="space-y-5">
+                  {incidents.map((incident: any, idx: number) => {
+                    const isRed = incident.type.toLowerCase().includes('red');
+                    const isYellow = incident.type.toLowerCase().includes('yellow') || incident.type.toLowerCase().includes('academic') || incident.type.toLowerCase().includes('behavioral');
+                    return (
+                      <div key={idx} className="flex items-center space-x-4 group">
+                        <span className="text-xs font-semibold text-gray-500 w-20 shrink-0">{incident.date}</span>
+                        <div className={`w-3 h-1 rounded-full ${isRed ? 'bg-red-500' : isYellow ? 'bg-amber-400' : 'bg-emerald-500'}`}></div>
+                        <div className={`px-3 py-1.5 rounded-lg text-[11px] font-bold ${isRed ? 'bg-red-50 text-red-600 border border-red-100' : isYellow ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
+                          {incident.type}
+                        </div>
+                        <div className="flex-1 px-4 py-1.5 bg-gray-50 rounded-lg text-xs font-semibold text-slate-600 border border-gray-100 truncate">
+                          {incident.description}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                  <AlertCircle className="w-8 h-8 mb-2 opacity-50" />
+                  <p className="text-sm font-medium">No signals logged in this period</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* AI Recommendations */}
         {(reportData.includeAIRecommendations || reportData.include_ai_recommendations) && (
-          <section>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Recommended Next Steps
-            </h2>
-            <div className="bg-blue-50 rounded-lg border border-blue-200 p-6">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+              <h2 className="text-lg font-bold text-slate-800">Recommended Next Steps</h2>
+            </div>
+            <div className="p-6">
               <ul className="space-y-3">
                 {recommendations.map((rec: string, idx: number) => (
                   <li key={idx} className="flex gap-3 text-sm text-gray-700">
@@ -304,19 +348,21 @@ export default function ReportView({
                 ))}
               </ul>
             </div>
-          </section>
+          </div>
         )}
 
         {/* Teachers Notes */}
         {(reportData.includeTeachersNotes || reportData.include_teachers_notes) && (
-          <section>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Teachers Notes</h2>
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <p className="text-gray-600 text-sm leading-relaxed">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+              <h2 className="text-lg font-bold text-slate-800">Teachers Notes</h2>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600 leading-relaxed">
                 {teachersNotes}
               </p>
             </div>
-          </section>
+          </div>
         )}
       </div>
 
