@@ -27,8 +27,12 @@ interface LogEntry {
   absent?: boolean;
   flagData?: {
     type: string;
-    category: string;
-    reasons: string[];
+    category?: string;
+    reasons?: string[];
+    flags?: Array<{
+      category: string;
+      reasons: string[];
+    }>;
     note?: string;
   };
   isDraft?: boolean;
@@ -36,12 +40,13 @@ interface LogEntry {
 
 interface QuickLogPageProps {
   onCancel?: () => void;
+  initialClassId?: string;
 }
 
-export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
+export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageProps = {}) {
   const { showToast } = useToast();
   const { classes, loading: classesLoading } = useClasses();
-  const [activeClassId, setActiveClassId] = useState<string | null>(null);
+  const [activeClassId, setActiveClassId] = useState<string | null>(initialClassId || null);
   const [apiStudents, setApiStudents] = useState<ApiStudent[]>([]);
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -54,7 +59,7 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
   const [currentPage, setCurrentPage] = useState(1);
   const [logData, setLogData] = useState<Record<string, LogEntry>>({});
   const [selectedFlagModal, setSelectedFlagModal] = useState<{
-    type: 'super-green' | 'green' | 'yellow' | 'red' | 'absent';
+    type: 'super-green' | 'yellow' | 'red' | 'absent';
     student: Student;
   } | null>(null);
   const itemsPerPage = 5;
@@ -79,58 +84,135 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
     fetchInitialData();
   }, []);
 
-  // Fetch classes and set active class
+  // Fetch classes and set active class (only if not already set via initialClassId)
   useEffect(() => {
     if (!classesLoading && classes.length > 0 && !activeClassId) {
       setActiveClassId(classes[0].id);
     }
   }, [classes, classesLoading, activeClassId]);
 
-  // Fetch students when active class changes
+  // Fetch students when active class or selected date changes
   useEffect(() => {
     const fetchStudents = async () => {
       if (!activeClassId) return;
       setStudentsLoading(true);
       try {
-        const data = await getClassStudents(activeClassId);
-        setApiStudents(data);
-        
-        // Find if we have an incomplete session for this class and date
         const targetDate = selectedDate || new Date().toISOString().split('T')[0];
+        // Pass the selected date so the backend returns signals for that specific date
+        const data = await getClassStudents(activeClassId, targetDate);
+        setApiStudents(data);
+
+        // Find if we have an incomplete (draft) session for this class and date
         const draftSession = incompleteSessions.find(
           s => s.class_id === activeClassId && s.signal_date === targetDate
         );
 
-        // Initialize logData with green signals by default, or draft signals if they exist
+        // Build logData: prioritize saved signals from backend, then drafts, then default green
         const initialLogData: Record<string, LogEntry> = {};
         data.forEach(s => {
-          const draftSignal = draftSession?.signals.find(sig => sig.student_id === s.id);
-          
-          if (draftSignal) {
-            initialLogData[s.id] = {
-              studentId: s.id,
-              green: draftSignal.signal_type === 'present',
-              superGreen: draftSignal.signal_type === 'super_green',
-              yellow: draftSignal.signal_type === 'yellow',
-              red: draftSignal.signal_type === 'red',
-              absent: draftSignal.signal_type === 'absent',
-              isDraft: true,
-              flagData: draftSignal.signal_type === 'yellow' || draftSignal.signal_type === 'red' || draftSignal.signal_type === 'super_green' ? {
-                type: draftSignal.signal_type,
-                category: draftSignal.category || 'academic',
-                reasons: draftSignal.reasons || [],
-                note: draftSignal.note
-              } : undefined
-            };
+          const savedSignals = s.signals || [];
+
+          if (savedSignals.length > 0) {
+            // ── Restore from previously saved signals ──
+            // Determine the primary signal type (use first signal's type)
+            const primary = savedSignals[0];
+            const signalType = primary.signal_type;
+
+            if (signalType === 'yellow' || signalType === 'red') {
+              // Merge all signals of same type into multi-category flags array
+              const flags = savedSignals
+                .filter(sig => sig.signal_type === signalType)
+                .map(sig => ({
+                  category: sig.category || 'academic',
+                  reasons: sig.reason_description
+                    ? sig.reason_description.split(', ').filter(Boolean)
+                    : [],
+                }));
+
+              initialLogData[s.id] = {
+                studentId: s.id,
+                green: false,
+                superGreen: false,
+                yellow: signalType === 'yellow',
+                red: signalType === 'red',
+                absent: false,
+                flagData: {
+                  type: signalType,
+                  flags,
+                  note: primary.note || undefined,
+                },
+              };
+            } else if (signalType === 'super_green') {
+              // Restore super green with reason
+              const reasonCode = primary.reason_code || '';
+              const reasonDisplay = reasonCode
+                .split('_')
+                .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+                .join(' ');
+
+              initialLogData[s.id] = {
+                studentId: s.id,
+                green: false,
+                superGreen: true,
+                yellow: false,
+                red: false,
+                absent: false,
+                flagData: {
+                  type: 'super-green',
+                  reasons: reasonDisplay ? [reasonDisplay] : [],
+                  note: primary.note || undefined,
+                },
+              };
+            } else if (signalType === 'absent') {
+              initialLogData[s.id] = {
+                studentId: s.id,
+                green: false,
+                superGreen: false,
+                yellow: false,
+                red: false,
+                absent: true,
+              };
+            } else {
+              // present / green
+              initialLogData[s.id] = {
+                studentId: s.id,
+                green: true,
+                superGreen: false,
+                yellow: false,
+                red: false,
+                absent: false,
+              };
+            }
           } else {
-            initialLogData[s.id] = {
-              studentId: s.id,
-              green: true,
-              superGreen: false,
-              yellow: false,
-              red: false,
-              absent: false
-            };
+            // ── No saved signals — check drafts, then default to green ──
+            const draftSignal = draftSession?.signals.find(sig => sig.student_id === s.id);
+
+            if (draftSignal) {
+              initialLogData[s.id] = {
+                studentId: s.id,
+                green: draftSignal.signal_type === 'present',
+                superGreen: draftSignal.signal_type === 'super_green',
+                yellow: draftSignal.signal_type === 'yellow',
+                red: draftSignal.signal_type === 'red',
+                absent: draftSignal.signal_type === 'absent',
+                isDraft: true,
+                flagData: draftSignal.signal_type === 'yellow' || draftSignal.signal_type === 'red' || draftSignal.signal_type === 'super_green' ? {
+                  type: draftSignal.signal_type,
+                  category: draftSignal.category || 'academic',
+                  reasons: draftSignal.reasons || [],
+                  note: draftSignal.note
+                } : undefined
+              };
+            } else {
+              initialLogData[s.id] = {
+                studentId: s.id,
+                green: true,
+                superGreen: false,
+                yellow: false,
+                red: false,
+                absent: false
+              };
+            }
           }
         });
         setLogData(initialLogData);
@@ -204,12 +286,40 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
 
     const signalsToLog = Object.entries(logData)
       .filter(([_, entry]) => entry.superGreen || entry.green || entry.yellow || entry.red || entry.absent)
-      .map(([studentId, entry]) => {
+      .flatMap(([studentId, entry]) => {
         let signalType: 'present' | 'yellow' | 'red' | 'super_green' | 'absent' = 'present';
         if (entry.red) signalType = 'red';
         else if (entry.yellow) signalType = 'yellow';
         else if (entry.superGreen) signalType = 'super_green';
         else if (entry.absent) signalType = 'absent';
+
+        if (signalType === 'yellow' || signalType === 'red') {
+          const flags = entry.flagData?.flags || [];
+          if (flags.length > 0) {
+            return flags.map((flag: any) => {
+              const reasonsText = flag.reasons?.join(', ') || '';
+              let mappedReasonCode: string | undefined = undefined;
+
+              if (signalType === 'red' && flag.category === 'academic') {
+                if (reasonsText.toLowerCase().includes('cheating')) {
+                  mappedReasonCode = 'cheating';
+                }
+              }
+
+              return {
+                student_id: studentId,
+                class_id: activeClassId,
+                signal_date: selectedDate || new Date().toISOString().split('T')[0],
+                signal_type: signalType as any,
+                category: flag.category,
+                reason_code: mappedReasonCode,
+                reason_description: reasonsText || undefined,
+                note: entry.flagData?.note || reasonsText || (signalType === 'red' ? 'Needs review' : undefined),
+                save_for_later: signalType === 'red' && !reasonsText && !entry.flagData?.note,
+              };
+            });
+          }
+        }
 
         const reasonsText = entry.flagData?.reasons?.join(', ') || '';
         let mappedReasonCode: string | undefined = undefined;
@@ -218,25 +328,22 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
         if (signalType === 'super_green' && entry.flagData?.reasons?.length) {
            const firstReason = entry.flagData.reasons[0].toLowerCase().replace(/ /g, '_');
            mappedReasonCode = firstReason;
-        } else if (signalType === 'red' && entry.flagData?.category === 'academic') {
-           if (reasonsText.toLowerCase().includes('cheating')) {
-              mappedReasonCode = 'cheating';
-           }
         }
 
-        return {
+        // For green/present and absent signals, don't send empty strings
+        const noteValue = entry.flagData?.note || reasonsText || undefined;
+
+        return [{
           student_id: studentId,
           class_id: activeClassId,
           signal_date: selectedDate || new Date().toISOString().split('T')[0],
-          signal_type: signalType,
-          category: (signalType === 'yellow' || signalType === 'red') 
-            ? (entry.flagData?.category || 'academic') 
-            : undefined,
+          signal_type: signalType as any,
+          category: undefined,
           reason_code: mappedReasonCode,
           reason_description: reasonsText || undefined,
-          note: entry.flagData?.note || reasonsText || (signalType === 'red' ? 'Needs review' : ''),
-          save_for_later: signalType === 'red' && !reasonsText && !entry.flagData?.note,
-        };
+          note: noteValue,
+          save_for_later: false,
+        }];
       });
 
     if (signalsToLog.length === 0) {
@@ -254,33 +361,76 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
       payload.session_id = draftSession.session_id;
     }
 
-    // ── Optimistic UI: close immediately, save in background ──
+    // ── Save with feedback: stay on page so teacher can review/edit ──
     logger.formSubmit('QuickLog', { 
       date: new Date().toLocaleDateString(),
       entries: signalsToLog.length 
     });
 
-    setLogData({});
-    if (onCancel) {
-      onCancel();
-    }
-    showToast(`Saving ${signalsToLog.length} signal${signalsToLog.length > 1 ? 's' : ''}...`, 'success');
+    setSaving(true);
 
-    // Fire API call in background — don't block the UI
+    // Fire API call — keep the page open for edit/correction workflow
     logSignals(payload)
-      .then(() => {
+      .then(async () => {
         showToast(`${signalsToLog.length} signal${signalsToLog.length > 1 ? 's' : ''} saved successfully`, 'success');
+        setSaveSuccess(true);
         // Invalidate cache so dashboard & classes refresh on next visit
         cacheInvalidate();
         // Notify other components (like Dashboard) to refresh their data
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new Event('dashboard-refresh'));
         }
+        // Re-fetch students to reflect the persisted state (enables edit flow)
+        try {
+          const refreshedData = await getClassStudents(activeClassId!, targetDate);
+          setApiStudents(refreshedData);
+          // Re-build logData from fresh backend data
+          const refreshedLogData: Record<string, LogEntry> = {};
+          refreshedData.forEach(s => {
+            const savedSignals = s.signals || [];
+            if (savedSignals.length > 0) {
+              const primary = savedSignals[0];
+              const signalType = primary.signal_type;
+              if (signalType === 'yellow' || signalType === 'red') {
+                const flags = savedSignals
+                  .filter(sig => sig.signal_type === signalType)
+                  .map(sig => ({
+                    category: sig.category || 'academic',
+                    reasons: sig.reason_description ? sig.reason_description.split(', ').filter(Boolean) : [],
+                  }));
+                refreshedLogData[s.id] = {
+                  studentId: s.id, green: false, superGreen: false,
+                  yellow: signalType === 'yellow', red: signalType === 'red', absent: false,
+                  flagData: { type: signalType, flags, note: primary.note || undefined },
+                };
+              } else if (signalType === 'super_green') {
+                const reasonCode = primary.reason_code || '';
+                const reasonDisplay = reasonCode.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                refreshedLogData[s.id] = {
+                  studentId: s.id, green: false, superGreen: true, yellow: false, red: false, absent: false,
+                  flagData: { type: 'super-green', reasons: reasonDisplay ? [reasonDisplay] : [], note: primary.note || undefined },
+                };
+              } else if (signalType === 'absent') {
+                refreshedLogData[s.id] = { studentId: s.id, green: false, superGreen: false, yellow: false, red: false, absent: true };
+              } else {
+                refreshedLogData[s.id] = { studentId: s.id, green: true, superGreen: false, yellow: false, red: false, absent: false };
+              }
+            } else {
+              refreshedLogData[s.id] = { studentId: s.id, green: true, superGreen: false, yellow: false, red: false, absent: false };
+            }
+          });
+          setLogData(refreshedLogData);
+        } catch (refreshErr) {
+          console.error('Failed to refresh students after save:', refreshErr);
+        }
       })
       .catch((err: any) => {
         console.error('Failed to save quick log:', err);
         const errorMsg = err?.response?.data?.detail?.[0]?.msg || err?.response?.data?.detail || 'Failed to save signals. Please try again.';
         showToast(errorMsg, 'error');
+      })
+      .finally(() => {
+        setSaving(false);
       });
   };
 
@@ -295,58 +445,71 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
   const getStatusIndicator = (studentId: string, status: keyof LogEntry) => {
     const isActive = logData[studentId]?.[status];
     const student = mappedStudents.find((s) => s.id === studentId);
-    
-    if (status === 'absent') {
+
+    // Simple toggle statuses (no modal needed)
+    if (status === 'absent' || status === 'green') {
+      const colorMap = {
+        absent: {
+          active: 'bg-gray-300 hover:bg-gray-400',
+          inactive: 'bg-gray-100 hover:bg-gray-200',
+        },
+        green: {
+          active: 'bg-emerald-300 hover:bg-emerald-400',
+          inactive: 'bg-gray-100 hover:bg-gray-200',
+        },
+      };
+      const colors = colorMap[status];
       return (
         <div className="flex justify-center">
-          {isActive ? (
-            <button
-              onClick={() => toggleStatus(studentId, status)}
-              className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center hover:bg-gray-400 transition-colors"
-            >
-              <Check className="w-4 h-4 text-white" />
-            </button>
-          ) : (
-            <button
-              onClick={() => toggleStatus(studentId, status)}
-              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-            />
-          )}
+          <button
+            onClick={() => toggleStatus(studentId, status)}
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+              isActive ? colors.active : colors.inactive
+            }`}
+          >
+            {isActive && <Check className="w-4 h-4 text-white" />}
+          </button>
         </div>
       );
     }
 
-    const statusMap: Record<string, 'super-green' | 'green' | 'yellow' | 'red'> = {
+    const statusMap: Record<string, 'super-green' | 'yellow' | 'red'> = {
       superGreen: 'super-green',
-      green: 'green',
       yellow: 'yellow',
       red: 'red',
     };
 
     const statusColors = {
       'super-green': 'bg-emerald-500 hover:bg-emerald-600',
-      green: 'bg-emerald-300 hover:bg-emerald-400',
       yellow: 'bg-amber-300 hover:bg-amber-400',
       red: 'bg-rose-300 hover:bg-rose-400',
     };
 
+    const flagsCount = (status === 'yellow' || status === 'red') && isActive
+      ? (logData[studentId]?.flagData?.flags?.length || 0)
+      : 0;
+
     return (
-      <button
-        onClick={() => {
-          if (student) {
-            logger.buttonClick(`Open flag modal for ${statusMap[status]}`, 'QuickLog');
-            setSelectedFlagModal({
-              type: statusMap[status],
-              student,
-            });
-          }
-        }}
-        className={`w-8 h-8 rounded-full transition-all ${
-          isActive
-            ? `${statusColors[statusMap[status]]} ring-2 ring-offset-2 ring-offset-white ring-gray-400`
-            : 'bg-gray-100 hover:bg-gray-200'
-        }`}
-      />
+      <div className="flex justify-center">
+        <button
+          onClick={() => {
+            if (student) {
+              logger.buttonClick(`Open flag modal for ${statusMap[status]}`, 'QuickLog');
+              setSelectedFlagModal({
+                type: statusMap[status],
+                student,
+              });
+            }
+          }}
+          className={`w-8 h-8 rounded-full transition-all flex items-center justify-center text-xs font-bold ${
+            isActive
+              ? `${statusColors[statusMap[status]]} text-amber-950 ring-2 ring-offset-2 ring-offset-white ring-gray-400`
+              : 'bg-gray-100 hover:bg-gray-200 text-transparent'
+          }`}
+        >
+          {flagsCount > 1 ? flagsCount : ''}
+        </button>
+      </div>
     );
   };
 
@@ -357,6 +520,7 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
         <FlagModal
           flagType={selectedFlagModal.type}
           student={selectedFlagModal.student}
+          initialData={logData[selectedFlagModal.student.id]?.flagData}
           onClose={() => setSelectedFlagModal(null)}
           onSubmit={(data) => {
             logger.info('Flag submitted', data, 'QuickLog');
@@ -523,19 +687,19 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-2 text-center">
+                  <td className="px-4 py-2">
                     {getStatusIndicator(student.id, 'superGreen')}
                   </td>
-                  <td className="px-4 py-2 text-center">
+                  <td className="px-4 py-2">
                     {getStatusIndicator(student.id, 'green')}
                   </td>
-                  <td className="px-4 py-2 text-center">
+                  <td className="px-4 py-2">
                     {getStatusIndicator(student.id, 'yellow')}
                   </td>
-                  <td className="px-4 py-2 text-center">
+                  <td className="px-4 py-2">
                     {getStatusIndicator(student.id, 'red')}
                   </td>
-                  <td className="px-4 py-2 text-center">
+                  <td className="px-4 py-2">
                     {getStatusIndicator(student.id, 'absent')}
                   </td>
                 </tr>

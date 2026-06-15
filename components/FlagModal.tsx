@@ -14,6 +14,7 @@ interface FlagModalProps {
     initial: string;
     bgColor: string;
   };
+  initialData?: any;
   onClose: () => void;
   onSubmit: (data: any) => void;
 }
@@ -21,12 +22,18 @@ interface FlagModalProps {
 export default function FlagModal({
   flagType,
   student,
+  initialData,
   onClose,
   onSubmit,
 }: FlagModalProps) {
-  const [selectedCategory, setSelectedCategory] = useState<'academic' | 'behavioral'>('academic');
-  const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
-  const [note, setNote] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<('academic' | 'behavioral')[]>(
+    initialData?.flags?.map((f: any) => f.category) || 
+    (initialData?.category ? [initialData.category] : ['academic'])
+  );
+  const [selectedReasons, setSelectedReasons] = useState<string[]>(
+    initialData?.reasons || initialData?.flags?.flatMap((f: any) => f.reasons) || []
+  );
+  const [note, setNote] = useState(initialData?.note || '');
 
   const flagConfig = {
     'super-green': {
@@ -121,10 +128,10 @@ export default function FlagModal({
   };
 
   const config = flagConfig[flagType];
-  const reasons =
-    typeof config.reasons === 'object' && 'academic' in config.reasons
-      ? config.reasons[selectedCategory] || []
-      : config.reasons || [];
+
+  const hasReasons = typeof config.reasons === 'object' && 'academic' in config.reasons
+    ? selectedCategories.some(cat => ((config.reasons as any)[cat] || []).length > 0)
+    : Array.isArray(config.reasons) && config.reasons.length > 0;
 
   const toggleReason = (reason: string) => {
     logger.formChange(`flag-reason-${reason}`, true, 'FlagModal');
@@ -134,16 +141,33 @@ export default function FlagModal({
   };
 
   const handleSubmit = () => {
+    // For flag types with categorized reasons (yellow/red), group by category
+    // For flat reason arrays (super-green), pass reasons directly
+    const isCategorized = typeof config.reasons === 'object' && !Array.isArray(config.reasons);
+
+    let flags: Array<{ category: string; reasons: string[] }> = [];
+    if (isCategorized) {
+      flags = selectedCategories.map(cat => {
+        const catReasons = (config.reasons as any)[cat] || [];
+        const reasonsSelected = selectedReasons.filter(r => catReasons.includes(r));
+        return {
+          category: cat,
+          reasons: reasonsSelected
+        };
+      }).filter(f => f.reasons.length > 0 || flagType === 'red');
+    }
+
     logger.formSubmit('FlagModal', {
       flagType,
       studentId: student.id,
-      category: selectedCategory,
+      categories: selectedCategories,
       reasons: selectedReasons,
+      flags,
     });
     onSubmit({
       flagType,
       studentId: student.id,
-      category: selectedCategory,
+      flags,
       reasons: selectedReasons,
       note: note.trim() || undefined,
     });
@@ -188,49 +212,85 @@ export default function FlagModal({
           {/* Category Selection (only for yellow/red) */}
           {config.categories.length > 1 && (
             <div className="mb-6">
-              <p className="text-[15px] font-medium text-slate-700 mb-3">Category</p>
+              <p className="text-[15px] font-medium text-slate-700 mb-3">Category (Select one or both)</p>
               <div className="flex gap-4">
-                {config.categories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => {
-                      logger.buttonClick(`Select category: ${cat}`, 'FlagModal');
-                      setSelectedCategory(cat as 'academic' | 'behavioral');
-                      setSelectedReasons([]);
-                    }}
-                    className={`flex-1 px-4 py-2.5 rounded-full font-medium text-sm transition-all border ${
-                      selectedCategory === cat
-                        ? config.activeCategoryBg
-                        : 'bg-white text-slate-500 border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                  </button>
-                ))}
+                {config.categories.map((cat) => {
+                  const isSelected = selectedCategories.includes(cat as any);
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        logger.buttonClick(`Toggle category: ${cat}`, 'FlagModal');
+                        setSelectedCategories(prev => {
+                          if (prev.includes(cat as any)) {
+                            if (prev.length === 1) return prev; // Keep at least one selected
+                            return prev.filter(c => c !== cat);
+                          } else {
+                            return [...prev, cat as any];
+                          }
+                        });
+                      }}
+                      className={`flex-1 px-4 py-2.5 rounded-full font-medium text-sm transition-all border ${
+                        isSelected
+                          ? config.activeCategoryBg
+                          : 'bg-white text-slate-500 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
           {/* Reason Selection */}
-          {reasons.length > 0 && (
-            <div className="mb-6">
-              <p className="text-[15px] font-medium text-slate-700 mb-3">Select reason(s)</p>
-              <div className="flex flex-wrap gap-2.5">
-                {reasons.map((reason) => (
-                  <button
-                    key={reason}
-                    onClick={() => toggleReason(reason)}
-                    className={`px-4 py-2 rounded-full text-sm transition-all font-medium border ${
-                      selectedReasons.includes(reason)
-                        ? 'bg-slate-700 text-white border-slate-700'
-                        : 'bg-white text-slate-500 border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    {reason}
-                  </button>
-                ))}
+          {typeof config.reasons === 'object' && 'academic' in config.reasons ? (
+            config.categories.filter(cat => selectedCategories.includes(cat as any)).map((cat) => {
+              const catReasons = (config.reasons as any)[cat] || [];
+              if (catReasons.length === 0) return null;
+              return (
+                <div key={cat} className="mb-6">
+                  <p className="text-[15px] font-semibold text-slate-700 mb-3 capitalize">{cat} Reason(s)</p>
+                  <div className="flex flex-wrap gap-2.5">
+                    {catReasons.map((reason: string) => (
+                      <button
+                        key={reason}
+                        onClick={() => toggleReason(reason)}
+                        className={`px-4 py-2 rounded-full text-sm transition-all font-medium border ${
+                          selectedReasons.includes(reason)
+                            ? 'bg-slate-700 text-white border-slate-700'
+                            : 'bg-white text-slate-500 border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            Array.isArray(config.reasons) && config.reasons.length > 0 && (
+              <div className="mb-6">
+                <p className="text-[15px] font-medium text-slate-700 mb-3">Select reason(s)</p>
+                <div className="flex flex-wrap gap-2.5">
+                  {config.reasons.map((reason: string) => (
+                    <button
+                      key={reason}
+                      onClick={() => toggleReason(reason)}
+                      className={`px-4 py-2 rounded-full text-sm transition-all font-medium border ${
+                        selectedReasons.includes(reason)
+                          ? 'bg-slate-700 text-white border-slate-700'
+                          : 'bg-white text-slate-500 border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      {reason}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )
           )}
 
           {/* Warning Message */}
@@ -280,9 +340,9 @@ export default function FlagModal({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={reasons.length > 0 && selectedReasons.length === 0}
+            disabled={hasReasons && selectedReasons.length === 0}
             className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-              (reasons.length > 0 && selectedReasons.length === 0)
+              (hasReasons && selectedReasons.length === 0)
                 ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
                 : 'bg-slate-700 text-white hover:bg-slate-800'
             }`}

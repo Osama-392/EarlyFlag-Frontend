@@ -10,6 +10,7 @@ export default function Header() {
   const [period, setPeriod] = useState('Period 3');
   const [isQuickLogOpen, setIsQuickLogOpen] = useState(false);
   const [hasIncompleteLogs, setHasIncompleteLogs] = useState(false);
+  const [quickLogClassId, setQuickLogClassId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const fetchIncompleteLogs = async () => {
@@ -21,6 +22,17 @@ export default function Header() {
       }
     };
     fetchIncompleteLogs();
+  }, []);
+
+  // Listen for 'open-quicklog-for-class' event from Dashboard EOD reminder
+  useEffect(() => {
+    const handleOpenForClass = (e: Event) => {
+      const classId = (e as CustomEvent<string>).detail;
+      setQuickLogClassId(classId || undefined);
+      setIsQuickLogOpen(true);
+    };
+    window.addEventListener('open-quicklog-for-class', handleOpenForClass);
+    return () => window.removeEventListener('open-quicklog-for-class', handleOpenForClass);
   }, []);
 
   return (
@@ -65,7 +77,13 @@ export default function Header() {
 
       {/* Quick Log Modal */}
       {isQuickLogOpen && (
-        <QuickLogModal onClose={() => setIsQuickLogOpen(false)} />
+        <QuickLogModal
+          onClose={() => {
+            setIsQuickLogOpen(false);
+            setQuickLogClassId(undefined);
+          }}
+          initialClassId={quickLogClassId}
+        />
       )}
     </>
   );

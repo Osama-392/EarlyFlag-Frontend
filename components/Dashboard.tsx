@@ -1,8 +1,8 @@
 'use client';
 
-import { Mail, RefreshCw, AlertCircle, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { Mail, RefreshCw, AlertCircle, MessageSquare, CheckCircle2, Clock } from 'lucide-react';
 import { useProtectedRoute } from '@/lib/useProtectedRoute';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import EmailCounselorModal from '@/components/EmailCounselorModal';
 import ParentNotifyModal from '@/components/ParentNotifyModal';
 import {
@@ -84,6 +84,33 @@ export default function Dashboard() {
       setUnfinishedAlerts(prev => prev.filter(a => a.session_id !== sessionId));
     } catch (err) {
       console.error('Failed to dismiss alert:', err);
+    }
+  };
+
+  // ── End-of-Day QuickLog Reminder Logic ─────────────────────────────
+  const { isEndOfDay, unloggedClasses, currentHour } = useMemo(() => {
+    if (!dashboardData) return { isEndOfDay: false, unloggedClasses: [], currentHour: 0 };
+
+    const tz = dashboardData.school_timezone || 'America/New_York';
+    let hour = new Date().getHours(); // fallback to local time
+    try {
+      const timeStr = new Date().toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: false });
+      hour = parseInt(timeStr, 10);
+    } catch { /* fallback to local */ }
+
+    const unlogged = dashboardData.classes.filter(c => !c.logged_today);
+    // Show reminder after 2 PM school time, only if there are unlogged classes
+    return {
+      isEndOfDay: hour >= 14 && unlogged.length > 0,
+      unloggedClasses: unlogged,
+      currentHour: hour,
+    };
+  }, [dashboardData]);
+
+  const handleQuickLogForClass = (classId: string) => {
+    // Dispatch custom event to Header → opens QuickLogModal with this class pre-selected
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('open-quicklog-for-class', { detail: classId }));
     }
   };
 
@@ -212,6 +239,69 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* ── End-of-Day QuickLog Reminder ── */}
+      {isEndOfDay && (
+        <div className="relative overflow-hidden rounded-xl shadow-lg">
+          <style>{`
+            @keyframes eod-pulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.6; }
+            }
+            @keyframes eod-shimmer {
+              0% { transform: translateX(-100%); }
+              100% { transform: translateX(100%); }
+            }
+            .eod-pulse-icon {
+              animation: eod-pulse 2s ease-in-out infinite;
+            }
+            .eod-card:hover .eod-shimmer {
+              animation: eod-shimmer 0.6s ease-out;
+            }
+          `}</style>
+          <div className="bg-gradient-to-r from-orange-600 via-rose-600 to-purple-700 p-6">
+            <div className="absolute right-4 top-4 opacity-10">
+              <Clock size={120} />
+            </div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="eod-pulse-icon flex items-center justify-center w-10 h-10 bg-white/20 rounded-full backdrop-blur-sm">
+                <Clock size={22} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white" style={{ fontFamily: 'Sora' }}>
+                  End-of-Day Reminder
+                </h2>
+                <p className="text-orange-100 text-sm">
+                  {unloggedClasses.length} class{unloggedClasses.length !== 1 ? 'es' : ''} still need logging today — tap to complete
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+              {unloggedClasses.map(c => (
+                <button
+                  key={c.class_id}
+                  onClick={() => handleQuickLogForClass(c.class_id)}
+                  className="eod-card group relative bg-white/15 hover:bg-white/25 backdrop-blur-sm rounded-lg p-4 text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-md border border-white/10 overflow-hidden"
+                >
+                  <div className="eod-shimmer absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                  <div className="relative z-10 flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-white text-sm">{c.class_name}</p>
+                      <p className="text-orange-100 text-xs mt-0.5">
+                        {c.student_count_active} student{c.student_count_active !== 1 ? 's' : ''} • Not logged
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 group-hover:bg-white/30 rounded-lg transition-colors">
+                      <span className="text-white text-xs font-semibold">Log Now</span>
+                      <span className="text-white text-sm">→</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 12-Hour Unfinished Alerts */}
       {unfinishedAlerts.length > 0 && (
         <div className="bg-amber-50 border-l-4 border-amber-500 rounded-r-xl p-4 shadow-sm mb-6 flex items-start gap-4">
@@ -311,22 +401,46 @@ export default function Dashboard() {
           </div>
 
           {/* Class Logging Status */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-            <div className="p-5 border-b border-gray-100">
+          <div className={`bg-white rounded-xl border ${isEndOfDay ? 'border-orange-200' : 'border-gray-200'} overflow-hidden shadow-sm`}>
+            <div className={`p-5 border-b ${isEndOfDay ? 'border-orange-100' : 'border-gray-100'} flex items-center justify-between`}>
               <h3 className="text-lg font-bold text-gray-900" style={{ fontFamily: 'Sora' }}>Today's Class Logging Status</h3>
+              {isEndOfDay && (
+                <span className="text-xs font-bold text-orange-700 bg-orange-100 px-2.5 py-1 rounded-full flex items-center gap-1">
+                  <Clock size={12} />
+                  {unloggedClasses.length} remaining
+                </span>
+              )}
             </div>
             {classes.length > 0 ? (
               <div className="divide-y divide-gray-100">
-                {classes.map(c => (
-                  <div key={c.class_id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                {[...classes]
+                  .sort((a, b) => {
+                    // Float unlogged classes to the top
+                    if (!a.logged_today && b.logged_today) return -1;
+                    if (a.logged_today && !b.logged_today) return 1;
+                    return 0;
+                  })
+                  .map(c => (
+                  <div
+                    key={c.class_id}
+                    onClick={!c.logged_today ? () => handleQuickLogForClass(c.class_id) : undefined}
+                    className={`p-4 flex items-center justify-between transition-colors ${
+                      !c.logged_today
+                        ? `cursor-pointer ${isEndOfDay ? 'bg-orange-50/50 hover:bg-orange-50' : 'hover:bg-blue-50'}`
+                        : 'hover:bg-gray-50'
+                    }`}
+                  >
                     <div>
-                      <p className="font-semibold text-gray-900">{c.class_name}</p>
+                      <p className={`font-semibold ${!c.logged_today && isEndOfDay ? 'text-orange-900' : 'text-gray-900'}`}>{c.class_name}</p>
                       <p className="text-xs text-gray-500">{c.student_count_active} active students</p>
                     </div>
                     {c.logged_today ? (
                       <div className="flex items-center text-green-600 text-sm font-semibold gap-1"><CheckCircle2 size={16}/> Logged</div>
                     ) : (
-                      <div className="flex items-center text-gray-400 text-sm font-medium gap-1"><AlertCircle size={16}/> Not Logged</div>
+                      <div className={`flex items-center text-sm font-medium gap-1 ${isEndOfDay ? 'text-orange-600' : 'text-gray-400'}`}>
+                        <AlertCircle size={16}/>
+                        <span>{isEndOfDay ? 'Log Now →' : 'Not Logged'}</span>
+                      </div>
                     )}
                   </div>
                 ))}

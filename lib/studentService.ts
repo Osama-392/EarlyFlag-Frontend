@@ -13,6 +13,7 @@ export interface Student {
   parent_phone?: string;
   address?: string;
   today_signal?: Signal;
+  signals?: Signal[];  // all signals for the requested date
   iep_status?: string;
   ell_status?: string;
 }
@@ -20,9 +21,12 @@ export interface Student {
 export interface Signal {
   id: string;
   student_id: string;
-  signal_type: 'green' | 'yellow' | 'red';
+  signal_type: 'present' | 'yellow' | 'red' | 'super_green' | 'absent' | 'green';
   category?: string;
+  reason_code?: string;
+  reason_description?: string;
   note?: string;
+  note_saved_for_later?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -64,11 +68,15 @@ export interface ClassRosterResponse {
   students: Student[];
 }
 
-// Get students in a specific class with today's signals
-export const getClassStudents = async (classId: string): Promise<Student[]> => {
+// Get students in a specific class with signals for a given date
+export const getClassStudents = async (classId: string, signalDate?: string): Promise<Student[]> => {
   try {
-    console.log('Fetching students for class:', classId);
-    const response = await api.get<ClassRosterResponse>(`/api/v1/teacher/classes/${classId}/students`);
+    console.log('Fetching students for class:', classId, 'date:', signalDate || 'today');
+    const params: Record<string, string> = {};
+    if (signalDate) {
+      params.signal_date = signalDate;
+    }
+    const response = await api.get<ClassRosterResponse>(`/api/v1/teacher/classes/${classId}/students`, { params });
     const data = response.data?.students || [];
     return data;
   } catch (error: any) {
@@ -114,8 +122,8 @@ export const getAvailableSignalDates = async (): Promise<string[]> => {
 // Get incomplete quick log sessions
 export const getIncompleteQuickLogs = async (): Promise<IncompleteLogSession[]> => {
   try {
-    const response = await api.get<{ sessions: IncompleteLogSession[] }>('/api/v1/teacher/quick-logs/incomplete');
-    return response.data.sessions || [];
+    const response = await api.get<IncompleteLogSession[]>('/api/v1/teacher/quick-logs/incomplete');
+    return response.data || [];
   } catch (error: any) {
     console.error('Failed to fetch incomplete quick logs:', error?.response?.data);
     return [];
