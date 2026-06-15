@@ -53,7 +53,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [incompleteSessions, setIncompleteSessions] = useState<IncompleteLogSession[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -73,8 +73,11 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
           getIncompleteQuickLogs()
         ]);
         setAvailableDates(dates);
-        if (dates.length > 0 && !selectedDate) {
-          setSelectedDate(dates[0]); // Default to today (first date)
+        if (dates.length > 0) {
+          const today = new Date().toISOString().split('T')[0];
+          if (!dates.includes(today)) {
+            setSelectedDate(dates[0]);
+          }
         }
         setIncompleteSessions(sessions);
       } catch (err) {
@@ -91,131 +94,17 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
     }
   }, [classes, classesLoading, activeClassId]);
 
-  // Fetch students when active class or selected date changes
+  // 1. Fetch students from API
   useEffect(() => {
+    setSaveSuccess(false);
+    setSaveError(null);
     const fetchStudents = async () => {
       if (!activeClassId) return;
       setStudentsLoading(true);
       try {
         const targetDate = selectedDate || new Date().toISOString().split('T')[0];
-        // Pass the selected date so the backend returns signals for that specific date
         const data = await getClassStudents(activeClassId, targetDate);
         setApiStudents(data);
-
-        // Find if we have an incomplete (draft) session for this class and date
-        const draftSession = incompleteSessions.find(
-          s => s.class_id === activeClassId && s.signal_date === targetDate
-        );
-
-        // Build logData: prioritize saved signals from backend, then drafts, then default green
-        const initialLogData: Record<string, LogEntry> = {};
-        data.forEach(s => {
-          const savedSignals = s.signals || [];
-
-          if (savedSignals.length > 0) {
-            // ── Restore from previously saved signals ──
-            // Determine the primary signal type (use first signal's type)
-            const primary = savedSignals[0];
-            const signalType = primary.signal_type;
-
-            if (signalType === 'yellow' || signalType === 'red') {
-              // Merge all signals of same type into multi-category flags array
-              const flags = savedSignals
-                .filter(sig => sig.signal_type === signalType)
-                .map(sig => ({
-                  category: sig.category || 'academic',
-                  reasons: sig.reason_description
-                    ? sig.reason_description.split(', ').filter(Boolean)
-                    : [],
-                }));
-
-              initialLogData[s.id] = {
-                studentId: s.id,
-                green: false,
-                superGreen: false,
-                yellow: signalType === 'yellow',
-                red: signalType === 'red',
-                absent: false,
-                flagData: {
-                  type: signalType,
-                  flags,
-                  note: primary.note || undefined,
-                },
-              };
-            } else if (signalType === 'super_green') {
-              // Restore super green with reason
-              const reasonCode = primary.reason_code || '';
-              const reasonDisplay = reasonCode
-                .split('_')
-                .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-                .join(' ');
-
-              initialLogData[s.id] = {
-                studentId: s.id,
-                green: false,
-                superGreen: true,
-                yellow: false,
-                red: false,
-                absent: false,
-                flagData: {
-                  type: 'super-green',
-                  reasons: reasonDisplay ? [reasonDisplay] : [],
-                  note: primary.note || undefined,
-                },
-              };
-            } else if (signalType === 'absent') {
-              initialLogData[s.id] = {
-                studentId: s.id,
-                green: false,
-                superGreen: false,
-                yellow: false,
-                red: false,
-                absent: true,
-              };
-            } else {
-              // present / green
-              initialLogData[s.id] = {
-                studentId: s.id,
-                green: true,
-                superGreen: false,
-                yellow: false,
-                red: false,
-                absent: false,
-              };
-            }
-          } else {
-            // ── No saved signals — check drafts, then default to green ──
-            const draftSignal = draftSession?.signals.find(sig => sig.student_id === s.id);
-
-            if (draftSignal) {
-              initialLogData[s.id] = {
-                studentId: s.id,
-                green: draftSignal.signal_type === 'present',
-                superGreen: draftSignal.signal_type === 'super_green',
-                yellow: draftSignal.signal_type === 'yellow',
-                red: draftSignal.signal_type === 'red',
-                absent: draftSignal.signal_type === 'absent',
-                isDraft: true,
-                flagData: draftSignal.signal_type === 'yellow' || draftSignal.signal_type === 'red' || draftSignal.signal_type === 'super_green' ? {
-                  type: draftSignal.signal_type,
-                  category: draftSignal.category || 'academic',
-                  reasons: draftSignal.reasons || [],
-                  note: draftSignal.note
-                } : undefined
-              };
-            } else {
-              initialLogData[s.id] = {
-                studentId: s.id,
-                green: true,
-                superGreen: false,
-                yellow: false,
-                red: false,
-                absent: false
-              };
-            }
-          }
-        });
-        setLogData(initialLogData);
       } catch (err) {
         console.error('Failed to load students', err);
       } finally {
@@ -223,7 +112,79 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
       }
     };
     fetchStudents();
-  }, [activeClassId, selectedDate, incompleteSessions]);
+  }, [activeClassId, selectedDate]);
+
+  // 2. Compute logData locally
+  useEffect(() => {
+    if (apiStudents.length === 0) {
+      setLogData({});
+      return;
+    }
+
+    const targetDate = selectedDate || new Date().toISOString().split('T')[0];
+    const draftSession = incompleteSessions.find(
+      s => s.class_id === activeClassId && s.signal_date === targetDate
+    );
+
+    const initialLogData: Record<string, LogEntry> = {};
+    apiStudents.forEach(s => {
+      const savedSignals = s.signals || [];
+
+      if (savedSignals.length > 0) {
+        const primary = savedSignals[0];
+        const signalType = primary.signal_type;
+
+        if (signalType === 'yellow' || signalType === 'red') {
+          const flags = savedSignals
+            .filter(sig => sig.signal_type === signalType)
+            .map(sig => ({
+              category: sig.category || 'academic',
+              reasons: sig.reason_description ? sig.reason_description.split(', ').filter(Boolean) : [],
+            }));
+
+          initialLogData[s.id] = {
+            studentId: s.id, green: false, superGreen: false, yellow: signalType === 'yellow', red: signalType === 'red', absent: false,
+            flagData: { type: signalType, flags, note: primary.note || undefined },
+          };
+        } else if (signalType === 'super_green') {
+          const reasonCode = primary.reason_code || '';
+          const reasonDisplay = reasonCode.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+          initialLogData[s.id] = {
+            studentId: s.id, green: false, superGreen: true, yellow: false, red: false, absent: false,
+            flagData: { type: 'super-green', reasons: reasonDisplay ? [reasonDisplay] : [], note: primary.note || undefined },
+          };
+        } else if (signalType === 'absent') {
+          initialLogData[s.id] = { studentId: s.id, green: false, superGreen: false, yellow: false, red: false, absent: true };
+        } else {
+          initialLogData[s.id] = { studentId: s.id, green: true, superGreen: false, yellow: false, red: false, absent: false };
+        }
+      } else {
+        const draftSignal = draftSession?.signals.find(sig => sig.student_id === s.id);
+
+        if (draftSignal) {
+          initialLogData[s.id] = {
+            studentId: s.id,
+            green: draftSignal.signal_type === 'present',
+            superGreen: draftSignal.signal_type === 'super_green',
+            yellow: draftSignal.signal_type === 'yellow',
+            red: draftSignal.signal_type === 'red',
+            absent: draftSignal.signal_type === 'absent',
+            isDraft: true,
+            flagData: draftSignal.signal_type === 'yellow' || draftSignal.signal_type === 'red' || draftSignal.signal_type === 'super_green' ? {
+              type: draftSignal.signal_type,
+              category: draftSignal.category || 'academic',
+              reasons: draftSignal.reasons || [],
+              note: draftSignal.note
+            } : undefined
+          };
+        } else {
+          initialLogData[s.id] = { studentId: s.id, green: true, superGreen: false, yellow: false, red: false, absent: false };
+        }
+      }
+    });
+    setLogData(initialLogData);
+  }, [apiStudents, incompleteSessions, selectedDate, activeClassId]);
 
   // Map API students to local Student interface
   const mappedStudents: Student[] = apiStudents.map((s, idx) => {
@@ -372,6 +333,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
     // Fire API call — keep the page open for edit/correction workflow
     logSignals(payload)
       .then(async () => {
+        setSaving(false);
         showToast(`${signalsToLog.length} signal${signalsToLog.length > 1 ? 's' : ''} saved successfully`, 'success');
         setSaveSuccess(true);
         // Invalidate cache so dashboard & classes refresh on next visit
@@ -382,55 +344,21 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
         }
         // Re-fetch students to reflect the persisted state (enables edit flow)
         try {
+          setStudentsLoading(true);
           const refreshedData = await getClassStudents(activeClassId!, targetDate);
           setApiStudents(refreshedData);
-          // Re-build logData from fresh backend data
-          const refreshedLogData: Record<string, LogEntry> = {};
-          refreshedData.forEach(s => {
-            const savedSignals = s.signals || [];
-            if (savedSignals.length > 0) {
-              const primary = savedSignals[0];
-              const signalType = primary.signal_type;
-              if (signalType === 'yellow' || signalType === 'red') {
-                const flags = savedSignals
-                  .filter(sig => sig.signal_type === signalType)
-                  .map(sig => ({
-                    category: sig.category || 'academic',
-                    reasons: sig.reason_description ? sig.reason_description.split(', ').filter(Boolean) : [],
-                  }));
-                refreshedLogData[s.id] = {
-                  studentId: s.id, green: false, superGreen: false,
-                  yellow: signalType === 'yellow', red: signalType === 'red', absent: false,
-                  flagData: { type: signalType, flags, note: primary.note || undefined },
-                };
-              } else if (signalType === 'super_green') {
-                const reasonCode = primary.reason_code || '';
-                const reasonDisplay = reasonCode.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-                refreshedLogData[s.id] = {
-                  studentId: s.id, green: false, superGreen: true, yellow: false, red: false, absent: false,
-                  flagData: { type: 'super-green', reasons: reasonDisplay ? [reasonDisplay] : [], note: primary.note || undefined },
-                };
-              } else if (signalType === 'absent') {
-                refreshedLogData[s.id] = { studentId: s.id, green: false, superGreen: false, yellow: false, red: false, absent: true };
-              } else {
-                refreshedLogData[s.id] = { studentId: s.id, green: true, superGreen: false, yellow: false, red: false, absent: false };
-              }
-            } else {
-              refreshedLogData[s.id] = { studentId: s.id, green: true, superGreen: false, yellow: false, red: false, absent: false };
-            }
-          });
-          setLogData(refreshedLogData);
+          // The separate useEffect will automatically re-build logData since apiStudents has changed.
         } catch (refreshErr) {
           console.error('Failed to refresh students after save:', refreshErr);
+        } finally {
+          setStudentsLoading(false);
         }
       })
       .catch((err: any) => {
+        setSaving(false);
         console.error('Failed to save quick log:', err);
         const errorMsg = err?.response?.data?.detail?.[0]?.msg || err?.response?.data?.detail || 'Failed to save signals. Please try again.';
         showToast(errorMsg, 'error');
-      })
-      .finally(() => {
-        setSaving(false);
       });
   };
 
