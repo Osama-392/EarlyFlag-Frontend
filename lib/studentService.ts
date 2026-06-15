@@ -122,8 +122,8 @@ export const getAvailableSignalDates = async (): Promise<string[]> => {
 // Get incomplete quick log sessions
 export const getIncompleteQuickLogs = async (): Promise<IncompleteLogSession[]> => {
   try {
-    const response = await api.get<{ sessions: IncompleteLogSession[] }>('/api/v1/teacher/quick-logs/incomplete');
-    return response.data.sessions || [];
+    const response = await api.get<IncompleteLogSession[]>('/api/v1/teacher/quick-logs/incomplete');
+    return response.data || [];
   } catch (error: any) {
     console.error('Failed to fetch incomplete quick logs:', error?.response?.data);
     return [];

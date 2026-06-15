@@ -40,12 +40,13 @@ interface LogEntry {
 
 interface QuickLogPageProps {
   onCancel?: () => void;
+  initialClassId?: string;
 }
 
-export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
+export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageProps = {}) {
   const { showToast } = useToast();
   const { classes, loading: classesLoading } = useClasses();
-  const [activeClassId, setActiveClassId] = useState<string | null>(null);
+  const [activeClassId, setActiveClassId] = useState<string | null>(initialClassId || null);
   const [apiStudents, setApiStudents] = useState<ApiStudent[]>([]);
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -83,7 +84,7 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
     fetchInitialData();
   }, []);
 
-  // Fetch classes and set active class
+  // Fetch classes and set active class (only if not already set via initialClassId)
   useEffect(() => {
     if (!classesLoading && classes.length > 0 && !activeClassId) {
       setActiveClassId(classes[0].id);
@@ -367,7 +368,6 @@ export default function QuickLogPage({ onCancel }: QuickLogPageProps = {}) {
     });
 
     setSaving(true);
-    showToast(`Saving ${signalsToLog.length} signal${signalsToLog.length > 1 ? 's' : ''}...`, 'success');
 
     // Fire API call — keep the page open for edit/correction workflow
     logSignals(payload)
