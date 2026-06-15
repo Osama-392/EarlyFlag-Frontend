@@ -72,11 +72,16 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
           getAvailableSignalDates(),
           getIncompleteQuickLogs()
         ]);
-        setAvailableDates(dates);
-        if (dates.length > 0) {
+        const workingDays = dates.filter(date => {
+          const d = new Date(date + 'T00:00:00');
+          const day = d.getDay();
+          return day !== 0 && day !== 6;
+        });
+        setAvailableDates(workingDays);
+        if (workingDays.length > 0) {
           const today = new Date().toISOString().split('T')[0];
-          if (!dates.includes(today)) {
-            setSelectedDate(dates[0]);
+          if (!workingDays.includes(today)) {
+            setSelectedDate(workingDays[0]);
           }
         }
         setIncompleteSessions(sessions);
