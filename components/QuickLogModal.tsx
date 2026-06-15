@@ -6,9 +6,10 @@ import { logger } from '@/lib/logger';
 
 interface QuickLogModalProps {
   onClose: () => void;
+  initialClassId?: string;
 }
 
-export default function QuickLogModal({ onClose }: QuickLogModalProps) {
+export default function QuickLogModal({ onClose, initialClassId }: QuickLogModalProps) {
   return (
     <div
       className="fixed inset-0 bg-black/50 z-[60] flex items-start justify-end"
@@ -37,7 +38,7 @@ export default function QuickLogModal({ onClose }: QuickLogModalProps) {
 
         {/* Modal Content */}
         <div className="px-6 py-4">
-          <QuickLogPage onCancel={onClose} />
+          <QuickLogPage onCancel={onClose} initialClassId={initialClassId} />
         </div>
       </div>
     </div>

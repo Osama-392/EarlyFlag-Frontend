@@ -39,7 +39,12 @@ export default function EditSignalModal({
   // Initialize form with existing signal data
   useEffect(() => {
     if (isOpen && signal) {
-      setSelectedSignal(signal.signal_type);
+      // Map expanded signal types to the modal's 3-option type
+      const typeMap: Record<string, 'green' | 'yellow' | 'red' | null> = {
+        present: 'green', green: 'green', super_green: 'green',
+        yellow: 'yellow', red: 'red', absent: null,
+      };
+      setSelectedSignal(typeMap[signal.signal_type] ?? null);
       setCategory(signal.category || '');
       setNote(signal.note || '');
       // If it's green, the reason code might be stored in category or a separate field in backend

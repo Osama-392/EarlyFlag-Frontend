@@ -117,8 +117,8 @@ export const getTeacherDashboard = async (forceRefresh = false): Promise<Teacher
 
 export const getUnfinishedAlerts = async (): Promise<UnfinishedLogRow[]> => {
   try {
-    const response = await api.get<{ alerts: UnfinishedLogRow[] }>('/api/v1/teacher/morning-brief/unfinished-alerts');
-    return response.data.alerts || [];
+    const response = await api.get<UnfinishedLogRow[]>('/api/v1/teacher/morning-brief/unfinished-alerts');
+    return response.data || [];
   } catch (error: any) {
     console.error('Failed to fetch unfinished alerts:', error?.response?.data);
     return [];
