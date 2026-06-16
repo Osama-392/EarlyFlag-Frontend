@@ -347,17 +347,6 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new Event('dashboard-refresh'));
         }
-        // Re-fetch students to reflect the persisted state (enables edit flow)
-        try {
-          setStudentsLoading(true);
-          const refreshedData = await getClassStudents(activeClassId!, targetDate);
-          setApiStudents(refreshedData);
-          // The separate useEffect will automatically re-build logData since apiStudents has changed.
-        } catch (refreshErr) {
-          console.error('Failed to refresh students after save:', refreshErr);
-        } finally {
-          setStudentsLoading(false);
-        }
       })
       .catch((err: any) => {
         setSaving(false);
@@ -365,6 +354,11 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
         const errorMsg = err?.response?.data?.detail?.[0]?.msg || err?.response?.data?.detail || 'Failed to save signals. Please try again.';
         showToast(errorMsg, 'error');
       });
+
+    // Close immediately without waiting for the save to complete
+    if (onCancel) {
+      onCancel();
+    }
   };
 
   const handleCancel = () => {

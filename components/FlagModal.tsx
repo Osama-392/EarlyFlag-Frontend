@@ -133,11 +133,26 @@ export default function FlagModal({
     ? selectedCategories.some(cat => ((config.reasons as any)[cat] || []).length > 0)
     : Array.isArray(config.reasons) && config.reasons.length > 0;
 
-  const toggleReason = (reason: string) => {
+  const toggleReason = (reason: string, categoryName?: string) => {
     logger.formChange(`flag-reason-${reason}`, true, 'FlagModal');
-    setSelectedReasons((prev) =>
-      prev.includes(reason) ? prev.filter((r) => r !== reason) : [...prev, reason]
-    );
+    
+    if (selectedReasons.includes(reason)) {
+      // Removing reason
+      const newReasons = selectedReasons.filter((r) => r !== reason);
+      setSelectedReasons(newReasons);
+      
+      // Auto-deselect the category if it has no more reasons selected
+      if (categoryName && selectedCategories.includes(categoryName as any) && selectedCategories.length > 1) {
+        const catReasons = (config.reasons as any)[categoryName] || [];
+        const hasRemaining = newReasons.some(r => catReasons.includes(r));
+        if (!hasRemaining) {
+          setSelectedCategories(prev => prev.filter(c => c !== categoryName));
+        }
+      }
+    } else {
+      // Adding reason
+      setSelectedReasons(prev => [...prev, reason]);
+    }
   };
 
   const handleSubmit = () => {
@@ -224,6 +239,13 @@ export default function FlagModal({
                         setSelectedCategories(prev => {
                           if (prev.includes(cat as any)) {
                             if (prev.length === 1) return prev; // Keep at least one selected
+                            
+                            // Clear the reasons associated with the deselected category
+                            const catReasons = (config.reasons as any)[cat] || [];
+                            setSelectedReasons(currentReasons => 
+                              currentReasons.filter(r => !catReasons.includes(r))
+                            );
+                            
                             return prev.filter(c => c !== cat);
                           } else {
                             return [...prev, cat as any];
@@ -256,7 +278,7 @@ export default function FlagModal({
                     {catReasons.map((reason: string) => (
                       <button
                         key={reason}
-                        onClick={() => toggleReason(reason)}
+                        onClick={() => toggleReason(reason, cat)}
                         className={`px-4 py-2 rounded-full text-sm transition-all font-medium border ${
                           selectedReasons.includes(reason)
                             ? 'bg-slate-700 text-white border-slate-700'

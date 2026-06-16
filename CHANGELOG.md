@@ -2,12 +2,6 @@
 
 All notable changes to the Frontend project are documented in this file.
 
-## [2026-06-15]
-
-### Fixed
-- **QuickLog Double Fetching**: Decoupled `QuickLogPage`'s network fetching from its local state processing and correctly initialized the default selected date. This eliminates a bug that caused duplicate API requests for the class roster on mount, ensuring data is fetched cleanly in parallel.
-- **QuickLog State Management**: Fixed an issue where the "saved successfully" notification persisted incorrectly when navigating between different classes or dates. The save button's loading state is now also synchronized precisely with the API response.
-
 ## [2026-06-12]
 
 ### Added
