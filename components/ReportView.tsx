@@ -211,7 +211,11 @@ export default function ReportView({
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-100 shadow-sm">
+            <div className={`px-4 py-2 text-xs font-bold rounded-lg border shadow-sm ${
+              statusText === 'Red' ? 'bg-red-50 text-red-600 border-red-100' :
+              statusText === 'Yellow' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+              'bg-emerald-50 text-emerald-600 border-emerald-100'
+            }`}>
               Status : {statusText} Active
             </div>
             <div className="px-4 py-2 bg-gray-100 text-slate-700 text-xs font-bold rounded-lg border border-gray-200 shadow-sm">

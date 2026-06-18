@@ -249,7 +249,7 @@ export default function PrincipalDashboard() {
               <span className="text-sm text-gray-500 font-medium">{totalClasses} classes</span>
             </div>
             <div className="hidden md:flex items-center gap-3 text-xs">
-              {(['green','yellow','orange','red'] as HeatmapBand[]).map(b => (
+              {(['green','yellow','red'] as HeatmapBand[]).map(b => (
                 <div key={b} className="flex items-center gap-1.5">
                   <div className={`w-3 h-3 rounded-full ${bandColors[b].badge}`} />
                   <span className="text-gray-600 capitalize">{b}</span>

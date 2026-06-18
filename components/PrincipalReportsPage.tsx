@@ -6,14 +6,18 @@ import {
   FileText, Filter, Sparkles, Users, GraduationCap, School, Calendar, Printer, Loader2,
 } from 'lucide-react';
 import {
-  getAdminReferrals, exportSuperGreenJson, downloadSuperGreenCsv,
+  exportSuperGreenJson, downloadSuperGreenCsv,
   getAdminStudentReports, getAdminTeacherReports, getAdminGradeReports,
-  EscalationLogBlock, SuperGreenExportPayload, ReferralFilterParams,
+  SuperGreenExportPayload,
   StudentReportBlock, TeacherReportBlock, GradeReportBlock,
   SignalCountsByType, ReportCategoryBreakdown,
 } from '@/lib/adminDashboardService';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import AdminTeacherReportModal from './AdminTeacherReportModal';
+import CreateReportModal from './CreateReportModal';
+import ReportView from './ReportView';
+import { generateAdminStudentReport } from '@/lib/adminDashboardService';
 
 const priorityColors: Record<string, string> = {
   urgent: 'bg-red-100 text-red-700', high: 'bg-orange-100 text-orange-700',
@@ -39,8 +43,8 @@ function SignalCountBar({ counts }: { counts: SignalCountsByType }) {
   const pct = (val: number) => (val / total) * 100;
   return (
     <div className="w-24 h-3 rounded-full overflow-hidden flex bg-gray-100" title={`SG:${counts.super_green} P:${counts.present} Y:${counts.yellow} R:${counts.red} A:${counts.absent}`}>
-      {counts.super_green > 0 && <div className="bg-emerald-400" style={{ width: `${pct(counts.super_green)}%` }} />}
-      {counts.present > 0 && <div className="bg-blue-400" style={{ width: `${pct(counts.present)}%` }} />}
+      {counts.super_green > 0 && <div className="bg-emerald-600" style={{ width: `${pct(counts.super_green)}%` }} />}
+      {counts.present > 0 && <div className="bg-emerald-400" style={{ width: `${pct(counts.present)}%` }} />}
       {counts.yellow > 0 && <div className="bg-yellow-400" style={{ width: `${pct(counts.yellow)}%` }} />}
       {counts.red > 0 && <div className="bg-red-400" style={{ width: `${pct(counts.red)}%` }} />}
       {counts.absent > 0 && <div className="bg-gray-400" style={{ width: `${pct(counts.absent)}%` }} />}
@@ -100,7 +104,7 @@ function PaginationControls({
 function ReportFilterBar({
   range, setRange, from, setFrom, to, setTo, gradeLevel, setGradeLevel, showGrade, onRefresh, loading,
 }: {
-  range: '7d' | '30d'; setRange: (r: '7d' | '30d') => void;
+  range: '1d' | '7d' | '30d'; setRange: (r: '1d' | '7d' | '30d') => void;
   from: string; setFrom: (v: string) => void;
   to: string; setTo: (v: string) => void;
   gradeLevel: string; setGradeLevel: (v: string) => void;
@@ -115,10 +119,10 @@ function ReportFilterBar({
         <div>
           <p className="text-xs text-gray-500 mb-1.5">Date Range</p>
           <div className="flex rounded-lg border border-gray-200 overflow-hidden">
-            {(['7d', '30d'] as const).map(r => (
+            {(['1d', '7d', '30d'] as const).map(r => (
               <button key={r} onClick={() => setRange(r)}
                 className={`px-3 py-1.5 text-xs font-medium transition ${range === r && !hasCustomDate ? 'bg-teal-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
-                {r === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+                {r === '1d' ? 'Today' : r === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
               </button>
             ))}
           </div>
@@ -172,18 +176,11 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 // ─── Main Component ───────────────────────────────────────────────
 
 export default function PrincipalReportsPage() {
-  const [tab, setTab] = useState<'referrals' | 'supergreen' | 'student-reports' | 'teacher-reports' | 'grade-reports'>('referrals');
+  const [tab, setTab] = useState<'supergreen' | 'student-reports' | 'teacher-reports' | 'grade-reports'>('supergreen');
   const studentTableRef = useRef<HTMLDivElement>(null);
   const [studentExporting, setStudentExporting] = useState(false);
 
-  // Referrals state
-  const [referrals, setReferrals] = useState<EscalationLogBlock | null>(null);
-  const [refLoading, setRefLoading] = useState(true);
-  const [refError, setRefError] = useState<string | null>(null);
-  const [refPage, setRefPage] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
-  const REF_PAGE_SIZE = 20;
+
 
   // Super Green state
   const [sgData, setSgData] = useState<SuperGreenExportPayload | null>(null);
@@ -196,18 +193,23 @@ export default function PrincipalReportsPage() {
   const [studentLoading, setStudentLoading] = useState(false);
   const [studentError, setStudentError] = useState<string | null>(null);
   const [studentPage, setStudentPage] = useState(0);
-  const [studentRange, setStudentRange] = useState<'7d' | '30d'>('7d');
+  const [studentRange, setStudentRange] = useState<'1d' | '7d' | '30d'>('7d');
   const [studentFrom, setStudentFrom] = useState('');
   const [studentTo, setStudentTo] = useState('');
   const [studentGrade, setStudentGrade] = useState('');
+  const [selectedStudentForReport, setSelectedStudentForReport] = useState<any>(null);
+  const [isStudentReportModalOpen, setIsStudentReportModalOpen] = useState(false);
+  const [generatedStudentReport, setGeneratedStudentReport] = useState<any>(null);
   const REPORT_PAGE_SIZE = 50;
 
   // Teacher Reports state
   const [teacherData, setTeacherData] = useState<TeacherReportBlock | null>(null);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState<{id: string, name: string} | null>(null);
   const [teacherLoading, setTeacherLoading] = useState(false);
   const [teacherError, setTeacherError] = useState<string | null>(null);
   const [teacherPage, setTeacherPage] = useState(0);
-  const [teacherRange, setTeacherRange] = useState<'7d' | '30d'>('7d');
+  const [teacherRange, setTeacherRange] = useState<'1d' | '7d' | '30d'>('7d');
   const [teacherFrom, setTeacherFrom] = useState('');
   const [teacherTo, setTeacherTo] = useState('');
 
@@ -216,27 +218,14 @@ export default function PrincipalReportsPage() {
   const [gradeLoading, setGradeLoading] = useState(false);
   const [gradeError, setGradeError] = useState<string | null>(null);
   const [gradePage, setGradePage] = useState(0);
-  const [gradeRange, setGradeRange] = useState<'7d' | '30d'>('7d');
+  const [gradeRange, setGradeRange] = useState<'1d' | '7d' | '30d'>('7d');
   const [gradeFrom, setGradeFrom] = useState('');
   const [gradeTo, setGradeTo] = useState('');
   const [gradeGrade, setGradeGrade] = useState('');
 
   // ─── Fetchers ──────────────────────────────────────────────────
 
-  const fetchReferrals = useCallback(async () => {
-    try {
-      setRefLoading(true); setRefError(null);
-      const params: ReferralFilterParams = { limit: REF_PAGE_SIZE, offset: refPage * REF_PAGE_SIZE };
-      if (statusFilter.length) params.status = statusFilter;
-      if (priorityFilter.length) params.priority = priorityFilter;
-      const data = await getAdminReferrals(params);
-      setReferrals(data);
-    } catch (err: any) {
-      setRefError(err?.response?.data?.detail || 'Failed to load referrals.');
-    } finally { setRefLoading(false); }
-  }, [refPage, statusFilter, priorityFilter]);
 
-  useEffect(() => { if (tab === 'referrals') fetchReferrals(); }, [fetchReferrals, tab]);
 
   const fetchSuperGreen = async () => {
     try {
@@ -257,6 +246,10 @@ export default function PrincipalReportsPage() {
       if (studentFrom && studentTo) {
         params.from = studentFrom;
         params.to = studentTo;
+      } else if (studentRange === '1d') {
+        const todayStr = new Date().toISOString().split('T')[0];
+        params.from = todayStr;
+        params.to = todayStr;
       } else {
         params.range = studentRange;
       }
@@ -277,6 +270,10 @@ export default function PrincipalReportsPage() {
       if (teacherFrom && teacherTo) {
         params.from = teacherFrom;
         params.to = teacherTo;
+      } else if (teacherRange === '1d') {
+        const todayStr = new Date().toISOString().split('T')[0];
+        params.from = todayStr;
+        params.to = todayStr;
       } else {
         params.range = teacherRange;
       }
@@ -296,6 +293,10 @@ export default function PrincipalReportsPage() {
       if (gradeFrom && gradeTo) {
         params.from = gradeFrom;
         params.to = gradeTo;
+      } else if (gradeRange === '1d') {
+        const todayStr = new Date().toISOString().split('T')[0];
+        params.from = todayStr;
+        params.to = todayStr;
       } else {
         params.range = gradeRange;
       }
@@ -315,12 +316,7 @@ export default function PrincipalReportsPage() {
     finally { setDownloading(false); }
   };
 
-  const toggleFilter = (arr: string[], val: string, setter: (v: string[]) => void) => {
-    setter(arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val]);
-    setRefPage(0);
-  };
 
-  const totalRefPages = referrals ? Math.ceil(referrals.total / REF_PAGE_SIZE) : 0;
   const totalStudentPages = studentData ? Math.ceil(studentData.total / REPORT_PAGE_SIZE) : 0;
   const totalTeacherPages = teacherData ? Math.ceil(teacherData.total / REPORT_PAGE_SIZE) : 0;
   const totalGradePages = gradeData ? Math.ceil(gradeData.total / REPORT_PAGE_SIZE) : 0;
@@ -386,6 +382,38 @@ export default function PrincipalReportsPage() {
     }
   };
 
+  const handleCreateStudentReport = (student: any) => {
+    setSelectedStudentForReport(student);
+    setIsStudentReportModalOpen(true);
+  };
+
+  const handleGenerateStudentReport = (reportData: any) => {
+    setGeneratedStudentReport({
+      student: selectedStudentForReport,
+      reportData: reportData,
+    });
+    setIsStudentReportModalOpen(false);
+  };
+
+  if (generatedStudentReport) {
+    return (
+      <ReportView
+        student={{
+          id: generatedStudentReport.student.student_id,
+          name: `${generatedStudentReport.student.first_name} ${generatedStudentReport.student.last_name}`,
+          gradeLevel: parseInt(generatedStudentReport.student.grade_level) || 9,
+          initial: `${generatedStudentReport.student.first_name.charAt(0)}${generatedStudentReport.student.last_name.charAt(0)}`.toUpperCase(),
+          bgColor: 'from-blue-400 to-blue-600'
+        }}
+        reportData={generatedStudentReport.reportData}
+        onBack={() => {
+          setGeneratedStudentReport(null);
+          setSelectedStudentForReport(null);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Print-friendly styles */}
@@ -401,13 +429,12 @@ export default function PrincipalReportsPage() {
 
       <div className="space-y-2">
         <h1 className="text-4xl font-bold text-gray-900" style={{ fontFamily: 'Playfair Display' }}>Reports</h1>
-        <p className="text-gray-600">Counselor escalation log, recognition exports, and admin analytics</p>
+        <p className="text-gray-600">Recognition exports and admin analytics</p>
       </div>
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200 overflow-x-auto">
         {[
-          { id: 'referrals' as const, label: 'Counselor Escalation Log', icon: FileText },
           { id: 'supergreen' as const, label: 'Super Green Export', icon: Sparkles },
           { id: 'student-reports' as const, label: 'Student Report', icon: Users },
           { id: 'teacher-reports' as const, label: 'Teacher Report', icon: GraduationCap },
@@ -421,85 +448,7 @@ export default function PrincipalReportsPage() {
         ))}
       </div>
 
-      {/* ── Referrals Tab ──────────────────────────────────────── */}
-      {tab === 'referrals' && (
-        <div className="space-y-4">
-          {/* Filters */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3 text-sm font-medium text-gray-700"><Filter size={14} /> Filters</div>
-            <div className="flex flex-wrap gap-4">
-              <div>
-                <p className="text-xs text-gray-500 mb-1.5">Email Status</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {['pending','sent','delivered','failed','bounced'].map(s => (
-                    <button key={s} onClick={() => toggleFilter(statusFilter, s, setStatusFilter)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition ${statusFilter.includes(s) ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 mb-1.5">Priority</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {['low','normal','high','urgent'].map(p => (
-                    <button key={p} onClick={() => toggleFilter(priorityFilter, p, setPriorityFilter)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition ${priorityFilter.includes(p) ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Table */}
-          {refLoading ? (
-            <LoadingSkeleton rows={5} />
-          ) : refError ? (
-            <ErrorState message={refError} onRetry={fetchReferrals} />
-          ) : (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Student</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Referred By</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Priority</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Follow-up</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(referrals?.referrals || []).map(r => (
-                      <tr key={r.referral_id} className="border-b border-gray-100 hover:bg-gray-50 transition">
-                        <td className="px-4 py-3">
-                          <p className="text-sm font-medium text-gray-900">{r.student_first_name} {r.student_last_name}</p>
-                          <p className="text-xs text-gray-500">Grade {r.student_grade_level} · {r.external_student_id}</p>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{r.referred_by_first_name} {r.referred_by_last_name}</td>
-                        <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${priorityColors[r.priority] || ''}`}>{r.priority}</span></td>
-                        <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusColors[r.email_status] || ''}`}>{r.email_status}</span></td>
-                        <td className="px-4 py-3 text-xs text-gray-500">{formatDate(r.created_at)}</td>
-                        <td className="px-4 py-3 text-xs">{r.follow_up_needed ? <span className="text-orange-600 font-medium">⚡ Yes{r.follow_up_date ? ` · ${formatDate(r.follow_up_date)}` : ''}</span> : <span className="text-gray-400">—</span>}</td>
-                      </tr>
-                    ))}
-                    {(referrals?.referrals || []).length === 0 && (
-                      <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400 text-sm">No referrals found</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              {/* Pagination */}
-              {totalRefPages > 1 && (
-                <PaginationControls page={refPage} totalPages={totalRefPages} total={referrals?.total || 0} pageSize={REF_PAGE_SIZE} onChange={setRefPage} />
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* ── Super Green Tab ────────────────────────────────────── */}
       {tab === 'supergreen' && (
@@ -624,6 +573,7 @@ export default function PrincipalReportsPage() {
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Referrals</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Last Flag</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Classes</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-900 uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -653,6 +603,15 @@ export default function PrincipalReportsPage() {
                         <td className="px-4 py-3 text-sm text-gray-700">{s.open_referral_count}</td>
                         <td className="px-4 py-3 text-xs text-gray-500">{formatDate(s.last_flag_date)}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">{s.enrolled_class_count}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => handleCreateStudentReport(s)}
+                            className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors inline-flex items-center justify-center"
+                            title="Create Report"
+                          >
+                            <FileText size={18} />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                     {(studentData?.students || []).length === 0 && (
@@ -665,6 +624,28 @@ export default function PrincipalReportsPage() {
                 <PaginationControls page={studentPage} totalPages={totalStudentPages} total={studentData?.total || 0} pageSize={REPORT_PAGE_SIZE} onChange={setStudentPage} />
               )}
             </div>
+          )}
+          {selectedStudentForReport && (
+            <CreateReportModal
+              isOpen={isStudentReportModalOpen}
+              student={{
+                id: selectedStudentForReport.student_id,
+                name: `${selectedStudentForReport.first_name} ${selectedStudentForReport.last_name}`,
+                status: 'neutral',
+                initial: `${selectedStudentForReport.first_name.charAt(0)}${selectedStudentForReport.last_name.charAt(0)}`.toUpperCase(),
+                bgColor: 'from-blue-400 to-blue-600',
+                redCount: selectedStudentForReport.signal_counts?.red,
+                yellowCount: selectedStudentForReport.signal_counts?.yellow,
+              }}
+              defaultSubject="Student Overview"
+              gradeSubjects={[]}
+              onClose={() => {
+                setIsStudentReportModalOpen(false);
+                setSelectedStudentForReport(null);
+              }}
+              onGenerate={handleGenerateStudentReport}
+              customGenerateFunction={generateAdminStudentReport}
+            />
           )}
         </div>
       )}
@@ -697,6 +678,7 @@ export default function PrincipalReportsPage() {
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Referrals</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Obs. Flags</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Last Signal</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-900 uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -730,6 +712,18 @@ export default function PrincipalReportsPage() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-500">{formatDate(t.most_recent_signal_date)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => {
+                              setSelectedTeacher({ id: t.teacher_id, name: `${t.first_name} ${t.last_name}` });
+                              setReportModalOpen(true);
+                            }}
+                            className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors inline-flex items-center justify-center"
+                            title="Generate Report"
+                          >
+                            <FileText size={18} />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                     {(teacherData?.teachers || []).length === 0 && (
@@ -818,6 +812,19 @@ export default function PrincipalReportsPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Modals */}
+      {selectedTeacher && (
+        <AdminTeacherReportModal
+          isOpen={reportModalOpen}
+          onClose={() => {
+            setReportModalOpen(false);
+            setSelectedTeacher(null);
+          }}
+          teacherId={selectedTeacher.id}
+          teacherName={selectedTeacher.name}
+        />
       )}
     </div>
   );

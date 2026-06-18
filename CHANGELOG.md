@@ -2,6 +2,20 @@
 
 All notable changes to the Frontend project are documented in this file.
 
+## [2026-06-18]
+
+### Added
+- **Admin Student Reports**: Admins can now generate and view complete, school-wide student reports via the "Student Reports" tab.
+- **"Today" Date Filter**: Added a new "Today" (1d) range option to the Admin Student, Teacher, and Grade Reports, allowing easy single-day filtering.
+
+### Changed
+- **Admin Class Roster UI**: Completely redesigned the `PrincipalClassRoster` UI into a polished, responsive 3-column card grid with status-colored top borders, color-coded avatar rings, inline badges, and signal dots.
+- **Dynamic Status Badges**: Fixed an issue where the report "Status Active" badge was hardcoded to red; it now adapts dynamically to Red, Yellow, or Super Green based on the student's actual flag data.
+- **Signal Count Colors**: Updated the color logic across the platform for better clarity:
+  - "Present" signals now display as light green (`bg-emerald-400`).
+  - "Super Green" signals now display as dark green (`bg-emerald-600`).
+- **Principal Reports Page**: Removed the "Counselor Escalation Log" and set "Super Green Export" as the default tab. Removed the "Orange" text from the classroom heatmap legend. Fixed TypeScript compilation errors by cleaning up all dead code, unused imports, and state variables related to the removed referrals log.
+
 ## [2026-06-12]
 
 ### Added

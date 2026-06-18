@@ -20,6 +20,7 @@ interface CreateReportModalProps {
   gradeSubjects: string[];
   onClose: () => void;
   onGenerate: (reportData: any) => void;
+  customGenerateFunction?: (studentId: string, payload: any) => Promise<any>;
 }
 
 export default function CreateReportModal({
@@ -29,6 +30,7 @@ export default function CreateReportModal({
   gradeSubjects,
   onClose,
   onGenerate,
+  customGenerateFunction,
 }: CreateReportModalProps) {
   // Calculate dynamic dates
   const today = new Date();
@@ -60,7 +62,8 @@ export default function CreateReportModal({
         include_ai_recommendations: includeAIRecommendations,
       };
       
-      const apiResponse = await generateStudentReport(student.id, payload);
+      const generator = customGenerateFunction || generateStudentReport;
+      const apiResponse = await generator(student.id, payload);
       logger.formSubmit('CreateReportModal', payload);
       
       // Pass both the payload settings and the actual response to the parent

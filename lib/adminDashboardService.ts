@@ -519,6 +519,40 @@ export interface GradeReportBlock {
   grades: GradeReportItem[];
 }
 
+// ─── 14. Teacher-Specific Report (Admin) ─────────────────────────
+
+export interface AdminTeacherClassFlagRow {
+  class_id: string;
+  class_name: string;
+  grade_level: number;
+  active_enrollments: number;
+  counts: SignalCountsByType;
+}
+
+export interface AdminTeacherTopStudentRow {
+  student_id: string;
+  external_student_id: string;
+  first_name: string;
+  last_name: string;
+  grade_level: number;
+  iep_status: boolean;
+  ell_status: boolean;
+  weighted_score: number;
+  signal_counts: SignalCountsByType;
+}
+
+export interface AdminTeacherSpecificReportBlock {
+  teacher_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  range_days: number;
+  range_start: string;
+  range_end: string;
+  classes: AdminTeacherClassFlagRow[];
+  top_students: AdminTeacherTopStudentRow[];
+}
+
 
 // ═══════════════════════════════════════════════════════════════════
 //  API Functions
@@ -757,4 +791,73 @@ export const getAdminGradeReports = async (
 
   const res = await api.get('/api/v1/admin/reports/grades', { params: queryParams });
   return res.data;
+};
+
+// ─── 14. Teacher Specific Drill-Down Report ───────────────────────
+
+export interface AdminTeacherClassFlagRow {
+  class_id: string;
+  class_name: string;
+  grade_level: number;
+  super_green_count: number;
+  present_count: number;
+  yellow_count: number;
+  red_count: number;
+  absent_count: number;
+  total_flags: number;
+}
+
+export interface AdminTeacherTopStudentRow {
+  student_id: string;
+  first_name: string;
+  last_name: string;
+  grade_level: number;
+  super_green_count: number;
+  present_count: number;
+  yellow_count: number;
+  red_count: number;
+  absent_count: number;
+  weighted_score: number;
+}
+
+export interface AdminTeacherSpecificReportBlock {
+  teacher_id: string;
+  first_name: string;
+  last_name: string;
+  range_days: number;
+  range_start: string;
+  range_end: string;
+  classes: AdminTeacherClassFlagRow[];
+  top_students: AdminTeacherTopStudentRow[];
+}
+
+/**
+ * GET /api/v1/admin/reports/teachers/{teacher_id}
+ * Drill-down report for a specific teacher's classes and most flagged students.
+ */
+export const getAdminTeacherSpecificReport = async (
+  teacherId: string,
+  params?: { range?: '1d' | '7d' | '30d'; from?: string; to?: string },
+): Promise<AdminTeacherSpecificReportBlock> => {
+  const queryParams: Record<string, any> = {};
+  if (params?.range) queryParams.range = params.range;
+  if (params?.from) queryParams.from = params.from;
+  if (params?.to) queryParams.to = params.to;
+
+  const res = await api.get(`/api/v1/admin/reports/teachers/${teacherId}`, { params: queryParams });
+  return res.data;
+};
+
+/**
+ * POST /api/v1/admin/reports/students/{student_id}
+ * Generate an admin-scoped individual student report.
+ */
+export const generateAdminStudentReport = async (studentId: string, payload: any): Promise<any> => {
+  try {
+    const response = await api.post(`/api/v1/admin/reports/students/${studentId}`, payload);
+    return response.data;
+  } catch (error: any) {
+    console.error('Failed to generate admin student report:', error?.response?.data);
+    throw error;
+  }
 };

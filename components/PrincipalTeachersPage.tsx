@@ -4,6 +4,8 @@ import { Users, Search, Clock, CheckCircle2, XCircle, UserCheck, UserX, RefreshC
 import { useState, useEffect, useCallback } from 'react';
 import { getPendingTeachers, approveTeacher, rejectTeacher, PendingTeacher } from '@/lib/adminService';
 import { getAdminTeacherFlags, acknowledgeTeacherFlag, TeacherObservationFlagRow, getAdminTeacherReports, TeacherReportItem } from '@/lib/adminDashboardService';
+import AdminTeacherReportModal from './AdminTeacherReportModal';
+import { FileText } from 'lucide-react';
 
 type ToastType = 'success' | 'error';
 
@@ -24,6 +26,9 @@ export default function PrincipalTeachersPage() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [confirmAction, setConfirmAction] = useState<{ type: 'approve' | 'reject'; teacher: PendingTeacher } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState<{id: string, name: string} | null>(null);
 
   // Teacher Observation Flags state
   const [obsFlags, setObsFlags] = useState<TeacherObservationFlagRow[]>([]);
@@ -753,6 +758,16 @@ export default function PrincipalTeachersPage() {
                       </span>
                     )}
                   </div>
+                  <button
+                    onClick={() => {
+                      setSelectedTeacher({ id: teacher.teacher_id, name: `${teacher.first_name} ${teacher.last_name}` });
+                      setReportModalOpen(true);
+                    }}
+                    className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-sm font-semibold transition-colors"
+                  >
+                    <FileText size={16} />
+                    Generate Report
+                  </button>
                 </div>
               ))}
             </div>
@@ -786,6 +801,19 @@ export default function PrincipalTeachersPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Modals */}
+      {selectedTeacher && (
+        <AdminTeacherReportModal
+          isOpen={reportModalOpen}
+          onClose={() => {
+            setReportModalOpen(false);
+            setSelectedTeacher(null);
+          }}
+          teacherId={selectedTeacher.id}
+          teacherName={selectedTeacher.name}
+        />
       )}
     </div>
   );
