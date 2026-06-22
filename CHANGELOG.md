@@ -2,6 +2,26 @@
 
 All notable changes to the Frontend project are documented in this file.
 
+## [2026-06-23]
+
+### Added
+- **Weekly Flag Lookback History**: Integrated a weekly status visual in the Quick Log / student flag modal showing historic daily statuses (super green, green, yellow, red, absent) for the active week.
+- **Department Overview Risk Metric**: Redesigned the Department Overview display to compute and visualize a weighted Risk Score utilizing red, yellow, and super green counts, complete with progress bar indicators.
+- **Today (1d) Range Integration**: Enabled `1d` date range selection for reports and dashboards on the frontend.
+- **Today's Class Summary Banner**: Added a summary dashboard card/bar at the top of the Quick Log page showing real-time totals for each signal status and a visual logging completion percentage bar.
+
+### Changed
+- **Service Schema Mapping**: Updated `lib/adminDashboardService.ts` to include `super_green_count` for subject and department schemas.
+
+## [2026-06-19]
+
+### Added
+- **Department Overview**: Added a side-by-side "Department Overview" panel next to the Admin Dashboard Heatmap, pulling real-time aggregate data and trend arrows (Vs Last Week) directly from the backend.
+- **Teacher Dashboard 7-Day Context**: Integrated a 7-day signal lookback visual directly within the `QuickLogPage` UI to provide teachers with immediate context on recent student flags before submitting a new one.
+
+### Changed
+- **Admin Dashboard Layout**: Redesigned the Classroom Heat Map from a grade-level grouped list into an interactive, responsive grid of cards featuring dynamic Subject filtering tabs ("Math", "English", etc.) derived directly from backend metadata.
+
 ## [2026-06-18]
 
 ### Added

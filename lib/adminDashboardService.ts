@@ -131,6 +131,25 @@ export interface TeacherObservationFlagRow {
   acknowledged_by_last_name?: string | null;
 }
 
+export interface SubjectPerformance {
+  subject_name: string;
+  yellow_count: number;
+  red_count: number;
+  super_green_count: number;
+  flag_percentage: number | null;
+  trend_value: number | null;
+  band: HeatmapBand;
+}
+
+export interface DepartmentOverviewBlock {
+  department_name: string;
+  yellow_count: number;
+  red_count: number;
+  super_green_count: number;
+  trend_value: number | null;
+  subjects: SubjectPerformance[];
+}
+
 export interface AdminDashboardResponse {
   school: AdminDashboardSchoolBlock;
   range: AdminDashboardRangeBlock;
@@ -138,6 +157,7 @@ export interface AdminDashboardResponse {
   monday_red_flag: MondayRedFlagBlock;
   urgent_alerts: AdminUrgentAlertRow[];
   pending_teacher_flags: TeacherObservationFlagRow[];
+  departments: DepartmentOverviewBlock[];
   recommendations: string[];
   generated_at: string;
   school_timezone: string;
@@ -161,6 +181,7 @@ export interface HeatmapTile {
   band: HeatmapBand;
   has_unresolved_high_critical: boolean;
   has_observation_flag: boolean;
+  subject?: string;
 }
 
 export interface HeatmapGradeBucket {
@@ -428,7 +449,7 @@ export interface ReferralFilterParams {
 // ─── Report Filter Params (shared across student/teacher/grade reports) ───
 
 export interface ReportFilterParams {
-  range?: '7d' | '30d';
+  range?: '1d' | '7d' | '30d';
   from?: string;
   to?: string;
   grade_level?: number;
@@ -564,7 +585,7 @@ export interface AdminTeacherSpecificReportBlock {
  * pending teacher flags, and heuristic recommendations.
  */
 export const getAdminDashboard = async (
-  range: '7d' | '30d' = '7d',
+  range: '1d' | '7d' | '30d' = '7d',
   forceMondayBrief = false,
 ): Promise<AdminDashboardResponse> => {
   const params: Record<string, string | boolean> = { range };
@@ -578,7 +599,7 @@ export const getAdminDashboard = async (
  * Per-class flag percentage tiles grouped by grade, with color bands.
  */
 export const getAdminHeatmap = async (
-  range: '7d' | '30d' = '7d',
+  range: '1d' | '7d' | '30d' = '7d',
 ): Promise<HeatmapBlock> => {
   const res = await api.get('/api/v1/admin/heatmap', { params: { range } });
   return res.data;
@@ -590,7 +611,7 @@ export const getAdminHeatmap = async (
  */
 export const getAdminClassDrilldown = async (
   classId: string,
-  range: '7d' | '30d' = '7d',
+  range: '1d' | '7d' | '30d' = '7d',
 ): Promise<AdminClassDrilldownBlock> => {
   const res = await api.get(`/api/v1/admin/classes/${classId}`, { params: { range } });
   return res.data;
@@ -601,7 +622,7 @@ export const getAdminClassDrilldown = async (
  * Students ranked by weighted score (red×3 + yellow×1).
  */
 export const getAdminMostFlagged = async (
-  range: '7d' | '30d' = '7d',
+  range: '1d' | '7d' | '30d' = '7d',
   limit?: number,
   gradeLevel?: number,
 ): Promise<MostFlaggedBlock> => {

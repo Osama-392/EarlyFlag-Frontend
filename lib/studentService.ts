@@ -14,6 +14,7 @@ export interface Student {
   address?: string;
   today_signal?: Signal;
   signals?: Signal[];  // all signals for the requested date
+  recent_history?: Signal[]; // up to 7 days lookback
   iep_status?: string;
   ell_status?: string;
 }

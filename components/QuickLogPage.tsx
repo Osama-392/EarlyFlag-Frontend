@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Check, X, Loader2, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, Loader2, Calendar, Star } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/components/Toast';
 import FlagModal from '@/components/FlagModal';
@@ -228,7 +228,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
           },
         };
       }
-      
+
       // Turn it on and clear all others
       return {
         ...prev,
@@ -292,8 +292,8 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
 
         // Backend validation rules require specific reason codes for certain signals
         if (signalType === 'super_green' && entry.flagData?.reasons?.length) {
-           const firstReason = entry.flagData.reasons[0].toLowerCase().replace(/ /g, '_');
-           mappedReasonCode = firstReason;
+          const firstReason = entry.flagData.reasons[0].toLowerCase().replace(/ /g, '_');
+          mappedReasonCode = firstReason;
         }
 
         // For green/present and absent signals, don't send empty strings
@@ -328,9 +328,9 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
     }
 
     // ── Save with feedback: stay on page so teacher can review/edit ──
-    logger.formSubmit('QuickLog', { 
+    logger.formSubmit('QuickLog', {
       date: new Date().toLocaleDateString(),
-      entries: signalsToLog.length 
+      entries: signalsToLog.length
     });
 
     setSaving(true);
@@ -390,9 +390,8 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
         <div className="flex justify-center">
           <button
             onClick={() => toggleStatus(studentId, status)}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-              isActive ? colors.active : colors.inactive
-            }`}
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isActive ? colors.active : colors.inactive
+              }`}
           >
             {isActive && <Check className="w-4 h-4 text-white" />}
           </button>
@@ -428,11 +427,10 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
               });
             }
           }}
-          className={`w-8 h-8 rounded-full transition-all flex items-center justify-center text-xs font-bold ${
-            isActive
-              ? `${statusColors[statusMap[status]]} text-amber-950 ring-2 ring-offset-2 ring-offset-white ring-gray-400`
-              : 'bg-gray-100 hover:bg-gray-200 text-transparent'
-          }`}
+          className={`w-8 h-8 rounded-full transition-all flex items-center justify-center text-xs font-bold ${isActive
+            ? `${statusColors[statusMap[status]]} text-amber-950 ring-2 ring-offset-2 ring-offset-white ring-gray-400`
+            : 'bg-gray-100 hover:bg-gray-200 text-transparent'
+            }`}
         >
           {flagsCount > 1 ? flagsCount : ''}
         </button>
@@ -440,19 +438,31 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
     );
   };
 
+  const stats = {
+    superGreen: Object.values(logData).filter(v => v.superGreen).length,
+    green: Object.values(logData).filter(v => v.green).length,
+    yellow: Object.values(logData).filter(v => v.yellow).length,
+    red: Object.values(logData).filter(v => v.red).length,
+    absent: Object.values(logData).filter(v => v.absent).length,
+    loggedCount: Object.values(logData).filter(v => v.superGreen || v.green || v.yellow || v.red || v.absent).length,
+    totalStudents: mappedStudents.length
+  };
+  const loggedPercentage = stats.totalStudents > 0 ? Math.round((stats.loggedCount / stats.totalStudents) * 100) : 0;
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4 flex flex-col h-full">
       {/* Flag Modal */}
       {selectedFlagModal && (
         <FlagModal
           flagType={selectedFlagModal.type}
           student={selectedFlagModal.student}
+          apiStudent={apiStudents.find(s => s.id === selectedFlagModal.student.id)}
           initialData={logData[selectedFlagModal.student.id]?.flagData}
           onClose={() => setSelectedFlagModal(null)}
           onSubmit={(data) => {
             logger.info('Flag submitted', data, 'QuickLog');
             const newStatus = selectedFlagModal.type === 'super-green' ? 'superGreen' : selectedFlagModal.type;
-            
+
             // Mark the flag as selected and clear out others
             setLogData((prev) => ({
               ...prev,
@@ -538,6 +548,59 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
         </div>
       )}
 
+      {/* Today's Class Summary */}
+      <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-bold text-gray-900 mb-3">Today's Class Summary</h3>
+          <div className="flex items-center gap-8">
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5 font-bold text-lg">
+                <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                {stats.superGreen}
+              </div>
+              <span className="text-xs text-gray-500">Super Green</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5 font-bold text-lg">
+                <div className="w-3.5 h-3.5 rounded-full bg-emerald-500" />
+                {stats.green}
+              </div>
+              <span className="text-xs text-gray-500">Green</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5 font-bold text-lg">
+                <div className="w-3.5 h-3.5 rounded-full bg-amber-400" />
+                {stats.yellow}
+              </div>
+              <span className="text-xs text-gray-500">Yellow</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5 font-bold text-lg">
+                <div className="w-3.5 h-3.5 rounded-full bg-rose-500" />
+                {stats.red}
+              </div>
+              <span className="text-xs text-gray-500">Red</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5 font-bold text-lg">
+                <div className="w-3.5 h-3.5 rounded-full bg-gray-900" />
+                {stats.absent}
+              </div>
+              <span className="text-xs text-gray-500">Absent</span>
+            </div>
+          </div>
+        </div>
+        <div className="w-full md:w-64 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
+          <div className="flex justify-between items-end mb-1">
+            <span className="text-sm font-bold text-gray-900">{stats.loggedCount} / {stats.totalStudents} Logged</span>
+          </div>
+          <span className="text-xs text-gray-500 mb-2 block">{loggedPercentage}% Complete</span>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+            <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${loggedPercentage}%` }}></div>
+          </div>
+        </div>
+      </div>
+
       {/* Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
         <div className="overflow-y-auto max-h-[calc(100vh-320px)]">
@@ -588,49 +651,48 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
                 </tr>
               ) : (
                 mappedStudents.map((student, idx) => (
-                <tr
-                  key={student.id}
-                  className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                    idx === mappedStudents.length - 1 ? 'border-b-0' : ''
-                  }`}
-                >
-                  <td className="px-4 py-2">
-                    <div className="flex items-center space-x-2">
-                      <div
-                        className={`w-8 h-8 rounded-full bg-gradient-to-br ${student.bgColor} flex items-center justify-center text-white font-bold text-xs flex-shrink-0`}
-                      >
-                        {student.initial}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900 text-sm">{student.name}</p>
-                          {logData[student.id]?.isDraft && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase tracking-wider">
-                              Draft
-                            </span>
-                          )}
+                  <tr
+                    key={student.id}
+                    className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${idx === mappedStudents.length - 1 ? 'border-b-0' : ''
+                      }`}
+                  >
+                    <td className="px-4 py-2">
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className={`w-8 h-8 rounded-full bg-gradient-to-br ${student.bgColor} flex items-center justify-center text-white font-bold text-xs flex-shrink-0`}
+                        >
+                          {student.initial}
                         </div>
-                        <p className="text-xs text-gray-500">Grade {student.grade}</p>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900 text-sm">{student.name}</p>
+                            {logData[student.id]?.isDraft && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase tracking-wider">
+                                Draft
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500">Grade {student.grade}</p>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2">
-                    {getStatusIndicator(student.id, 'superGreen')}
-                  </td>
-                  <td className="px-4 py-2">
-                    {getStatusIndicator(student.id, 'green')}
-                  </td>
-                  <td className="px-4 py-2">
-                    {getStatusIndicator(student.id, 'yellow')}
-                  </td>
-                  <td className="px-4 py-2">
-                    {getStatusIndicator(student.id, 'red')}
-                  </td>
-                  <td className="px-4 py-2">
-                    {getStatusIndicator(student.id, 'absent')}
-                  </td>
-                </tr>
-              )))}
+                    </td>
+                    <td className="px-4 py-2">
+                      {getStatusIndicator(student.id, 'superGreen')}
+                    </td>
+                    <td className="px-4 py-2">
+                      {getStatusIndicator(student.id, 'green')}
+                    </td>
+                    <td className="px-4 py-2">
+                      {getStatusIndicator(student.id, 'yellow')}
+                    </td>
+                    <td className="px-4 py-2">
+                      {getStatusIndicator(student.id, 'red')}
+                    </td>
+                    <td className="px-4 py-2">
+                      {getStatusIndicator(student.id, 'absent')}
+                    </td>
+                  </tr>
+                )))}
             </tbody>
           </table>
         </div>

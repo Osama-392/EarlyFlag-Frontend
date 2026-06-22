@@ -43,7 +43,8 @@ function timeAgo(dateStr: string): string {
 
 export default function PrincipalDashboard() {
   const router = useRouter();
-  const [range, setRange] = useState<'7d' | '30d'>('7d');
+  const [range, setRange] = useState<'1d' | '7d' | '30d'>('7d');
+  const [activeTab, setActiveTab] = useState<string>('All Subjects');
   const [dashboard, setDashboard] = useState<AdminDashboardResponse | null>(null);
   const [heatmap, setHeatmap] = useState<HeatmapBlock | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,7 +84,16 @@ export default function PrincipalDashboard() {
 
 
   const kpis = dashboard?.kpis;
-  const totalClasses = heatmap?.grade_buckets?.reduce((s, b) => s + b.tiles.length, 0) ?? 0;
+  const allTiles = heatmap?.grade_buckets?.flatMap(b => b.tiles) || [];
+  const totalClasses = allTiles.length;
+  
+  // Extract unique subjects from backend data dynamically
+  const uniqueSubjects = Array.from(new Set(allTiles.map(t => t.subject).filter(Boolean))) as string[];
+  const dynamicTabs = ['All Subjects', ...uniqueSubjects.sort()];
+
+  const filteredTiles = activeTab === 'All Subjects' 
+    ? allTiles 
+    : allTiles.filter(t => t.subject === activeTab);
 
   // ─── Loading Skeleton ─────────────────────────────────────────
   if (loading) {
@@ -166,15 +176,15 @@ export default function PrincipalDashboard() {
             School Dashboard
           </h1>
           <p className="text-gray-500 mt-1">
-            {dashboard?.school?.name || 'School Overview'} — {range === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+            {dashboard?.school?.name || 'School Overview'} — {range === '1d' ? 'Today' : range === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex bg-gray-100 rounded-lg p-1">
-            {(['7d', '30d'] as const).map(r => (
+            {(['1d', '7d', '30d'] as const).map(r => (
               <button key={r} onClick={() => setRange(r)}
                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${range === r ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
-                {r === '7d' ? '7 Days' : '30 Days'}
+                {r === '1d' ? 'Today' : r === '7d' ? '7 Days' : '30 Days'}
               </button>
             ))}
           </div>
@@ -240,12 +250,14 @@ export default function PrincipalDashboard() {
         </div>
       )}
 
-      {/* ── School Heat Map ─────────────────────────────────────── */}
-      {heatmap && heatmap.grade_buckets.length > 0 && (
-        <div className="space-y-6">
+      {/* ── School Heat Map & Department Overview ───────────────── */}
+      <div className="grid lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2">
+          {heatmap && allTiles.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Sora' }}>Classroom Heat Map</h2>
+              <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'Sora' }}>Classroom Heat Map</h2>
               <span className="text-sm text-gray-500 font-medium">{totalClasses} classes</span>
             </div>
             <div className="hidden md:flex items-center gap-3 text-xs">
@@ -258,60 +270,161 @@ export default function PrincipalDashboard() {
             </div>
           </div>
 
-          {heatmap.grade_buckets.map(bucket => (
-            <div key={bucket.grade_level}>
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-lg font-bold text-gray-900" style={{ fontFamily: 'Sora' }}>
-                  Grade {bucket.grade_level}
-                </h3>
-                <span className="text-sm text-gray-500">{bucket.tiles.length} classes</span>
-              </div>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {bucket.tiles.map(tile => {
-                  const c = bandColors[tile.band];
-                  return (
-                    <div key={tile.class_id}
-                      onClick={() => router.push(`/principal-classes/${tile.class_id}`)}
-                      className={`fade-up ${c.bg} border-2 ${c.border} rounded-xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-0.5`}>
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h4 className="text-base font-bold text-gray-900">{tile.class_name}</h4>
-                          <p className="text-sm text-gray-600 mt-0.5">
-                            {tile.teacher_first_name} {tile.teacher_last_name}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          {tile.has_unresolved_high_critical && (
-                            <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" title="Unresolved high/critical alert" />
-                          )}
-                          {tile.has_observation_flag && (
-                            <span className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" title="Teacher observation flag" />
-                          )}
-                          <div className={`px-2 py-0.5 rounded-full text-xs font-bold ${c.badge} text-white`}>
-                            {tile.band === 'no_data' ? '—' : `${Math.round((tile.flag_percentage || 0) * 100)}%`}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className={c.text}><Users size={14} className="inline mr-1" />{tile.active_enrollments} students</span>
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-gray-200/60 flex items-center gap-4 text-sm">
-                        {tile.red_count > 0 && <span className="text-red-700 font-semibold">🔴 {tile.red_count} red</span>}
-                        {tile.yellow_count > 0 && <span className="text-yellow-700 font-semibold">🟡 {tile.yellow_count} yellow</span>}
-                        {tile.red_count === 0 && tile.yellow_count === 0 && <span className="text-green-700 font-semibold">✓ All clear</span>}
+          <div className="flex overflow-x-auto hide-scrollbar gap-6 border-b border-gray-200 mb-6 pb-0">
+            {dynamicTabs.map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`whitespace-nowrap pb-3 text-sm font-semibold transition-colors border-b-2 ${
+                  activeTab === tab 
+                    ? 'border-orange-500 text-orange-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredTiles.map(tile => {
+              const c = bandColors[tile.band];
+              return (
+                <div key={tile.class_id}
+                  onClick={() => router.push(`/principal-classes/${tile.class_id}`)}
+                  className={`fade-up ${c.bg} border-2 ${c.border} rounded-xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-0.5`}>
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h4 className="text-base font-bold text-gray-900">{tile.class_name}</h4>
+                      <p className="text-sm text-gray-600 mt-0.5">
+                        {tile.teacher_first_name} {tile.teacher_last_name}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {tile.has_unresolved_high_critical && (
+                        <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" title="Unresolved high/critical alert" />
+                      )}
+                      {tile.has_observation_flag && (
+                        <span className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" title="Teacher observation flag" />
+                      )}
+                      <div className={`px-2 py-0.5 rounded-full text-xs font-bold ${c.badge} text-white`}>
+                        {tile.band === 'no_data' ? '—' : `${Math.round((tile.flag_percentage || 0) * 100)}%`}
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className={c.text}><Users size={14} className="inline mr-1" />{tile.active_enrollments} students</span>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-gray-200/60 flex items-center gap-4 text-sm">
+                    {tile.red_count > 0 && <span className="text-red-700 font-semibold">🔴 {tile.red_count} red</span>}
+                    {tile.yellow_count > 0 && <span className="text-yellow-700 font-semibold">🟡 {tile.yellow_count} yellow</span>}
+                    {tile.red_count === 0 && tile.yellow_count === 0 && <span className="text-green-700 font-semibold">✓ All clear</span>}
+                  </div>
+                </div>
+              );
+            })}
+            
+            {filteredTiles.length === 0 && (
+              <div className="col-span-full py-12 text-center text-gray-500">
+                No classes found for {activeTab}.
               </div>
-            </div>
-          ))}
+            )}
+          </div>
+          
+          <div className="mt-6 text-center">
+             <button className="text-sm text-gray-500 hover:text-gray-900 transition flex items-center justify-center gap-1 mx-auto">
+               View More Classes <ChevronRight size={14} className="rotate-90" />
+             </button>
+          </div>
         </div>
       )}
+      </div>
 
+      <div className="lg:col-span-1">
+        {/* ── Department Overview ────────────────────────────────── */}
+        {dashboard && dashboard.departments && dashboard.departments.length > 0 && (() => {
+          // Pre-compute risk scores for all departments to find the max for bar scaling
+          const deptData = dashboard.departments.map(dept => {
+            const totalFlags = dept.red_count + dept.yellow_count + dept.super_green_count;
+            const riskScore = totalFlags > 0
+              ? Math.round(((dept.red_count + dept.yellow_count) / totalFlags) * 100)
+              : 0;
 
+            const maxCount = Math.max(dept.red_count, dept.yellow_count, dept.super_green_count);
+            let barColor = 'bg-gray-300';
+            if (maxCount > 0) {
+              if (maxCount === dept.red_count) barColor = 'bg-red-500';
+              else if (maxCount === dept.yellow_count) barColor = 'bg-yellow-400';
+              else if (maxCount === dept.super_green_count) barColor = 'bg-green-500';
+            }
 
-      {/* ── Two-Column: Teacher Flags + Recommendations ──────── */}
+            return { ...dept, riskScore, barColor };
+          });
+          const maxRisk = Math.max(...deptData.map(d => d.riskScore), 1);
+
+          return (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-5" style={{ fontFamily: 'Sora' }}>Department Overview</h3>
+            
+            <div className="overflow-hidden">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="text-gray-400 text-[11px] border-b border-gray-100 uppercase tracking-wider">
+                    <th className="font-bold pb-3" style={{ width: '30%' }}>Department</th>
+                    <th className="font-bold pb-3" style={{ width: '40%' }}>Risk Score</th>
+                    <th className="font-bold pb-3 text-right" style={{ width: '30%' }}>Trend (Vs Last Week)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {deptData.map(dept => {
+                    let trendColor = 'text-yellow-500';
+                    let trendIcon = '→';
+                    let trendText = '0%';
+                    if (dept.trend_value && dept.trend_value > 0) {
+                      trendColor = 'text-red-500';
+                      trendIcon = '↑';
+                      trendText = `${dept.trend_value}%`;
+                    } else if (dept.trend_value && dept.trend_value < 0) {
+                      trendColor = 'text-green-500';
+                      trendIcon = '↓';
+                      trendText = `${Math.abs(dept.trend_value)}%`;
+                    }
+
+                    const barWidth = maxRisk > 0 ? Math.max((dept.riskScore / maxRisk) * 100, 4) : 4;
+
+                    return (
+                      <tr key={dept.department_name} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="py-3 font-bold text-gray-800">{dept.department_name}</td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-sm font-semibold text-gray-700 w-8 tabular-nums">{dept.riskScore}%</span>
+                            <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${dept.barColor} transition-all duration-500`}
+                                style={{ width: `${barWidth}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className={`py-3 font-bold text-right`}>
+                          <span className={`inline-flex items-center gap-1 ${trendColor}`}>
+                            <span>{trendIcon}</span>
+                            <span>{trendText}</span>
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          );
+        })()}
+      </div>
+    </div>
+
+    {/* ── Two-Column: Teacher Flags + Recommendations ──────── */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Pending Teacher Observation Flags */}
         {dashboard && dashboard.pending_teacher_flags.length > 0 && (

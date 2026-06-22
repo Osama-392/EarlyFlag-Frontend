@@ -27,7 +27,7 @@ export default function FlagModal({
   onSubmit,
 }: FlagModalProps) {
   const [selectedCategories, setSelectedCategories] = useState<('academic' | 'behavioral')[]>(
-    initialData?.flags?.map((f: any) => f.category) || 
+    initialData?.flags?.map((f: any) => f.category) ||
     (initialData?.category ? [initialData.category] : ['academic'])
   );
   const [selectedReasons, setSelectedReasons] = useState<string[]>(
@@ -135,12 +135,12 @@ export default function FlagModal({
 
   const toggleReason = (reason: string, categoryName?: string) => {
     logger.formChange(`flag-reason-${reason}`, true, 'FlagModal');
-    
+
     if (selectedReasons.includes(reason)) {
       // Removing reason
       const newReasons = selectedReasons.filter((r) => r !== reason);
       setSelectedReasons(newReasons);
-      
+
       // Auto-deselect the category if it has no more reasons selected
       if (categoryName && selectedCategories.includes(categoryName as any) && selectedCategories.length > 1) {
         const catReasons = (config.reasons as any)[categoryName] || [];
@@ -239,24 +239,23 @@ export default function FlagModal({
                         setSelectedCategories(prev => {
                           if (prev.includes(cat as any)) {
                             if (prev.length === 1) return prev; // Keep at least one selected
-                            
+
                             // Clear the reasons associated with the deselected category
                             const catReasons = (config.reasons as any)[cat] || [];
-                            setSelectedReasons(currentReasons => 
+                            setSelectedReasons(currentReasons =>
                               currentReasons.filter(r => !catReasons.includes(r))
                             );
-                            
+
                             return prev.filter(c => c !== cat);
                           } else {
                             return [...prev, cat as any];
                           }
                         });
                       }}
-                      className={`flex-1 px-4 py-2.5 rounded-full font-medium text-sm transition-all border ${
-                        isSelected
+                      className={`flex-1 px-4 py-2.5 rounded-full font-medium text-sm transition-all border ${isSelected
                           ? config.activeCategoryBg
                           : 'bg-white text-slate-500 border-gray-200 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       {cat.charAt(0).toUpperCase() + cat.slice(1)}
                     </button>
@@ -279,11 +278,10 @@ export default function FlagModal({
                       <button
                         key={reason}
                         onClick={() => toggleReason(reason, cat)}
-                        className={`px-4 py-2 rounded-full text-sm transition-all font-medium border ${
-                          selectedReasons.includes(reason)
+                        className={`px-4 py-2 rounded-full text-sm transition-all font-medium border ${selectedReasons.includes(reason)
                             ? 'bg-slate-700 text-white border-slate-700'
                             : 'bg-white text-slate-500 border-gray-200 hover:border-gray-300'
-                        }`}
+                          }`}
                       >
                         {reason}
                       </button>
@@ -301,11 +299,10 @@ export default function FlagModal({
                     <button
                       key={reason}
                       onClick={() => toggleReason(reason)}
-                      className={`px-4 py-2 rounded-full text-sm transition-all font-medium border ${
-                        selectedReasons.includes(reason)
+                      className={`px-4 py-2 rounded-full text-sm transition-all font-medium border ${selectedReasons.includes(reason)
                           ? 'bg-slate-700 text-white border-slate-700'
                           : 'bg-white text-slate-500 border-gray-200 hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       {reason}
                     </button>
@@ -363,11 +360,10 @@ export default function FlagModal({
           <button
             onClick={handleSubmit}
             disabled={hasReasons && selectedReasons.length === 0}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-              (hasReasons && selectedReasons.length === 0)
+            className={`px-6 py-2 rounded-lg font-medium transition-colors ${(hasReasons && selectedReasons.length === 0)
                 ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
                 : 'bg-slate-700 text-white hover:bg-slate-800'
-            }`}
+              }`}
           >
             Submit Flag
           </button>
