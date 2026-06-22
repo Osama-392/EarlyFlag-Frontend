@@ -23,6 +23,7 @@ export interface Signal {
   id: string;
   student_id: string;
   signal_type: 'present' | 'yellow' | 'red' | 'super_green' | 'absent' | 'green';
+  signal_date?: string;
   category?: string;
   reason_code?: string;
   reason_description?: string;

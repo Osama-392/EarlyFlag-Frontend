@@ -3,6 +3,7 @@
 import { X, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 import { logger } from '@/lib/logger';
+import { Student } from '@/lib/studentService';
 
 interface FlagModalProps {
   flagType: 'super-green' | 'green' | 'yellow' | 'red' | 'absent';
@@ -14,6 +15,7 @@ interface FlagModalProps {
     initial: string;
     bgColor: string;
   };
+  apiStudent?: Student;
   initialData?: any;
   onClose: () => void;
   onSubmit: (data: any) => void;
@@ -22,6 +24,7 @@ interface FlagModalProps {
 export default function FlagModal({
   flagType,
   student,
+  apiStudent,
   initialData,
   onClose,
   onSubmit,
@@ -223,6 +226,71 @@ export default function FlagModal({
               </p>
             </div>
           </div>
+
+          {/* Weekly Status History */}
+          {apiStudent?.recent_history && (
+            <div className="mb-6 bg-slate-50 border border-slate-100 rounded-xl p-4">
+              <p className="text-[13px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                7-Day Flag History
+              </p>
+              <div className="flex justify-between items-center">
+                {Array.from({ length: 7 }, (_, i) => {
+                  const date = new Date();
+                  date.setDate(date.getDate() - (6 - i));
+                  const dateStr = date.toISOString().split('T')[0];
+                  
+                  // Find signal on this date
+                  const daySignal = apiStudent.recent_history?.find(s => s.signal_date === dateStr);
+                  const status = daySignal?.signal_type || 'present';
+
+                  // Determine colors based on status
+                  let statusBg = 'bg-slate-100 text-slate-450';
+                  let statusDot = 'bg-slate-300';
+                  let label = 'Present';
+
+                  if (status === 'red') {
+                    statusBg = 'bg-rose-50 border border-rose-100 text-rose-700';
+                    statusDot = 'bg-rose-500';
+                    label = 'Red';
+                  } else if (status === 'yellow') {
+                    statusBg = 'bg-amber-50 border border-amber-100 text-amber-800';
+                    statusDot = 'bg-amber-400';
+                    label = 'Yellow';
+                  } else if (status === 'super_green') {
+                    statusBg = 'bg-emerald-50 border border-emerald-100 text-emerald-700';
+                    statusDot = 'bg-emerald-600';
+                    label = 'S. Green';
+                  } else if (status === 'absent') {
+                    statusBg = 'bg-gray-100 border border-gray-200 text-gray-600';
+                    statusDot = 'bg-gray-500';
+                    label = 'Absent';
+                  } else if (status === 'present' || status === 'green') {
+                    statusBg = 'bg-emerald-50/50 border border-emerald-100/50 text-emerald-600';
+                    statusDot = 'bg-emerald-400';
+                    label = 'Present';
+                  }
+
+                  const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                  const isToday = dateStr === new Date().toISOString().split('T')[0];
+
+                  return (
+                    <div key={dateStr} className="flex flex-col items-center gap-1.5">
+                      <span className={`text-[10px] font-bold ${isToday ? 'text-blue-600' : 'text-slate-400'}`}>
+                        {dayName}
+                      </span>
+                      <div className={`w-8 h-8 rounded-lg ${statusBg} flex items-center justify-center relative group cursor-help`} title={`${dayName}: ${label}`}>
+                        <div className={`w-2.5 h-2.5 rounded-full ${statusDot}`} />
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full mb-1 hidden group-hover:block bg-slate-800 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap z-10 shadow-md">
+                          {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: {label}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Category Selection (only for yellow/red) */}
           {config.categories.length > 1 && (
