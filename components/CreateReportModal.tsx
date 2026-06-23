@@ -79,8 +79,8 @@ export default function CreateReportModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm" style={{ colorScheme: 'light' }}>
+      <div className="bg-white text-gray-900 rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center space-x-3">
@@ -176,7 +176,8 @@ export default function CreateReportModal({
                   value={startDate}
                   max={endDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white text-gray-900 color-scheme-light"
+                  style={{ colorScheme: 'light' }}
                 />
               </div>
               <div>
@@ -187,7 +188,8 @@ export default function CreateReportModal({
                   min={startDate}
                   max={formatDate(today)}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white text-gray-900 color-scheme-light"
+                  style={{ colorScheme: 'light' }}
                 />
               </div>
             </div>
@@ -206,7 +208,7 @@ export default function CreateReportModal({
                 logger.formChange('subject', e.target.value, 'CreateReportModal');
                 setSubject(e.target.value);
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white text-gray-900"
             >
               {(gradeSubjects?.length ? gradeSubjects : [defaultSubject]).map((subj, idx) => (
                 <option key={idx} value={subj}>{subj}</option>

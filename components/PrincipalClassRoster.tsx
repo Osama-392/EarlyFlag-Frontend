@@ -86,7 +86,7 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
         <div className="h-8 bg-gray-200 rounded-lg w-44 mb-6" />
         <div className="h-28 bg-gray-200 rounded-2xl mb-4" />
         {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} className="h-20 bg-gray-100 rounded-xl" />
+          <div key={i} className="h-20 bg-gray-100 dark:bg-[#1b1e2c] dark:bg-[#1b1e2c] rounded-xl" />
         ))}
       </div>
     );
@@ -96,9 +96,9 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
     return (
       <div className="flex flex-col items-center justify-center py-20 p-4">
         <AlertCircle size={48} className="text-red-400 mb-4" />
-        <p className="text-gray-900 font-semibold text-lg mb-2">Unable to load class</p>
-        <p className="text-gray-500 text-sm mb-6">{error}</p>
-        <button onClick={() => router.push('/principal-students')} className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition">Go Back</button>
+        <p className="text-gray-900 dark:text-white dark:text-white font-semibold text-lg mb-2">Unable to load class</p>
+        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm mb-6">{error}</p>
+        <button onClick={() => router.push('/principal-students')} className="px-6 py-2.5 bg-gray-100 dark:bg-[#1b1e2c] dark:bg-[#1b1e2c] text-gray-700 dark:text-gray-300 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-200 transition">Go Back</button>
       </div>
     );
   }
@@ -142,7 +142,7 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
       {/* Back */}
       <button
         onClick={() => router.push('/principal-students')}
-        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors shadow-sm"
+        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 dark:text-gray-400 bg-white dark:bg-[#151722] dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors shadow-sm"
       >
         <ArrowLeft size={16} /> Back to Classes
       </button>
@@ -150,10 +150,10 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight" style={{ fontFamily: 'Fraunces, serif' }}>
+          <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white dark:text-white tracking-tight" style={{ fontFamily: 'Fraunces, serif' }}>
             {data.class_name}
           </h1>
-          <p className="text-gray-500 mt-1 text-[15px]" style={{ fontFamily: 'DM Sans' }}>
+          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 mt-1 text-[15px]" style={{ fontFamily: 'DM Sans' }}>
             Grade {data.grade_level} · {data.teacher_first_name} {data.teacher_last_name}
             {data.period ? ` · Period ${data.period}` : ''}
           </p>
@@ -168,12 +168,12 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
       {/* Stats Strip */}
       <div className="grid grid-cols-4 gap-3" style={{ fontFamily: 'DM Sans' }}>
         {[
-          { label: 'Students', value: stats.total, color: 'text-gray-900', border: 'border-gray-200' },
+          { label: 'Students', value: stats.total, color: 'text-gray-900 dark:text-white dark:text-white', border: 'border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d]' },
           { label: 'Green', value: stats.greenFlags, color: 'text-emerald-600', border: 'border-emerald-200' },
           { label: 'Yellow', value: stats.yellowFlags, color: 'text-amber-600', border: 'border-amber-200' },
           { label: 'Red', value: stats.redFlags, color: 'text-red-600', border: 'border-red-200' },
         ].map(stat => (
-          <div key={stat.label} className={`bg-white rounded-xl border ${stat.border} px-4 py-4 shadow-sm text-center`}>
+          <div key={stat.label} className={`bg-white dark:bg-[#151722] dark:bg-[#151722] rounded-xl border ${stat.border} px-4 py-4 shadow-sm text-center`}>
             <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
             <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-0.5">{stat.label}</p>
           </div>
@@ -188,7 +188,7 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
           placeholder="Search by name or ID..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 outline-none transition text-sm shadow-sm"
+          className="w-full pl-12 pr-4 py-3 bg-white dark:bg-[#151722] dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-xl focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 outline-none transition text-sm shadow-sm"
         />
       </div>
 
@@ -203,7 +203,7 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
             <div
               key={student.student_id}
               onClick={() => router.push(`/principal-students/${student.student_id}`)}
-              className={`roster-item bg-white border border-gray-200/80 border-t-[3.5px] ${cfg.accentBorder.replace('border-l-', 'border-t-')} rounded-xl p-5 cursor-pointer
+              className={`roster-item bg-white dark:bg-[#151722] dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d]/80 border-t-[3.5px] ${cfg.accentBorder.replace('border-l-', 'border-t-')} rounded-xl p-5 cursor-pointer
                 shadow-sm hover:shadow-lg ${cfg.glowShadow} ${cfg.bgHover}
                 transition-all duration-200 group`}
             >
@@ -213,10 +213,10 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
                   {student.first_name[0]}{student.last_name[0]}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-[15px] font-semibold text-gray-900 truncate">{student.first_name} {student.last_name}</h3>
+                  <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white dark:text-white truncate">{student.first_name} {student.last_name}</h3>
                   <p className="text-xs text-gray-400">{student.external_student_id}</p>
                 </div>
-                <ChevronRight size={16} className="text-gray-300 group-hover:text-gray-500 transition-colors flex-shrink-0" />
+                <ChevronRight size={16} className="text-gray-300 group-hover:text-gray-500 dark:text-gray-400 dark:text-gray-400 transition-colors flex-shrink-0" />
               </div>
 
               {/* Badges */}
@@ -237,7 +237,7 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
               </div>
 
               {/* Signal Counts */}
-              <div className="flex items-center gap-4 pt-3 border-t border-gray-100">
+              <div className="flex items-center gap-4 pt-3 border-t border-gray-100 dark:border-[#262a3d] dark:border-[#262a3d]">
                 <div className="flex items-center gap-1.5" title="Green Signals">
                   <div className="w-2 h-2 rounded-full bg-emerald-400" />
                   <span className="text-xs font-semibold text-emerald-600 tabular-nums">{isGreen ? 1 : 0}</span>
@@ -252,7 +252,7 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
                 </div>
                 <div className="flex items-center gap-1.5" title="Absent">
                   <div className="w-2 h-2 rounded-full bg-gray-300" />
-                  <span className="text-xs font-semibold text-gray-500 tabular-nums">{student.absent_count}</span>
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-400 tabular-nums">{student.absent_count}</span>
                 </div>
               </div>
             </div>
@@ -264,7 +264,7 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
       {filteredStudents.length === 0 && (
         <div className="text-center py-16">
           <Users size={48} className="mx-auto text-gray-300 mb-4" />
-          <p className="text-gray-600 font-medium">{students.length === 0 ? 'No students enrolled in this class.' : 'No students match your search.'}</p>
+          <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400 font-medium">{students.length === 0 ? 'No students enrolled in this class.' : 'No students match your search.'}</p>
         </div>
       )}
     </div>

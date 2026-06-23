@@ -378,11 +378,11 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
       const colorMap = {
         absent: {
           active: 'bg-gray-300 hover:bg-gray-400',
-          inactive: 'bg-gray-100 hover:bg-gray-200',
+          inactive: 'bg-gray-100 dark:bg-[#1b1e2c] hover:bg-gray-200',
         },
         green: {
           active: 'bg-emerald-300 hover:bg-emerald-400',
-          inactive: 'bg-gray-100 hover:bg-gray-200',
+          inactive: 'bg-gray-100 dark:bg-[#1b1e2c] hover:bg-gray-200',
         },
       };
       const colors = colorMap[status];
@@ -429,7 +429,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
           }}
           className={`w-8 h-8 rounded-full transition-all flex items-center justify-center text-xs font-bold ${isActive
             ? `${statusColors[statusMap[status]]} text-amber-950 ring-2 ring-offset-2 ring-offset-white ring-gray-400`
-            : 'bg-gray-100 hover:bg-gray-200 text-transparent'
+            : 'bg-gray-100 dark:bg-[#1b1e2c] hover:bg-gray-200 text-transparent'
             }`}
         >
           {flagsCount > 1 ? flagsCount : ''}
@@ -483,8 +483,8 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Daily Quick Log</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Monitor top student concerns day to day performance</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Daily Quick Log</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Monitor top student concerns day to day performance</p>
         </div>
         <div className="flex items-center gap-3">
           {/* Date Selector */}
@@ -494,7 +494,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
               <select
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white dark:bg-[#151722]"
               >
                 {availableDates.map((date) => {
                   const d = new Date(date + 'T00:00:00');
@@ -518,7 +518,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
               setCurrentPage(1);
             }}
             disabled={classesLoading || classes.length === 0}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white min-w-[150px]"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white dark:bg-[#151722] min-w-[150px]"
           >
             {classesLoading ? (
               <option value="">Loading classes...</option>
@@ -549,52 +549,52 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
       )}
 
       {/* Today's Class Summary */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#151722] rounded-lg border border-gray-200 dark:border-[#262a3d] p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-sm font-bold text-gray-900 mb-3">Today's Class Summary</h3>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Today's Class Summary</h3>
           <div className="flex items-center gap-8">
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1.5 font-bold text-lg">
                 <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                 {stats.superGreen}
               </div>
-              <span className="text-xs text-gray-500">Super Green</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Super Green</span>
             </div>
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1.5 font-bold text-lg">
                 <div className="w-3.5 h-3.5 rounded-full bg-emerald-500" />
                 {stats.green}
               </div>
-              <span className="text-xs text-gray-500">Green</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Green</span>
             </div>
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1.5 font-bold text-lg">
                 <div className="w-3.5 h-3.5 rounded-full bg-amber-400" />
                 {stats.yellow}
               </div>
-              <span className="text-xs text-gray-500">Yellow</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Yellow</span>
             </div>
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1.5 font-bold text-lg">
                 <div className="w-3.5 h-3.5 rounded-full bg-rose-500" />
                 {stats.red}
               </div>
-              <span className="text-xs text-gray-500">Red</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Red</span>
             </div>
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1.5 font-bold text-lg">
                 <div className="w-3.5 h-3.5 rounded-full bg-gray-900" />
                 {stats.absent}
               </div>
-              <span className="text-xs text-gray-500">Absent</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Absent</span>
             </div>
           </div>
         </div>
-        <div className="w-full md:w-64 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
+        <div className="w-full md:w-64 border-t md:border-t-0 md:border-l border-gray-100 dark:border-[#262a3d] pt-4 md:pt-0 md:pl-6">
           <div className="flex justify-between items-end mb-1">
-            <span className="text-sm font-bold text-gray-900">{stats.loggedCount} / {stats.totalStudents} Logged</span>
+            <span className="text-sm font-bold text-gray-900 dark:text-white">{stats.loggedCount} / {stats.totalStudents} Logged</span>
           </div>
-          <span className="text-xs text-gray-500 mb-2 block">{loggedPercentage}% Complete</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400 mb-2 block">{loggedPercentage}% Complete</span>
           <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
             <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${loggedPercentage}%` }}></div>
           </div>
@@ -602,50 +602,50 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
+      <div className="bg-white dark:bg-[#151722] rounded-lg border border-gray-200 dark:border-[#262a3d] overflow-hidden flex-1 flex flex-col min-h-0">
         <div className="overflow-y-auto max-h-[calc(100vh-320px)]">
           <table className="w-full">
-            <thead className="sticky top-0 z-10 bg-gray-50 shadow-sm">
-              <tr className="border-b border-gray-200">
-                <th className="px-4 py-2.5 text-left text-sm font-semibold text-gray-900">Name</th>
-                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900">
+            <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-[#1b1e2c] shadow-sm">
+              <tr className="border-b border-gray-200 dark:border-[#262a3d]">
+                <th className="px-4 py-2.5 text-left text-sm font-semibold text-gray-900 dark:text-white">Name</th>
+                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900 dark:text-white">
                   <div className="flex items-center justify-center space-x-1">
                     <div className="w-3 h-3 rounded-full bg-emerald-500" />
                     <span>Super Green</span>
                   </div>
                 </th>
-                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900">
+                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900 dark:text-white">
                   <div className="flex items-center justify-center space-x-1">
                     <div className="w-3 h-3 rounded-full bg-emerald-300" />
                     <span>Green</span>
                   </div>
                 </th>
-                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900">
+                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900 dark:text-white">
                   <div className="flex items-center justify-center space-x-1">
                     <div className="w-3 h-3 rounded-full bg-amber-300" />
                     <span>Yellow</span>
                   </div>
                 </th>
-                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900">
+                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900 dark:text-white">
                   <div className="flex items-center justify-center space-x-1">
                     <div className="w-3 h-3 rounded-full bg-rose-300" />
                     <span>Red</span>
                   </div>
                 </th>
-                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900">Absent</th>
+                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900 dark:text-white">Absent</th>
               </tr>
             </thead>
             <tbody>
               {classesLoading || studentsLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
                     Loading students...
                   </td>
                 </tr>
               ) : mappedStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                     No students found in this class.
                   </td>
                 </tr>
@@ -653,7 +653,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
                 mappedStudents.map((student, idx) => (
                   <tr
                     key={student.id}
-                    className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${idx === mappedStudents.length - 1 ? 'border-b-0' : ''
+                    className={`border-b border-gray-100 dark:border-[#262a3d] hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors ${idx === mappedStudents.length - 1 ? 'border-b-0' : ''
                       }`}
                   >
                     <td className="px-4 py-2">
@@ -665,14 +665,14 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className="font-medium text-gray-900 text-sm">{student.name}</p>
+                            <p className="font-medium text-gray-900 dark:text-white text-sm">{student.name}</p>
                             {logData[student.id]?.isDraft && (
                               <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase tracking-wider">
                                 Draft
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-gray-500">Grade {student.grade}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Grade {student.grade}</p>
                         </div>
                       </div>
                     </td>
@@ -701,8 +701,8 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
 
 
       {/* Flag Legend - compact inline */}
-      <div className="flex items-center flex-wrap gap-4 px-2 text-xs text-gray-500">
-        <span className="font-medium text-gray-700">Flags:</span>
+      <div className="flex items-center flex-wrap gap-4 px-2 text-xs text-gray-500 dark:text-gray-400">
+        <span className="font-medium text-gray-700 dark:text-gray-300">Flags:</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> Super Green</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-emerald-300 inline-block" /> Green</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-amber-300 inline-block" /> Yellow</span>

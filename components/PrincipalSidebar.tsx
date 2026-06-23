@@ -78,20 +78,12 @@ export default function PrincipalSidebar() {
       <aside
         className={`${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 fixed lg:static left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 shadow-lg transition-transform duration-300 z-40 flex flex-col`}
+        } lg:translate-x-0 fixed lg:static left-0 top-0 h-screen w-64 bg-white dark:bg-[#151722] border-r border-gray-200 dark:border-[#262a3d] shadow-lg transition-colors duration-300 z-40 flex flex-col`}
       >
         {/* Logo */}
-        <div className="p-6 border-b border-gray-200">
-          <Link href="/principal-dashboard" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
-              <span className="text-white font-bold text-lg">🚩</span>
-            </div>
-            <div>
-              <div className="font-bold text-gray-900 text-lg" style={{ fontFamily: 'Playfair Display' }}>
-                EarlyFlag
-              </div>
-              <div className="text-xs text-teal-600">Principal</div>
-            </div>
+        <div className="h-[73px] px-8 bg-[#151722] border-b border-[#262a3d] flex items-center shrink-0">
+          <Link href="/principal-dashboard" className="flex items-center hover:opacity-80 transition-opacity w-full">
+            <span className="text-[17px] font-bold tracking-[0.2em] text-white">EARLY <span className="text-[#f97316]">FLAG</span></span>
           </Link>
         </div>
 
@@ -107,49 +99,34 @@ export default function PrincipalSidebar() {
                 href={item.href}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                   active
-                    ? 'bg-teal-50 text-teal-700'
-                    : 'text-gray-600 hover:bg-gray-50'
+                    ? 'bg-orange-500 text-white shadow-md'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1b1e2c]'
                 }`}
-                onClick={() => setIsOpen(false)}
               >
-                <Icon size={20} />
-                <span className="font-medium">{item.label}</span>
+                <Icon size={20} className={active ? 'text-white' : 'text-gray-500 dark:text-gray-400'} />
+                <span className="font-medium text-sm">{item.label}</span>
               </Link>
             );
           })}
         </nav>
-
-        {/* User Section */}
-        <div className="p-4 border-t border-slate-700 space-y-3">
-          <div className="relative">
-            <button
-              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-3 flex-1">
-                <div className="w-8 h-8 bg-teal-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  {user?.email?.charAt(0).toUpperCase()}
-                </div>
-                <div className="text-left text-sm">
-                  <div className="font-medium text-gray-900">Principal</div>
-                  <div className="text-xs text-gray-500 truncate">{user?.email}</div>
-                </div>
-              </div>
-              <ChevronDown size={18} className={`transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {isUserMenuOpen && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 transition-colors text-left"
-                >
-                  <LogOut size={18} />
-                  <span className="font-medium">Sign Out</span>
-                </button>
-              </div>
-            )}
+        {/* User Info & Logout */}
+        <div className="p-4 border-t border-gray-200 dark:border-[#262a3d] space-y-3">
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-[#1b1e2c]">
+            <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 font-medium">
+              {user?.email?.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">{user?.email}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Principal</p>
+            </div>
           </div>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/20 dark:hover:text-red-500 transition-colors"
+          >
+            <LogOut size={20} />
+            <span className="font-medium text-sm">Logout</span>
+          </button>
         </div>
       </aside>
 

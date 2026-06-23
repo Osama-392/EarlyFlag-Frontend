@@ -5,12 +5,16 @@ All notable changes to the Frontend project are documented in this file.
 ## [2026-06-23]
 
 ### Added
+- **Global Dark Mode**: Implemented comprehensive dark mode (Night Mode) support across the entire Teacher and Principal/Admin dashboards and all sub-pages (Classes, Reports, Student Profiles, Analytics, etc.).
 - **Weekly Flag Lookback History**: Integrated a weekly status visual in the Quick Log / student flag modal showing historic daily statuses (super green, green, yellow, red, absent) for the active week.
 - **Department Overview Risk Metric**: Redesigned the Department Overview display to compute and visualize a weighted Risk Score utilizing red, yellow, and super green counts, complete with progress bar indicators.
 - **Today (1d) Range Integration**: Enabled `1d` date range selection for reports and dashboards on the frontend.
 - **Today's Class Summary Banner**: Added a summary dashboard card/bar at the top of the Quick Log page showing real-time totals for each signal status and a visual logging completion percentage bar.
 
 ### Changed
+- **Dashboard Styling**: Updated the Teacher and Principal Sidebars with a sleek dark header design, responsive logo placement, and bold orange active-state highlighting.
+- **Principal Dashboard Layout**: Repositioned the Recommendations block below the Department Overview and restyled it as "School Insights" with contextual icons and updated typography to match the sleek dark theme.
+- **Report Generator Modal**: Forced a strict light-mode theme for the Teacher Report Generator popup to ensure input fields and text remain readable regardless of the user's global dark mode settings.
 - **Service Schema Mapping**: Updated `lib/adminDashboardService.ts` to include `super_green_count` for subject and department schemas.
 
 ## [2026-06-19]

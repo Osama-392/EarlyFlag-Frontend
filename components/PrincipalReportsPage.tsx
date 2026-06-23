@@ -21,7 +21,7 @@ import { generateAdminStudentReport } from '@/lib/adminDashboardService';
 
 const priorityColors: Record<string, string> = {
   urgent: 'bg-red-100 text-red-700', high: 'bg-orange-100 text-orange-700',
-  normal: 'bg-blue-100 text-blue-700', low: 'bg-gray-100 text-gray-700',
+  normal: 'bg-blue-100 text-blue-700', low: 'bg-gray-100 dark:bg-[#1b1e2c] dark:bg-[#1b1e2c] text-gray-700 dark:text-gray-300 dark:text-gray-300',
 };
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700', sent: 'bg-blue-100 text-blue-700',
@@ -42,7 +42,7 @@ function SignalCountBar({ counts }: { counts: SignalCountsByType }) {
   if (total === 0) return <span className="text-xs text-gray-400">No signals</span>;
   const pct = (val: number) => (val / total) * 100;
   return (
-    <div className="w-24 h-3 rounded-full overflow-hidden flex bg-gray-100" title={`SG:${counts.super_green} P:${counts.present} Y:${counts.yellow} R:${counts.red} A:${counts.absent}`}>
+    <div className="w-24 h-3 rounded-full overflow-hidden flex bg-gray-100 dark:bg-[#1b1e2c] dark:bg-[#1b1e2c]" title={`SG:${counts.super_green} P:${counts.present} Y:${counts.yellow} R:${counts.red} A:${counts.absent}`}>
       {counts.super_green > 0 && <div className="bg-emerald-600" style={{ width: `${pct(counts.super_green)}%` }} />}
       {counts.present > 0 && <div className="bg-emerald-400" style={{ width: `${pct(counts.present)}%` }} />}
       {counts.yellow > 0 && <div className="bg-yellow-400" style={{ width: `${pct(counts.yellow)}%` }} />}
@@ -54,7 +54,7 @@ function SignalCountBar({ counts }: { counts: SignalCountsByType }) {
 
 function CategoryBreakdownTooltip({ cat }: { cat: ReportCategoryBreakdown }) {
   return (
-    <div className="text-xs text-gray-600 space-y-0.5">
+    <div className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-400 space-y-0.5">
       <div className="flex justify-between gap-3"><span className="text-yellow-600">Yellow Academic</span><span className="font-medium">{cat.yellow_academic}</span></div>
       <div className="flex justify-between gap-3"><span className="text-yellow-600">Yellow Behavioral</span><span className="font-medium">{cat.yellow_behavioral}</span></div>
       <div className="flex justify-between gap-3"><span className="text-red-600">Red Academic</span><span className="font-medium">{cat.red_academic}</span></div>
@@ -64,7 +64,7 @@ function CategoryBreakdownTooltip({ cat }: { cat: ReportCategoryBreakdown }) {
 }
 
 function WeightedScoreBadge({ score }: { score: number }) {
-  let color = 'bg-gray-100 text-gray-700';
+  let color = 'bg-gray-100 dark:bg-[#1b1e2c] dark:bg-[#1b1e2c] text-gray-700 dark:text-gray-300 dark:text-gray-300';
   if (score >= 10) color = 'bg-red-100 text-red-700';
   else if (score >= 6) color = 'bg-orange-100 text-orange-700';
   else if (score >= 3) color = 'bg-yellow-100 text-yellow-700';
@@ -88,12 +88,12 @@ function PaginationControls({
   const start = total === 0 ? 0 : page * pageSize + 1;
   const end = Math.min((page + 1) * pageSize, total);
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
-      <p className="text-xs text-gray-500">Showing {start}–{end} of {total}</p>
+    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] bg-gray-50 dark:bg-[#1b1e2c] dark:bg-[#1b1e2c]">
+      <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">Showing {start}–{end} of {total}</p>
       <div className="flex items-center gap-2">
         <button disabled={page === 0} onClick={() => onChange(page - 1)}
           className="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 transition"><ChevronLeft size={16} /></button>
-        <span className="text-sm text-gray-700">{page + 1} / {Math.max(totalPages, 1)}</span>
+        <span className="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{page + 1} / {Math.max(totalPages, 1)}</span>
         <button disabled={page >= totalPages - 1} onClick={() => onChange(page + 1)}
           className="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 transition"><ChevronRight size={16} /></button>
       </div>
@@ -112,16 +112,16 @@ function ReportFilterBar({
 }) {
   const hasCustomDate = from && to;
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-3">
-      <div className="flex items-center gap-2 mb-1 text-sm font-medium text-gray-700"><Filter size={14} /> Filters</div>
+    <div className="bg-white dark:bg-[#151722] dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] p-4 shadow-sm space-y-3">
+      <div className="flex items-center gap-2 mb-1 text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-300"><Filter size={14} /> Filters</div>
       <div className="flex flex-wrap items-end gap-4">
         {/* Range */}
         <div>
-          <p className="text-xs text-gray-500 mb-1.5">Date Range</p>
-          <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 mb-1.5">Date Range</p>
+          <div className="flex rounded-lg border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] overflow-hidden">
             {(['1d', '7d', '30d'] as const).map(r => (
               <button key={r} onClick={() => setRange(r)}
-                className={`px-3 py-1.5 text-xs font-medium transition ${range === r && !hasCustomDate ? 'bg-teal-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                className={`px-3 py-1.5 text-xs font-medium transition ${range === r && !hasCustomDate ? 'bg-teal-600 text-white' : 'bg-white dark:bg-[#151722] dark:bg-[#151722] text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c]'}`}>
                 {r === '1d' ? 'Today' : r === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
               </button>
             ))}
@@ -129,21 +129,21 @@ function ReportFilterBar({
         </div>
         {/* Custom date */}
         <div>
-          <p className="text-xs text-gray-500 mb-1.5">Custom Date (overrides range)</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 mb-1.5">Custom Date (overrides range)</p>
           <div className="flex items-center gap-2">
             <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-              className="px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500" />
+              className="px-2 py-1.5 text-xs border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500" />
             <span className="text-xs text-gray-400">to</span>
             <input type="date" value={to} onChange={e => setTo(e.target.value)}
-              className="px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500" />
+              className="px-2 py-1.5 text-xs border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500" />
           </div>
         </div>
         {/* Grade filter */}
         {showGrade && (
           <div>
-            <p className="text-xs text-gray-500 mb-1.5">Grade</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 mb-1.5">Grade</p>
             <select value={gradeLevel} onChange={e => setGradeLevel(e.target.value)}
-              className="px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white">
+              className="px-2 py-1.5 text-xs border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white dark:bg-[#151722] dark:bg-[#151722]">
               <option value="">All Grades</option>
               {[6, 7, 8, 9, 10, 11, 12].map(g => <option key={g} value={g}>Grade {g}</option>)}
             </select>
@@ -167,7 +167,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
   return (
     <div className="text-center py-12">
       <AlertCircle size={32} className="mx-auto text-red-400 mb-3" />
-      <p className="text-gray-600">{message}</p>
+      <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400">{message}</p>
       <button onClick={onRetry} className="mt-3 text-teal-600 text-sm font-medium">Retry</button>
     </div>
   );
@@ -428,12 +428,12 @@ export default function PrincipalReportsPage() {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Sora:wght@400;500;600;700&display=swap');`}</style>
 
       <div className="space-y-2">
-        <h1 className="text-4xl font-bold text-gray-900" style={{ fontFamily: 'Playfair Display' }}>Reports</h1>
-        <p className="text-gray-600">Recognition exports and admin analytics</p>
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white dark:text-white" style={{ fontFamily: 'Playfair Display' }}>Reports</h1>
+        <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400">Recognition exports and admin analytics</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 overflow-x-auto">
+      <div className="flex border-b border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] overflow-x-auto">
         {[
           { id: 'supergreen' as const, label: 'Super Green Export', icon: Sparkles },
           { id: 'student-reports' as const, label: 'Student Report', icon: Users },
@@ -442,7 +442,7 @@ export default function PrincipalReportsPage() {
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
-              tab === t.id ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+              tab === t.id ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-500 dark:text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 dark:text-gray-300'}`}>
             <t.icon size={16} />{t.label}
           </button>
         ))}
@@ -463,8 +463,8 @@ export default function PrincipalReportsPage() {
               <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-200 p-5 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2"><Sparkles size={20} className="text-emerald-600" /> Super Green Recognition</h3>
-                    <p className="text-sm text-gray-600 mt-1">{sgData.academic_year_label} · Threshold: {sgData.threshold}+ signals · {sgData.row_count} qualifying students</p>
+                    <h3 className="font-bold text-gray-900 dark:text-white dark:text-white text-lg flex items-center gap-2"><Sparkles size={20} className="text-emerald-600" /> Super Green Recognition</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 mt-1">{sgData.academic_year_label} · Threshold: {sgData.threshold}+ signals · {sgData.row_count} qualifying students</p>
                   </div>
                   <button onClick={handleDownloadCsv} disabled={downloading}
                     className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition disabled:opacity-50">
@@ -474,27 +474,27 @@ export default function PrincipalReportsPage() {
               </div>
 
               {/* Students Table */}
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white dark:bg-[#151722] dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
+                    <thead className="bg-gray-50 dark:bg-[#1b1e2c] dark:bg-[#1b1e2c] border-b border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d]">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Student</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Grade</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Count</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Top Reasons</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Last Date</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Badges</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Student</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Grade</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Count</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Top Reasons</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Last Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Badges</th>
                       </tr>
                     </thead>
                     <tbody>
                       {sgData.students.map(s => (
-                        <tr key={s.student_id} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                        <tr key={s.student_id} className="border-b border-gray-100 dark:border-[#262a3d] dark:border-[#262a3d] hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
                           <td className="px-4 py-3">
-                            <p className="text-sm font-medium text-gray-900">{s.first_name} {s.last_name}</p>
-                            <p className="text-xs text-gray-500">{s.student_id_external}</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white dark:text-white">{s.first_name} {s.last_name}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">{s.student_id_external}</p>
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-700">{s.grade_level}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{s.grade_level}</td>
                           <td className="px-4 py-3"><span className="text-lg font-bold text-emerald-600">{s.super_green_count}</span></td>
                           <td className="px-4 py-3">
                             <div className="flex flex-wrap gap-1">
@@ -504,7 +504,7 @@ export default function PrincipalReportsPage() {
                               {s.top_reasons.length === 0 && <span className="text-xs text-gray-400">—</span>}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-xs text-gray-500">{formatDate(s.last_super_green_date)}</td>
+                          <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">{formatDate(s.last_super_green_date)}</td>
                           <td className="px-4 py-3">
                             <div className="flex gap-1">
                               {s.iep_status && <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-bold">IEP</span>}
@@ -540,7 +540,7 @@ export default function PrincipalReportsPage() {
             <div className="flex items-center gap-3 no-print">
               <button
                 onClick={handleStudentPrint}
-                className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg transition-colors font-medium text-sm shadow-sm"
+                className="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-300 dark:text-gray-300 bg-white dark:bg-[#151722] dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] rounded-lg transition-colors font-medium text-sm shadow-sm"
               >
                 <Printer size={16} />
                 Print Report
@@ -560,28 +560,28 @@ export default function PrincipalReportsPage() {
           ) : studentError ? (
             <ErrorState message={studentError} onRetry={fetchStudentReports} />
           ) : (
-            <div ref={studentTableRef} className="principal-report-print-area bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div ref={studentTableRef} className="principal-report-print-area bg-white dark:bg-[#151722] dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-gray-50 dark:bg-[#1b1e2c] dark:bg-[#1b1e2c] border-b border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d]">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Student</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Signals</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Categories</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Score</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Alerts</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Referrals</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Last Flag</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Classes</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-900 uppercase">Actions</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Student</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Signals</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Categories</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Score</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Alerts</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Referrals</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Last Flag</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Classes</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(studentData?.students || []).map(s => (
-                      <tr key={s.student_id} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                      <tr key={s.student_id} className="border-b border-gray-100 dark:border-[#262a3d] dark:border-[#262a3d] hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
                         <td className="px-4 py-3">
-                          <p className="text-sm font-medium text-gray-900">{s.first_name} {s.last_name}</p>
-                          <p className="text-xs text-gray-500">{s.external_student_id} · Grade {s.grade_level}</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white dark:text-white">{s.first_name} {s.last_name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">{s.external_student_id} · Grade {s.grade_level}</p>
                           <div className="flex gap-1 mt-1">
                             {s.iep_status && <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-bold">IEP</span>}
                             {s.ell_status && <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-bold">ELL</span>}
@@ -590,19 +590,19 @@ export default function PrincipalReportsPage() {
                         <td className="px-4 py-3"><SignalCountBar counts={s.signal_counts} /></td>
                         <td className="px-4 py-3">
                           <div className="group relative inline-block">
-                            <span className="text-xs text-gray-500 cursor-help underline decoration-dotted">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 cursor-help underline decoration-dotted">
                               Y:{s.category_breakdown.yellow_academic + s.category_breakdown.yellow_behavioral} R:{s.category_breakdown.red_academic + s.category_breakdown.red_behavioral}
                             </span>
-                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-44">
+                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 bg-white dark:bg-[#151722] dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-lg shadow-lg p-3 w-44">
                               <CategoryBreakdownTooltip cat={s.category_breakdown} />
                             </div>
                           </div>
                         </td>
                         <td className="px-4 py-3"><WeightedScoreBadge score={s.weighted_score} /></td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{s.unresolved_alert_count}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{s.open_referral_count}</td>
-                        <td className="px-4 py-3 text-xs text-gray-500">{formatDate(s.last_flag_date)}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{s.enrolled_class_count}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{s.unresolved_alert_count}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{s.open_referral_count}</td>
+                        <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">{formatDate(s.last_flag_date)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{s.enrolled_class_count}</td>
                         <td className="px-4 py-3 text-right">
                           <button
                             onClick={() => handleCreateStudentReport(s)}
@@ -665,43 +665,43 @@ export default function PrincipalReportsPage() {
           ) : teacherError ? (
             <ErrorState message={teacherError} onRetry={fetchTeacherReports} />
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-[#151722] dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-gray-50 dark:bg-[#1b1e2c] dark:bg-[#1b1e2c] border-b border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d]">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Teacher</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Workload</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Signals</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Categories</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Alerts</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Referrals</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Obs. Flags</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Last Signal</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-900 uppercase">Actions</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Teacher</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Workload</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Signals</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Categories</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Alerts</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Referrals</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Obs. Flags</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Last Signal</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(teacherData?.teachers || []).map(t => (
-                      <tr key={t.teacher_id} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                      <tr key={t.teacher_id} className="border-b border-gray-100 dark:border-[#262a3d] dark:border-[#262a3d] hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
                         <td className="px-4 py-3">
-                          <p className="text-sm font-medium text-gray-900">{t.first_name} {t.last_name}</p>
-                          <p className="text-xs text-gray-500">{t.email}</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white dark:text-white">{t.first_name} {t.last_name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">{t.email}</p>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{t.class_count} classes · {t.total_enrollments} students</td>
+                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{t.class_count} classes · {t.total_enrollments} students</td>
                         <td className="px-4 py-3"><SignalCountBar counts={t.signal_counts} /></td>
                         <td className="px-4 py-3">
                           <div className="group relative inline-block">
-                            <span className="text-xs text-gray-500 cursor-help underline decoration-dotted">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 cursor-help underline decoration-dotted">
                               Y:{t.category_breakdown.yellow_academic + t.category_breakdown.yellow_behavioral} R:{t.category_breakdown.red_academic + t.category_breakdown.red_behavioral}
                             </span>
-                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-44">
+                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 bg-white dark:bg-[#151722] dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-lg shadow-lg p-3 w-44">
                               <CategoryBreakdownTooltip cat={t.category_breakdown} />
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{t.unresolved_alert_count}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{t.open_referral_count}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{t.unresolved_alert_count}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{t.open_referral_count}</td>
                         <td className="px-4 py-3">
                           {t.pending_observation_flag_count > 0 ? (
                             <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700" title="Class triggered 30% yellow threshold">
@@ -711,7 +711,7 @@ export default function PrincipalReportsPage() {
                             <span className="text-sm text-gray-400">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-500">{formatDate(t.most_recent_signal_date)}</td>
+                        <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">{formatDate(t.most_recent_signal_date)}</td>
                         <td className="px-4 py-3 text-right">
                           <button
                             onClick={() => {
@@ -755,39 +755,39 @@ export default function PrincipalReportsPage() {
           ) : gradeError ? (
             <ErrorState message={gradeError} onRetry={fetchGradeReports} />
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-[#151722] dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-gray-50 dark:bg-[#1b1e2c] dark:bg-[#1b1e2c] border-b border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d]">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Grade</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Population</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Signals</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Categories</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Alerts</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Referrals</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Obs. Flags</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Avg Flag %</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Grade</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Population</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Signals</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Categories</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Alerts</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Referrals</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Obs. Flags</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Avg Flag %</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(gradeData?.grades || []).map(g => (
-                      <tr key={g.grade_level} className="border-b border-gray-100 hover:bg-gray-50 transition">
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">Grade {g.grade_level}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{g.student_count} students · {g.class_count} classes · {g.teacher_count} teachers</td>
+                      <tr key={g.grade_level} className="border-b border-gray-100 dark:border-[#262a3d] dark:border-[#262a3d] hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white dark:text-white">Grade {g.grade_level}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{g.student_count} students · {g.class_count} classes · {g.teacher_count} teachers</td>
                         <td className="px-4 py-3"><SignalCountBar counts={g.signal_counts} /></td>
                         <td className="px-4 py-3">
                           <div className="group relative inline-block">
-                            <span className="text-xs text-gray-500 cursor-help underline decoration-dotted">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 cursor-help underline decoration-dotted">
                               Y:{g.category_breakdown.yellow_academic + g.category_breakdown.yellow_behavioral} R:{g.category_breakdown.red_academic + g.category_breakdown.red_behavioral}
                             </span>
-                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-44">
+                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 bg-white dark:bg-[#151722] dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-lg shadow-lg p-3 w-44">
                               <CategoryBreakdownTooltip cat={g.category_breakdown} />
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{g.unresolved_alert_count}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{g.open_referral_count}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{g.unresolved_alert_count}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{g.open_referral_count}</td>
                         <td className="px-4 py-3">
                           {g.pending_observation_flag_count > 0 ? (
                             <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700">

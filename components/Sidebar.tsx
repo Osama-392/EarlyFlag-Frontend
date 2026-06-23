@@ -5,10 +5,10 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Home, Users, BarChart3, FileText, Award, LogOut } from 'lucide-react';
 import { useAuth } from '@/app/providers';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 const menuItems = [
-  { icon: Home, label: 'Dashboard', href: '/' },
+  { icon: Home, label: 'Dashboard', href: '/dashboard' },
   { icon: Users, label: 'Classes', href: '/students' },
   { icon: BarChart3, label: 'Analytics', href: '/analytics' },
   { icon: FileText, label: 'Reports', href: '/reports' },
@@ -16,17 +16,14 @@ const menuItems = [
 ];
 
 export default function Sidebar() {
-  const [currentPath, setCurrentPath] = useState<string>('/');
   const { user, logout } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    setCurrentPath(window.location.pathname);
-  }, []);
+  const pathname = usePathname();
 
   const isActive = (href: string) => {
-    if (href === '/' && currentPath === '/') return true;
-    if (href !== '/' && currentPath.startsWith(href)) return true;
+    if (!pathname) return false;
+    if (href === '/dashboard' && (pathname === '/dashboard' || pathname === '/')) return true;
+    if (href !== '/dashboard' && pathname.startsWith(href)) return true;
     return false;
   };
 
@@ -43,21 +40,14 @@ export default function Sidebar() {
   const userName = user?.first_name || 'Teacher';
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <aside className="w-64 bg-white dark:bg-[#151722] border-r border-gray-200 dark:border-[#262a3d] flex flex-col transition-colors">
       {/* Logo */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="h-[73px] px-8 bg-[#151722] border-b border-[#262a3d] flex items-center shrink-0">
         <button
           onClick={() => handleNavigation('/')}
-          className="flex items-center space-x-2 hover:opacity-80 transition-opacity w-full"
+          className="flex items-center hover:opacity-80 transition-opacity w-full"
         >
-          <Image
-            src="/logo.png"
-            alt="EarlyFlag Logo"
-            width={32}
-            height={32}
-            className="rounded-lg"
-          />
-          <span className="text-xl font-bold text-gray-900">EarlyFlag</span>
+          <span className="text-[17px] font-bold tracking-[0.2em] text-white">EARLY <span className="text-[#f97316]">FLAG</span></span>
         </button>
       </div>
 
@@ -73,8 +63,8 @@ export default function Sidebar() {
                   onClick={() => handleNavigation(item.href)}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-left ${
                     active
-                      ? 'bg-teal-50 text-teal-700'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-orange-500 text-white shadow-md'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1b1e2c]'
                   }`}
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
@@ -87,19 +77,19 @@ export default function Sidebar() {
       </nav>
 
       {/* User Info & Logout */}
-      <div className="p-4 border-t border-gray-200 space-y-3">
-        <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50">
-          <div className="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-medium flex-shrink-0">
+      <div className="p-4 border-t border-gray-200 dark:border-[#262a3d] space-y-3">
+        <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 dark:bg-[#1b1e2c]">
+          <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 font-medium flex-shrink-0">
             {userInitials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">{userName}</p>
-            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">{userName}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
           </div>
         </div>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+          className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-white hover:bg-red-500/20 hover:text-red-500 transition-colors"
         >
           <LogOut className="w-5 h-5" />
           <span className="font-medium">Logout</span>
