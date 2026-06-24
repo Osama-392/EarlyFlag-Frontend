@@ -39,7 +39,7 @@ export default function CreateReportModal({
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(today.getDate() - 90);
 
-  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  const formatDate = (d: Date) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
   const formatLabel = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   const [startDate, setStartDate] = useState(formatDate(thirtyDaysAgo));

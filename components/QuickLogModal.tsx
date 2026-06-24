@@ -19,11 +19,11 @@ export default function QuickLogModal({ onClose, initialClassId }: QuickLogModal
       }}
     >
       <div
-        className="w-full max-w-7xl bg-white rounded-l-xl shadow-2xl h-screen overflow-y-auto"
+        className="w-full max-w-7xl bg-white dark:bg-[#0f111a] rounded-l-xl shadow-2xl h-screen overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-10">
+        <div className="sticky top-0 bg-white dark:bg-[#0f111a] border-b border-gray-200 dark:border-[#262a3d] px-8 py-4 z-10">
           <button
             onClick={() => {
               logger.buttonClick('Close Quick Log Modal', 'QuickLogModal');

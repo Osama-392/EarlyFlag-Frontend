@@ -237,7 +237,8 @@ export default function FlagModal({
                 {Array.from({ length: 7 }, (_, i) => {
                   const date = new Date();
                   date.setDate(date.getDate() - (6 - i));
-                  const dateStr = date.toISOString().split('T')[0];
+                  const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+                  const dateStr = localDate.toISOString().split('T')[0];
                   
                   // Find signal on this date
                   const daySignal = apiStudent.recent_history?.find(s => s.signal_date === dateStr);
@@ -271,7 +272,8 @@ export default function FlagModal({
                   }
 
                   const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-                  const isToday = dateStr === new Date().toISOString().split('T')[0];
+                  const localNow = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000));
+                  const isToday = dateStr === localNow.toISOString().split('T')[0];
 
                   return (
                     <div key={dateStr} className="flex flex-col items-center gap-1.5">

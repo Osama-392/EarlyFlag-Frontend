@@ -45,6 +45,7 @@ export default function PrincipalDashboard() {
   const router = useRouter();
   const [range, setRange] = useState<'1d' | '7d' | '30d'>('7d');
   const [activeTab, setActiveTab] = useState<string>('All Subjects');
+  const [showAllClasses, setShowAllClasses] = useState(false);
   const [dashboard, setDashboard] = useState<AdminDashboardResponse | null>(null);
   const [heatmap, setHeatmap] = useState<HeatmapBlock | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,6 +95,8 @@ export default function PrincipalDashboard() {
   const filteredTiles = activeTab === 'All Subjects' 
     ? allTiles 
     : allTiles.filter(t => t.subject === activeTab);
+
+  const displayedTiles = showAllClasses ? filteredTiles : filteredTiles.slice(0, 9);
 
   // ─── Loading Skeleton ─────────────────────────────────────────
   if (loading) {
@@ -287,7 +290,7 @@ export default function PrincipalDashboard() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTiles.map(tile => {
+            {displayedTiles.map(tile => {
               const c = bandColors[tile.band];
               return (
                 <div key={tile.class_id}
@@ -331,11 +334,17 @@ export default function PrincipalDashboard() {
             )}
           </div>
           
-          <div className="mt-6 text-center">
-             <button className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white dark:text-white transition flex items-center justify-center gap-1 mx-auto">
-               View More Classes <ChevronRight size={14} className="rotate-90" />
-             </button>
-          </div>
+          {filteredTiles.length > 9 && (
+            <div className="mt-6 text-center">
+               <button 
+                 onClick={() => setShowAllClasses(!showAllClasses)}
+                 className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white dark:text-white transition flex items-center justify-center gap-1 mx-auto"
+               >
+                 {showAllClasses ? 'View Less Classes' : 'View More Classes'} 
+                 <ChevronRight size={14} className={showAllClasses ? "-rotate-90" : "rotate-90"} />
+               </button>
+            </div>
+          )}
         </div>
       )}
       </div>

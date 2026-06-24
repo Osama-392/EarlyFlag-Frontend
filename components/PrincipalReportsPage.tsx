@@ -247,7 +247,7 @@ export default function PrincipalReportsPage() {
         params.from = studentFrom;
         params.to = studentTo;
       } else if (studentRange === '1d') {
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
         params.from = todayStr;
         params.to = todayStr;
       } else {
@@ -271,7 +271,7 @@ export default function PrincipalReportsPage() {
         params.from = teacherFrom;
         params.to = teacherTo;
       } else if (teacherRange === '1d') {
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
         params.from = todayStr;
         params.to = todayStr;
       } else {
@@ -294,7 +294,7 @@ export default function PrincipalReportsPage() {
         params.from = gradeFrom;
         params.to = gradeTo;
       } else if (gradeRange === '1d') {
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
         params.from = todayStr;
         params.to = todayStr;
       } else {

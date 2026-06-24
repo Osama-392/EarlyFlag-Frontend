@@ -52,11 +52,6 @@ export default function PrincipalHeader() {
             {mounted && resolvedTheme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
 
-          {/* Notifications */}
-          <button className="relative p-2 text-gray-300 hover:text-white transition-colors">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border border-[#151722]">3</span>
-          </button>
 
           {/* User Profile */}
           <div className="relative">

@@ -230,28 +230,28 @@ export default function AnalyticsPage() {
             Signal Health Summary
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-[#151722]/10 rounded-lg p-4">
+            <div className="bg-white/10 dark:bg-black/20 rounded-lg p-4">
               <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Engagement Rate</p>
               <p className="text-2xl font-bold font-sora mt-1">
                 {pct(current.super_green_count + current.present_count, current.total_signals)}%
               </p>
               <p className="text-xs text-slate-400 mt-1">Green + Present</p>
             </div>
-            <div className="bg-white dark:bg-[#151722]/10 rounded-lg p-4">
+            <div className="bg-white/10 dark:bg-black/20 rounded-lg p-4">
               <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Concern Rate</p>
               <p className="text-2xl font-bold font-sora mt-1">
                 {pct(current.yellow_count + current.red_count, current.total_signals)}%
               </p>
               <p className="text-xs text-slate-400 mt-1">Yellow + Red</p>
             </div>
-            <div className="bg-white dark:bg-[#151722]/10 rounded-lg p-4">
+            <div className="bg-white/10 dark:bg-black/20 rounded-lg p-4">
               <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Absence Rate</p>
               <p className="text-2xl font-bold font-sora mt-1">
                 {pct(current.absent_count, current.total_signals)}%
               </p>
               <p className="text-xs text-slate-400 mt-1">Absent signals</p>
             </div>
-            <div className="bg-white dark:bg-[#151722]/10 rounded-lg p-4">
+            <div className="bg-white/10 dark:bg-black/20 rounded-lg p-4">
               <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Active Alerts</p>
               <p className="text-2xl font-bold font-sora mt-1">{red_urgent.length}</p>
               <p className="text-xs text-slate-400 mt-1">Unresolved red</p>
@@ -318,27 +318,27 @@ export default function AnalyticsPage() {
 
       {/* ─── Quick Overview Chips ──────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200 rounded-xl p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
-            <Users className="w-5 h-5 text-teal-700" />
+        <div className="bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 border border-teal-200 dark:border-teal-900/50 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center">
+            <Users className="w-5 h-5 text-teal-700 dark:text-teal-400" />
           </div>
           <div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white font-sora">{totalStudents}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Active Students</p>
           </div>
         </div>
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-            <BarChart3 className="w-5 h-5 text-blue-700" />
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-900/50 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+            <BarChart3 className="w-5 h-5 text-blue-700 dark:text-blue-400" />
           </div>
           <div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white font-sora">{totalClasses}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Classes Assigned</p>
           </div>
         </div>
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-            <Calendar className="w-5 h-5 text-green-700" />
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-900/50 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+            <Calendar className="w-5 h-5 text-green-700 dark:text-green-400" />
           </div>
           <div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white font-sora">{loggedToday}/{totalClasses}</p>

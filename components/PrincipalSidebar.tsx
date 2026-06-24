@@ -62,7 +62,12 @@ export default function PrincipalSidebar() {
     },
   ];
 
-  const isActive = (href: string) => pathname === href;
+  const isActive = (href: string) => {
+    if (!pathname) return false;
+    if (href === '/principal-dashboard' && (pathname === '/principal-dashboard' || pathname === '/')) return true;
+    if (href !== '/principal-dashboard' && pathname.startsWith(href)) return true;
+    return false;
+  };
 
   return (
     <>
@@ -78,7 +83,7 @@ export default function PrincipalSidebar() {
       <aside
         className={`${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 fixed lg:static left-0 top-0 h-screen w-64 bg-white dark:bg-[#151722] border-r border-gray-200 dark:border-[#262a3d] shadow-lg transition-colors duration-300 z-40 flex flex-col`}
+        } lg:translate-x-0 fixed lg:static left-0 top-0 h-screen w-64 bg-white dark:bg-[#151722] border-r border-[#262a3d] shadow-lg transition-colors duration-300 z-40 flex flex-col`}
       >
         {/* Logo */}
         <div className="h-[73px] px-8 bg-[#151722] border-b border-[#262a3d] flex items-center shrink-0">

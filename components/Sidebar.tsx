@@ -40,7 +40,7 @@ export default function Sidebar() {
   const userName = user?.first_name || 'Teacher';
 
   return (
-    <aside className="w-64 bg-white dark:bg-[#151722] border-r border-gray-200 dark:border-[#262a3d] flex flex-col transition-colors">
+    <aside className="w-64 bg-white dark:bg-[#151722] border-r border-[#262a3d] flex flex-col transition-colors">
       {/* Logo */}
       <div className="h-[73px] px-8 bg-[#151722] border-b border-[#262a3d] flex items-center shrink-0">
         <button
