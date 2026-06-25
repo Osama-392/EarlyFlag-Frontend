@@ -1,10 +1,12 @@
 'use client';
 
-import { Mail, RefreshCw, AlertCircle, MessageSquare, CheckCircle2, Clock } from 'lucide-react';
+import { Mail, RefreshCw, AlertCircle, MessageSquare, CheckCircle2, Clock, User, Star, ClipboardList, ChevronRight } from 'lucide-react';
 import { useProtectedRoute } from '@/lib/useProtectedRoute';
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useAuth } from '@/app/providers';
 import EmailCounselorModal from '@/components/EmailCounselorModal';
 import ParentNotifyModal from '@/components/ParentNotifyModal';
+import DailyRecommendationBanner from '@/components/DailyRecommendationBanner';
 import {
   getTeacherDashboard,
   TeacherDashboardResponse,
@@ -45,6 +47,7 @@ export default function Dashboard() {
   const [emailModalStudent, setEmailModalStudent] = useState<RedUrgentRow | null>(null);
   const [notifyModalStudent, setNotifyModalStudent] = useState<RedUrgentRow | null>(null);
   const [unfinishedAlerts, setUnfinishedAlerts] = useState<UnfinishedLogRow[]>([]);
+  const { user } = useAuth();
 
   const loadDashboard = useCallback(async (isRefresh = false) => {
     try {
@@ -123,15 +126,23 @@ export default function Dashboard() {
             100% { background-position: 200% 0; }
           }
           .skeleton {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background: linear-gradient(90deg, var(--skel-color-1) 25%, var(--skel-color-2) 50%, var(--skel-color-1) 75%);
             background-size: 200% 100%;
             animation: shimmer 1.5s infinite;
             border-radius: 8px;
           }
+          :root {
+            --skel-color-1: #f0f0f0;
+            --skel-color-2: #e0e0e0;
+          }
+          .dark {
+            --skel-color-1: #1f2937;
+            --skel-color-2: #374151;
+          }
         `}</style>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="rounded-lg border border-gray-200 p-6">
+            <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] p-6">
               <div className="skeleton h-4 w-2/3 mb-3" />
               <div className="skeleton h-10 w-1/3 mb-2" />
             </div>
@@ -174,29 +185,29 @@ export default function Dashboard() {
       label: 'Yellow Flags This Week',
       value: kpis.yellow_total,
       icon: '⚠️',
-      bgColor: 'bg-amber-50',
-      textColor: 'text-amber-700',
+      bgColor: 'bg-amber-50 dark:bg-amber-900/10',
+      textColor: 'text-amber-700 dark:text-amber-500',
     },
     {
       label: 'Red Flags This Week',
       value: kpis.red_total,
       icon: '🚨',
-      bgColor: 'bg-red-50',
-      textColor: 'text-red-700',
+      bgColor: 'bg-red-50 dark:bg-red-900/10',
+      textColor: 'text-red-700 dark:text-red-500',
     },
     {
       label: 'Super Greens This Week',
       value: kpis.super_green_total,
       icon: '⭐',
-      bgColor: 'bg-green-50',
-      textColor: 'text-green-700',
+      bgColor: 'bg-green-50 dark:bg-green-900/10',
+      textColor: 'text-green-700 dark:text-green-500',
     },
     {
       label: 'Absences This Week',
       value: kpis.absent_total || 0,
       icon: '📅',
-      bgColor: 'bg-slate-100',
-      textColor: 'text-slate-700',
+      bgColor: 'bg-slate-100 dark:bg-slate-800/50',
+      textColor: 'text-slate-700 dark:text-slate-400',
     },
   ];
 
@@ -211,6 +222,9 @@ export default function Dashboard() {
           <RefreshCw size={14} className="animate-spin" /> Refreshing...
         </div>
       )}
+
+      {/* Daily Recommendation Banner */}
+      <DailyRecommendationBanner name={user?.first_name || 'Teacher'} />
 
       {/* Monday Brief */}
       {monday_brief?.active && (
@@ -304,25 +318,25 @@ export default function Dashboard() {
 
       {/* 12-Hour Unfinished Alerts */}
       {unfinishedAlerts.length > 0 && (
-        <div className="bg-amber-50 border-l-4 border-amber-500 rounded-r-xl p-4 shadow-sm mb-6 flex items-start gap-4">
+        <div className="bg-amber-50 dark:bg-amber-900/10 border-l-4 border-amber-500 rounded-r-xl p-4 shadow-sm mb-6 flex items-start gap-4 transition-colors">
           <AlertCircle className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <h3 className="text-amber-800 font-bold text-lg mb-1">Unfinished Quick Logs (12+ hours)</h3>
-            <p className="text-amber-700 text-sm mb-3">
+            <h3 className="text-amber-800 dark:text-amber-500 font-bold text-lg mb-1">Unfinished Quick Logs (12+ hours)</h3>
+            <p className="text-amber-700 dark:text-amber-400 text-sm mb-3">
               You started logging signals for the following classes but did not submit them. Would you like to resume?
             </p>
             <div className="flex flex-wrap gap-2">
               {unfinishedAlerts.map(log => (
-                <div key={log.session_id} className="bg-white border border-amber-200 px-3 py-2 rounded-lg flex items-center gap-3">
+                <div key={log.session_id} className="bg-white dark:bg-[#1a1d27] border border-amber-200 dark:border-amber-900/30 px-3 py-2 rounded-lg flex items-center gap-3">
                   <div>
-                    <span className="font-semibold text-gray-900 block text-sm">{log.class_name}</span>
-                    <span className="text-xs text-gray-500">
+                    <span className="font-semibold text-gray-900 dark:text-gray-100 block text-sm">{log.class_name}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       Started {log.elapsed_hours}h ago &bull; {log.student_count} student{log.student_count !== 1 ? 's' : ''}
                     </span>
                   </div>
                   <button 
                     onClick={() => handleDismissAlert(log.session_id)}
-                    className="ml-2 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                    className="ml-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none transition-colors"
                     title="Dismiss alert"
                   >
                     &times;
@@ -337,11 +351,11 @@ export default function Dashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, idx) => (
-          <div key={idx} className={`${stat.bgColor} rounded-xl border border-gray-100 p-6 shadow-sm`}>
+          <div key={idx} className={`${stat.bgColor} rounded-xl border border-gray-100 dark:border-transparent p-6 shadow-sm transition-colors`}>
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-gray-600 font-medium">{stat.label}</p>
-                <p className="text-4xl font-bold text-gray-900 mt-2" style={{ fontFamily: 'Sora' }}>{stat.value}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">{stat.label}</p>
+                <p className="text-4xl font-bold text-gray-900 dark:text-white mt-2" style={{ fontFamily: 'Sora' }}>{stat.value}</p>
               </div>
               <span className="text-2xl">{stat.icon}</span>
             </div>
@@ -353,41 +367,41 @@ export default function Dashboard() {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Yellow Watch List */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900 flex items-center space-x-2" style={{ fontFamily: 'Sora' }}>
+          <div className="bg-white dark:bg-[#1a1d27] rounded-xl border border-gray-200 dark:border-[#2e3240] overflow-hidden shadow-sm transition-colors">
+            <div className="p-5 border-b border-gray-100 dark:border-[#2e3240] flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center space-x-2" style={{ fontFamily: 'Sora' }}>
                 <span>🟡</span><span>Yellow Watch List</span>
               </h3>
-              <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-full">{yellow_watch_list.length}</span>
+              <span className="text-xs font-bold text-amber-700 dark:text-amber-500 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-full">{yellow_watch_list.length}</span>
             </div>
             {yellow_watch_list.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50/50">
+                  <thead className="bg-gray-50/50 dark:bg-[#151722]/50">
                     <tr>
-                      <th className="px-5 py-3 text-left font-semibold text-gray-600">Student</th>
-                      <th className="px-5 py-3 text-left font-semibold text-gray-600">Grade</th>
-                      <th className="px-5 py-3 text-left font-semibold text-gray-600">Acd / Beh</th>
-                      <th className="px-5 py-3 text-left font-semibold text-gray-600">Total</th>
-                      <th className="px-5 py-3 text-left font-semibold text-gray-600">Status</th>
+                      <th className="px-5 py-3 text-left font-semibold text-gray-600 dark:text-gray-400">Student</th>
+                      <th className="px-5 py-3 text-left font-semibold text-gray-600 dark:text-gray-400">Grade</th>
+                      <th className="px-5 py-3 text-left font-semibold text-gray-600 dark:text-gray-400">Acd / Beh</th>
+                      <th className="px-5 py-3 text-left font-semibold text-gray-600 dark:text-gray-400">Total</th>
+                      <th className="px-5 py-3 text-left font-semibold text-gray-600 dark:text-gray-400">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {yellow_watch_list.map((row) => (
-                      <tr key={row.student_id} className="border-b border-gray-100 hover:bg-gray-50 transition">
-                        <td className="px-5 py-3 font-medium text-gray-900">{row.first_name} {row.last_name}</td>
-                        <td className="px-5 py-3 text-gray-500">Gr {row.grade_level}</td>
+                      <tr key={row.student_id} className="border-b border-gray-100 dark:border-[#2e3240] hover:bg-gray-50 dark:hover:bg-[#202330] transition">
+                        <td className="px-5 py-3 font-medium text-gray-900 dark:text-white">{row.first_name} {row.last_name}</td>
+                        <td className="px-5 py-3 text-gray-500 dark:text-gray-400">Gr {row.grade_level}</td>
                         <td className="px-5 py-3">
-                          <span className="text-blue-600 font-semibold">{row.yellow_academic_count}</span>
-                          <span className="text-gray-300 mx-1">/</span>
-                          <span className="text-purple-600 font-semibold">{row.yellow_behavioral_count}</span>
+                          <span className="text-blue-600 dark:text-blue-400 font-semibold">{row.yellow_academic_count}</span>
+                          <span className="text-gray-300 dark:text-gray-600 mx-1">/</span>
+                          <span className="text-purple-600 dark:text-purple-400 font-semibold">{row.yellow_behavioral_count}</span>
                         </td>
-                        <td className="px-5 py-3 font-bold text-amber-600">{row.yellow_total}</td>
+                        <td className="px-5 py-3 font-bold text-amber-600 dark:text-amber-500">{row.yellow_total}</td>
                         <td className="px-5 py-3">
                           {row.unresolved_alert_max_severity ? (
-                            <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded font-medium">{row.unresolved_alert_max_severity.toUpperCase()}</span>
+                            <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs rounded font-medium">{row.unresolved_alert_max_severity.toUpperCase()}</span>
                           ) : (
-                            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded font-medium">WATCH</span>
+                            <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs rounded font-medium">WATCH</span>
                           )}
                         </td>
                       </tr>
@@ -396,23 +410,23 @@ export default function Dashboard() {
                 </table>
               </div>
             ) : (
-              <div className="p-8 text-center text-gray-500">No students on the yellow watch list right now.</div>
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400">No students on the yellow watch list right now.</div>
             )}
           </div>
 
           {/* Class Logging Status */}
-          <div className={`bg-white rounded-xl border ${isEndOfDay ? 'border-orange-200' : 'border-gray-200'} overflow-hidden shadow-sm`}>
-            <div className={`p-5 border-b ${isEndOfDay ? 'border-orange-100' : 'border-gray-100'} flex items-center justify-between`}>
-              <h3 className="text-lg font-bold text-gray-900" style={{ fontFamily: 'Sora' }}>Today's Class Logging Status</h3>
+          <div className={`bg-white dark:bg-[#1a1d27] rounded-xl border ${isEndOfDay ? 'border-orange-200 dark:border-orange-900/50' : 'border-gray-200 dark:border-[#2e3240]'} overflow-hidden shadow-sm transition-colors`}>
+            <div className={`p-5 border-b ${isEndOfDay ? 'border-orange-100 dark:border-orange-900/30' : 'border-gray-100 dark:border-[#2e3240]'} flex items-center justify-between`}>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Sora' }}>Today's Class Logging Status</h3>
               {isEndOfDay && (
-                <span className="text-xs font-bold text-orange-700 bg-orange-100 px-2.5 py-1 rounded-full flex items-center gap-1">
+                <span className="text-xs font-bold text-orange-700 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-2.5 py-1 rounded-full flex items-center gap-1">
                   <Clock size={12} />
                   {unloggedClasses.length} remaining
                 </span>
               )}
             </div>
             {classes.length > 0 ? (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-[#2e3240]">
                 {[...classes]
                   .sort((a, b) => {
                     // Float unlogged classes to the top
@@ -426,18 +440,18 @@ export default function Dashboard() {
                     onClick={!c.logged_today ? () => handleQuickLogForClass(c.class_id) : undefined}
                     className={`p-4 flex items-center justify-between transition-colors ${
                       !c.logged_today
-                        ? `cursor-pointer ${isEndOfDay ? 'bg-orange-50/50 hover:bg-orange-50' : 'hover:bg-blue-50'}`
-                        : 'hover:bg-gray-50'
+                        ? `cursor-pointer ${isEndOfDay ? 'bg-orange-50/50 dark:bg-orange-900/10 hover:bg-orange-50 dark:hover:bg-orange-900/20' : 'hover:bg-blue-50 dark:hover:bg-[#202330]'}`
+                        : 'hover:bg-gray-50 dark:hover:bg-[#202330]'
                     }`}
                   >
                     <div>
-                      <p className={`font-semibold ${!c.logged_today && isEndOfDay ? 'text-orange-900' : 'text-gray-900'}`}>{c.class_name}</p>
-                      <p className="text-xs text-gray-500">{c.student_count_active} active students</p>
+                      <p className={`font-semibold ${!c.logged_today && isEndOfDay ? 'text-orange-900 dark:text-orange-400' : 'text-gray-900 dark:text-white'}`}>{c.class_name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{c.student_count_active} active students</p>
                     </div>
                     {c.logged_today ? (
-                      <div className="flex items-center text-green-600 text-sm font-semibold gap-1"><CheckCircle2 size={16}/> Logged</div>
+                      <div className="flex items-center text-green-600 dark:text-green-500 text-sm font-semibold gap-1"><CheckCircle2 size={16}/> Logged</div>
                     ) : (
-                      <div className={`flex items-center text-sm font-medium gap-1 ${isEndOfDay ? 'text-orange-600' : 'text-gray-400'}`}>
+                      <div className={`flex items-center text-sm font-medium gap-1 ${isEndOfDay ? 'text-orange-600 dark:text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}>
                         <AlertCircle size={16}/>
                         <span>{isEndOfDay ? 'Log Now →' : 'Not Logged'}</span>
                       </div>
@@ -446,80 +460,118 @@ export default function Dashboard() {
                 ))}
               </div>
             ) : (
-              <div className="p-8 text-center text-gray-500">No classes assigned.</div>
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400">No classes assigned.</div>
             )}
           </div>
         </div>
 
         <div className="space-y-6">
           {/* Red Urgent */}
-          <div className="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
-            <div className="bg-red-50 p-5 border-b border-red-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-red-900" style={{ fontFamily: 'Sora' }}>🔴 Red Urgent</h3>
-              <span className="text-xs font-bold text-red-700 bg-red-200 px-2 py-1 rounded-full">{red_urgent.length}</span>
+          <div className="bg-white dark:bg-[#1a1d27] rounded-xl border border-red-200 dark:border-red-900/50 shadow-sm overflow-hidden transition-colors">
+            <div className="bg-red-50 dark:bg-red-900/20 p-5 border-b border-red-100 dark:border-red-900/50 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-red-900 dark:text-red-400" style={{ fontFamily: 'Sora' }}>🔴 Red Urgent</h3>
+              <span className="text-xs font-bold text-red-700 dark:text-red-300 bg-red-200 dark:bg-red-900/50 px-2 py-1 rounded-full">{red_urgent.length}</span>
             </div>
             <div className="p-5">
               {red_urgent.length > 0 ? (
                 <div className="space-y-4">
                   {red_urgent.map((item) => (
-                    <div key={item.alert_id} className="bg-white rounded-lg p-4 border border-red-100 shadow-sm">
+                    <div key={item.alert_id} className="bg-white dark:bg-[#151722] rounded-lg p-4 border border-red-100 dark:border-red-900/30 shadow-sm">
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <p className="font-bold text-gray-900">{item.student.first_name} {item.student.last_name}</p>
-                          <p className="text-xs text-gray-500">Gr {item.student.grade_level}</p>
+                          <p className="font-bold text-gray-900 dark:text-white">{item.student.first_name} {item.student.last_name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Gr {item.student.grade_level}</p>
                         </div>
-                        <span className="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-1 rounded uppercase tracking-wider">{item.severity}</span>
+                        <span className="text-[10px] font-bold text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded uppercase tracking-wider">{item.severity}</span>
                       </div>
-                      <p className="text-sm text-gray-700 mb-3 bg-red-50 p-2 rounded">{item.rule_description}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 bg-red-50 dark:bg-red-900/10 p-2 rounded border dark:border-red-900/20">{item.rule_description}</p>
                       <div className="flex gap-2">
-                        <button onClick={() => setEmailModalStudent(item)} className="flex-1 flex justify-center items-center gap-1 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded text-xs font-semibold transition border border-gray-200"><Mail size={12}/> Counselor</button>
-                        <button onClick={() => setNotifyModalStudent(item)} className="flex-1 flex justify-center items-center gap-1 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded text-xs font-semibold transition border border-gray-200"><MessageSquare size={12}/> Parent</button>
+                        <button onClick={() => setEmailModalStudent(item)} className="flex-1 flex justify-center items-center gap-1 py-1.5 bg-gray-50 dark:bg-[#202330] hover:bg-gray-100 dark:hover:bg-[#2a2d3d] text-gray-700 dark:text-gray-300 rounded text-xs font-semibold transition border border-gray-200 dark:border-[#2e3240]"><Mail size={12}/> Counselor</button>
+                        <button onClick={() => setNotifyModalStudent(item)} className="flex-1 flex justify-center items-center gap-1 py-1.5 bg-gray-50 dark:bg-[#202330] hover:bg-gray-100 dark:hover:bg-[#2a2d3d] text-gray-700 dark:text-gray-300 rounded text-xs font-semibold transition border border-gray-200 dark:border-[#2e3240]"><MessageSquare size={12}/> Parent</button>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-4 text-gray-500">No urgent red alerts.</div>
+                <div className="text-center py-4 text-gray-500 dark:text-gray-400">No urgent red alerts.</div>
               )}
             </div>
           </div>
 
           {/* Super Green */}
-          <div className="bg-green-50 rounded-xl border border-green-200 shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-green-200/50 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-green-900" style={{ fontFamily: 'Sora' }}>⭐ Super Green</h3>
-              <span className="text-xs font-bold text-green-800 bg-green-200 px-2 py-1 rounded-full">{super_green_highlights.length}</span>
+          <div className="bg-green-50 dark:bg-green-900/10 rounded-xl border border-green-200 dark:border-green-900/30 shadow-sm overflow-hidden transition-colors flex flex-col max-h-[400px]">
+            <div className="p-5 border-b border-green-200/50 dark:border-green-900/30 flex justify-between items-center shrink-0">
+              <h3 className="text-lg font-bold text-green-900 dark:text-green-500" style={{ fontFamily: 'Sora' }}>⭐ Super Green</h3>
+              <span className="text-xs font-bold text-green-800 dark:text-green-400 bg-green-200 dark:bg-green-900/50 px-2 py-1 rounded-full">{super_green_highlights.length}</span>
             </div>
-            <div className="p-5">
+            <div className="p-5 overflow-y-auto custom-scrollbar">
               {super_green_highlights.length > 0 ? (
                 <div className="space-y-3">
                   {super_green_highlights.map((item) => (
-                    <div key={item.signal_id} className="bg-white rounded-lg p-3 border border-green-100 shadow-sm">
-                      <p className="font-bold text-gray-900 text-sm">{item.first_name} {item.last_name}</p>
-                      <p className="text-xs text-gray-500 mb-1">{item.reason_description || 'Positive Behavior'} • {new Date(item.signal_date).toLocaleDateString()}</p>
+                    <div key={item.signal_id} className="bg-white dark:bg-[#151722] rounded-lg p-3 border border-green-100 dark:border-green-900/30 shadow-sm">
+                      <p className="font-bold text-gray-900 dark:text-white text-sm">{item.first_name} {item.last_name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{item.reason_description || 'Positive Behavior'} • {new Date(item.signal_date).toLocaleDateString()}</p>
                       {item.parent_email_on_file ? (
-                        <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold">Email Sent to Parent</span>
+                        <span className="text-[10px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded font-bold">Email Sent to Parent</span>
                       ) : (
-                        <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-bold">No Email on File</span>
+                        <span className="text-[10px] bg-gray-100 dark:bg-[#202330] text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded font-bold">No Email on File</span>
                       )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-4 text-gray-500">No recent super green highlights.</div>
+                <div className="text-center py-4 text-gray-500 dark:text-gray-400">No recent super green highlights.</div>
               )}
             </div>
           </div>
 
           {/* Recommendations */}
           {recommendations.length > 0 && (
-            <div className="bg-indigo-50 rounded-xl border border-indigo-100 shadow-sm p-5">
-              <h3 className="text-sm font-bold text-indigo-900 mb-3 uppercase tracking-wider">Recommendations</h3>
-              <ul className="space-y-2">
-                {recommendations.map((rec, i) => (
-                  <li key={i} className="text-sm text-indigo-800 flex gap-2"><span className="text-indigo-400">→</span> {rec}</li>
-                ))}
-              </ul>
+            <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] border-l-orange-500 border-l-[3px] shadow-sm overflow-hidden transition-colors">
+              <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex justify-between items-center">
+                <h3 className="font-bold text-gray-900 dark:text-white tracking-wide">Recommendations</h3>
+                <ChevronRight size={16} className="text-gray-400 dark:text-gray-500" />
+              </div>
+              <div className="flex flex-col">
+                {recommendations.map((rec, i) => {
+                  let title = rec;
+                  let subtitle = '';
+                  if (rec.includes(' — ')) {
+                    const parts = rec.split(' — ');
+                    title = parts[0];
+                    subtitle = parts.slice(1).join(' — ');
+                  } else if (rec.includes(' - ')) {
+                    const parts = rec.split(' - ');
+                    title = parts[0];
+                    subtitle = parts.slice(1).join(' - ');
+                  }
+
+                  let Icon = User;
+                  let iconColor = 'text-orange-500';
+                  const tl = title.toLowerCase() + subtitle.toLowerCase();
+                  if (tl.includes('green') || tl.includes('recogniz') || tl.includes('positive')) {
+                    Icon = Star;
+                    iconColor = 'text-green-500';
+                  } else if (tl.includes('class') || tl.includes('log') || tl.includes('absent')) {
+                    Icon = ClipboardList;
+                    iconColor = 'text-orange-500';
+                  } else if (tl.includes('alert') || tl.includes('red') || tl.includes('urgent')) {
+                    Icon = AlertCircle;
+                    iconColor = 'text-red-500';
+                  }
+
+                  return (
+                    <div key={i} className={`flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors cursor-pointer ${i !== recommendations.length - 1 ? 'border-b border-gray-200 dark:border-[#262a3d]' : ''}`}>
+                      <Icon size={20} className={iconColor} />
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm">{title}</p>
+                        {subtitle && <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">{subtitle}</p>}
+                      </div>
+                      <ChevronRight size={16} className="text-gray-400 dark:text-gray-500" />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

@@ -63,7 +63,7 @@ export default function StudentReportsView({
     if (red > 0) return { text: 'Red Flag', color: 'bg-red-100 text-red-700' };
     if (yellow > 0) return { text: 'Yellow', color: 'bg-yellow-100 text-yellow-700' };
     if (green > 0) return { text: 'Super Green', color: 'bg-green-100 text-green-700' };
-    return { text: 'Neutral', color: 'bg-gray-100 text-gray-700' };
+    return { text: 'Neutral', color: 'bg-gray-100 dark:bg-[#1b1e2c] text-gray-700 dark:text-gray-300' };
   };
 
   const handleCreateReport = (student: Student) => {
@@ -121,8 +121,8 @@ export default function StudentReportsView({
 
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Student Reports</h1>
-        <p className="text-gray-500 mt-1">Quickly make a Detailed report for any student</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Student Reports</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Quickly make a Detailed report for any student</p>
       </div>
 
       {/* Search Bar */}
@@ -148,9 +148,9 @@ export default function StudentReportsView({
       </div>
 
       {/* Class Header */}
-      <div className="border-b border-gray-200 pb-4">
-        <h2 className="text-lg font-semibold text-gray-900">{classData.name}</h2>
-        <p className="text-sm text-gray-500">Period {classData.period || '-'}</p>
+      <div className="border-b border-gray-200 dark:border-[#262a3d] pb-4">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{classData.name}</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Period {classData.period || '-'}</p>
         {error && <p className="text-red-600 text-sm mt-1">{error}</p>}
       </div>
 
@@ -172,7 +172,7 @@ export default function StudentReportsView({
               return (
                 <div
                   key={student.id}
-                  className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between hover:shadow-md transition-shadow"
+                  className="bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] rounded-lg p-4 flex items-center justify-between hover:shadow-md transition-shadow"
                 >
                   {/* Left: Student Info */}
                   <div className="flex items-center space-x-4 flex-1">
@@ -186,14 +186,14 @@ export default function StudentReportsView({
                     {/* Student Details */}
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <h3 className="font-semibold text-gray-900">{student.first_name} {student.last_name}</h3>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">{student.first_name} {student.last_name}</h3>
                         <span
                           className={`text-xs font-semibold px-2 py-1 rounded-full ${status.color}`}
                         >
                           {status.text}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-500">Grade {student.grade_level || 9}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Grade {student.grade_level || 9}</p>
                     </div>
                   </div>
 
@@ -201,14 +201,14 @@ export default function StudentReportsView({
                   <div className="flex items-center space-x-3 flex-shrink-0">
                     <button 
                       onClick={() => handleCreateReport(student)}
-                      className="flex items-center space-x-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium text-sm"
+                      className="flex items-center space-x-1 px-4 py-2 bg-gray-100 dark:bg-[#1b1e2c] hover:bg-gray-200 text-gray-700 dark:text-gray-300 rounded-lg transition-colors font-medium text-sm"
                     >
                       <FileText className="w-4 h-4" />
                       <span>Create Report</span>
                     </button>
                     <button 
-                      onClick={() => router.push(`/students/${classData.id}/${student.id}`)}
-                      className="flex items-center space-x-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium text-sm"
+                      onClick={() => router.push(`/reports/${classData.id}/${student.id}`)}
+                      className="flex items-center space-x-1 px-4 py-2 bg-gray-100 dark:bg-[#1b1e2c] hover:bg-gray-200 text-gray-700 dark:text-gray-300 rounded-lg transition-colors font-medium text-sm"
                     >
                       <Eye className="w-4 h-4" />
                       <span>View Profile</span>
@@ -219,7 +219,7 @@ export default function StudentReportsView({
             })
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-500">No students found</p>
+              <p className="text-gray-500 dark:text-gray-400">No students found</p>
             </div>
           )}
         </div>

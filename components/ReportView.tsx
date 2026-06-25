@@ -145,7 +145,7 @@ export default function ReportView({
   const teachersNotes = report?.one_ask_for_parents || (report ? 'No notes provided.' : '');
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="min-h-screen bg-gray-50 dark:bg-[#1b1e2c]" style={{ fontFamily: 'Inter, sans-serif' }}>
       {/* Print-friendly styles */}
       <style>{`
         @media print {
@@ -157,7 +157,7 @@ export default function ReportView({
       `}</style>
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40 no-print">
+      <div className="bg-white dark:bg-[#151722] border-b border-gray-200 dark:border-[#262a3d] no-print">
         <div className="max-w-6xl mx-auto px-8 py-6 flex items-center justify-between">
           <div className="flex-1">
             <button
@@ -165,19 +165,19 @@ export default function ReportView({
                 logger.buttonClick('Back from Report', 'ReportView');
                 onBack();
               }}
-              className="inline-flex items-center text-sm text-blue-500 bg-white border border-blue-100 px-4 py-2 rounded-full hover:bg-gray-50 transition-colors shadow-sm font-medium mb-2"
+              className="inline-flex items-center text-sm text-blue-500 bg-white dark:bg-[#151722] border border-blue-100 px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors shadow-sm font-medium mb-2"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               <span>Back to Reports</span>
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">{student.name}</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{student.name}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Grade {student.gradeLevel} • {reportData.subject}
             </p>
           </div>
 
           {/* Date Range */}
-          <div className="text-right text-sm text-gray-600">
+          <div className="text-right text-sm text-gray-600 dark:text-gray-400">
             <p>{formatDisplayDate(startDateStr)}</p>
             <p className="font-medium">to {formatDisplayDate(endDateStr)}</p>
           </div>
@@ -188,10 +188,10 @@ export default function ReportView({
       <div ref={reportContentRef} className="report-print-area max-w-6xl mx-auto px-8 py-8 space-y-6">
         
         {/* Profile Header Card */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 flex items-center justify-between">
+        <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm p-8 flex items-center justify-between">
           <div className="flex items-center space-x-6">
             {/* Avatar */}
-            <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center border-4 border-white shadow-md text-3xl font-bold text-slate-400 overflow-hidden">
+            <div className="w-24 h-24 rounded-full bg-slate-100 dark:bg-[#1b1e2c] flex items-center justify-center border-4 border-white dark:border-[#262a3d] shadow-md text-3xl font-bold text-slate-400 dark:text-slate-300 overflow-hidden">
               {student.initial || '??'}
             </div>
             
@@ -201,23 +201,27 @@ export default function ReportView({
                 {statusText === 'Yellow' && <span className="px-2.5 py-0.5 bg-amber-400 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Yellow</span>}
                 {statusText === 'Super Green' && <span className="px-2.5 py-0.5 bg-emerald-500 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Super Green</span>}
               </div>
-              <h1 className="text-3xl font-bold text-slate-800" style={{ fontFamily: 'Playfair Display, serif' }}>
+              <h1 className="text-3xl font-bold text-slate-800 dark:text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
                 {student.name}
               </h1>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Grade {student.gradeLevel} • {reportData.subject}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-100 shadow-sm">
+            <div className={`px-4 py-2 text-xs font-bold rounded-lg border shadow-sm ${
+              statusText === 'Red' ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50' :
+              statusText === 'Yellow' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50' :
+              'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'
+            }`}>
               Status : {statusText} Active
             </div>
-            <div className="px-4 py-2 bg-gray-100 text-slate-700 text-xs font-bold rounded-lg border border-gray-200 shadow-sm">
+            <div className="px-4 py-2 bg-gray-100 dark:bg-[#1b1e2c] text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg border border-gray-200 dark:border-[#262a3d] shadow-sm">
               Total Signals : {incidents.length}
             </div>
-            <div className="px-4 py-2 bg-amber-100/50 text-amber-700 text-xs font-bold rounded-lg border border-amber-200/50 shadow-sm">
+            <div className="px-4 py-2 bg-amber-100/50 text-amber-700 text-xs font-bold rounded-lg border border-amber-200/50 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50 shadow-sm">
               Period : {formatDisplayDate(startDateStr)} - {formatDisplayDate(endDateStr)}
             </div>
           </div>
@@ -234,52 +238,52 @@ export default function ReportView({
                 </svg>
               </div>
               <div>
-                <h2 className="text-[15px] font-bold text-slate-800">Flags Summary</h2>
-                <p className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold">Report Period</p>
+                <h2 className="text-[15px] font-bold text-slate-800 dark:text-white">Flags Summary</h2>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Report Period</p>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+            <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm p-6 space-y-4">
               {/* Positive Incidents / Super Green */}
-              <div className="bg-slate-50 rounded-xl p-5 relative border border-slate-100">
-                <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-slate-400 mb-3 shadow-sm">
+              <div className="bg-slate-50 dark:bg-[#1b1e2c] rounded-xl p-5 relative border border-slate-100 dark:border-[#262a3d]">
+                <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center text-slate-400 mb-3 shadow-sm">
                   <span className="font-bold text-sm text-emerald-500">P</span>
                 </div>
                 <div className="text-4xl font-bold text-emerald-500 mb-1">
                   {(summaryCounts?.super_green || 0) + (summaryCounts?.present || 0)}
                 </div>
-                <h3 className="text-sm font-bold text-slate-700">Positive Incidents</h3>
+                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Positive Incidents</h3>
                 <p className="text-xs text-gray-400 mt-1">Super Green / Present signals</p>
               </div>
 
               {/* Yellow Flags */}
-              <div className="bg-amber-50 rounded-xl p-5 relative border border-amber-100">
-                <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-3 shadow-sm">
+              <div className="bg-amber-50 dark:bg-[#1b1e2c] rounded-xl p-5 relative border border-amber-100 dark:border-[#262a3d]">
+                <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-3 shadow-sm">
                   <AlertCircle className="w-4 h-4 text-amber-500" />
                 </div>
                 <div className="text-4xl font-bold text-amber-500 mb-1">{summaryCounts?.yellow || 0}</div>
-                <h3 className="text-sm font-bold text-slate-700">Yellow Flags</h3>
+                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Yellow Flags</h3>
                 <p className="text-xs text-amber-500/80 mt-1">Light concerns tracked</p>
               </div>
 
               {/* Red Flags */}
-              <div className="bg-red-50 rounded-xl p-5 relative border border-red-100">
-                <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-3 shadow-sm">
+              <div className="bg-red-50 dark:bg-[#1b1e2c] rounded-xl p-5 relative border border-red-100 dark:border-[#262a3d]">
+                <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-3 shadow-sm">
                   <AlertCircle className="w-4 h-4 text-red-500" />
                 </div>
                 <div className="text-4xl font-bold text-red-500 mb-1">{summaryCounts?.red || 0}</div>
-                <h3 className="text-sm font-bold text-slate-700">Red Incidents</h3>
+                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Red Incidents</h3>
                 <p className="text-xs text-red-400/80 mt-1">Urgent interventions</p>
               </div>
 
               {/* Bar Chart Summary */}
               <div className="pt-4">
-                <div className="flex justify-between text-xs text-gray-500 font-semibold mb-2">
+                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 font-semibold mb-2">
                   <span>Positive</span>
                   <span>Yellow</span>
                   <span>Red</span>
                 </div>
-                <div className="flex h-2.5 rounded-full overflow-hidden bg-gray-100">
+                <div className="flex h-2.5 rounded-full overflow-hidden bg-gray-100 dark:bg-[#1b1e2c]">
                   <div style={{ width: `${positivePercent}%` }} className="bg-emerald-400 relative" />
                   <div style={{ width: `${yellowPercent}%` }} className="bg-amber-400 relative" />
                   <div style={{ width: `${redPercent}%` }} className="bg-red-400 relative" />
@@ -297,12 +301,12 @@ export default function ReportView({
                 </svg>
               </div>
               <div>
-                <h2 className="text-[15px] font-bold text-slate-800">Flag History</h2>
-                <p className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold">Timeline</p>
+                <h2 className="text-[15px] font-bold text-slate-800 dark:text-white">Flag History</h2>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Timeline</p>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 h-[560px] overflow-y-auto">
+            <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm p-6 h-[560px] overflow-y-auto">
               {incidents.length > 0 ? (
                 <div className="space-y-5">
                   {incidents.map((incident: any, idx: number) => {
@@ -310,12 +314,12 @@ export default function ReportView({
                     const isYellow = incident.type.toLowerCase().includes('yellow') || incident.type.toLowerCase().includes('academic') || incident.type.toLowerCase().includes('behavioral');
                     return (
                       <div key={idx} className="flex items-center space-x-4 group">
-                        <span className="text-xs font-semibold text-gray-500 w-20 shrink-0">{incident.date}</span>
+                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 w-20 shrink-0">{incident.date}</span>
                         <div className={`w-3 h-1 rounded-full ${isRed ? 'bg-red-500' : isYellow ? 'bg-amber-400' : 'bg-emerald-500'}`}></div>
-                        <div className={`px-3 py-1.5 rounded-lg text-[11px] font-bold ${isRed ? 'bg-red-50 text-red-600 border border-red-100' : isYellow ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
+                        <div className={`px-3 py-1.5 rounded-lg text-[11px] font-bold ${isRed ? 'bg-red-50 text-red-600 border border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50' : isYellow ? 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50' : 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'}`}>
                           {incident.type}
                         </div>
-                        <div className="flex-1 px-4 py-1.5 bg-gray-50 rounded-lg text-xs font-semibold text-slate-600 border border-gray-100 truncate">
+                        <div className="flex-1 px-4 py-1.5 bg-gray-50 dark:bg-[#1b1e2c] rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 border border-gray-100 dark:border-[#262a3d] truncate">
                           {incident.description}
                         </div>
                       </div>
@@ -334,14 +338,14 @@ export default function ReportView({
 
         {/* AI Recommendations */}
         {(reportData.includeAIRecommendations || reportData.include_ai_recommendations) && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-              <h2 className="text-lg font-bold text-slate-800">Recommended Next Steps</h2>
+          <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-100 dark:border-[#262a3d] bg-gray-50 dark:bg-[#1b1e2c]/50">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-white">Recommended Next Steps</h2>
             </div>
             <div className="p-6">
               <ul className="space-y-3">
                 {recommendations.map((rec: string, idx: number) => (
-                  <li key={idx} className="flex gap-3 text-sm text-gray-700">
+                  <li key={idx} className="flex gap-3 text-sm text-gray-700 dark:text-gray-300">
                     <span className="text-blue-600 font-semibold flex-shrink-0">•</span>
                     <span>{rec}</span>
                   </li>
@@ -353,12 +357,12 @@ export default function ReportView({
 
         {/* Teachers Notes */}
         {(reportData.includeTeachersNotes || reportData.include_teachers_notes) && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-              <h2 className="text-lg font-bold text-slate-800">Teachers Notes</h2>
+          <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-100 dark:border-[#262a3d] bg-gray-50 dark:bg-[#1b1e2c]/50">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-white">Teachers Notes</h2>
             </div>
             <div className="p-6">
-              <p className="text-sm text-gray-600 leading-relaxed">
+              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                 {teachersNotes}
               </p>
             </div>
@@ -367,11 +371,11 @@ export default function ReportView({
       </div>
 
       {/* Footer Actions */}
-      <div className="bg-white border-t border-gray-200 sticky bottom-0 z-40 no-print">
+      <div className="bg-white dark:bg-[#151722] border-t border-gray-200 dark:border-[#262a3d] no-print mt-8">
         <div className="max-w-6xl mx-auto px-8 py-6 flex items-center justify-between">
           <button 
             onClick={handlePrint}
-            className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium text-sm"
+            className="flex items-center space-x-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] rounded-lg transition-colors font-medium text-sm"
           >
             <Printer className="w-4 h-4" />
             <span>Print Report</span>

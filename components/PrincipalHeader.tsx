@@ -2,53 +2,71 @@
 
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/providers';
-import { Bell, Settings, LogOut, Search } from 'lucide-react';
-import { useState } from 'react';
+import { Bell, Settings, LogOut, Search, Moon, Sun, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useTheme } from 'next-themes';
 
 export default function PrincipalHeader() {
   const router = useRouter();
   const { logout, user } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = () => {
     logout();
     router.push('/');
   };
 
+  const userInitials = user ? `${user.first_name?.[0] || user.email?.charAt(0) || ''}${user.last_name?.[0] || ''}`.toUpperCase() : 'P';
+  const userName = user?.first_name ? `${user.first_name} ${user.last_name}` : user?.email?.split('@')[0];
+
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="h-16 px-6 flex items-center justify-between">
-        <div className="flex-1">
-          <div className="relative hidden md:block max-w-md">
-            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+    <header className="bg-[#151722] border-b border-[#262a3d] px-8 h-[73px] flex items-center sticky top-0 z-50 transition-colors">
+      <div className="flex items-center justify-between w-full">
+        {/* Left: Search Bar */}
+        <div className="flex-1 max-w-md">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input
               type="text"
               placeholder="Search classes, students, teachers..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all text-sm"
+              className="w-full pl-10 pr-4 py-2 text-sm border-none rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 bg-[#1b1e2c] text-white transition-colors placeholder-gray-500"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          {/* Notifications */}
-          <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-            <Bell size={20} />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+        {/* Right: Controls */}
+        <div className="flex items-center space-x-6 ml-8">
+
+          {/* Theme Toggle */}
+          <button
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+            className="p-2 text-gray-300 hover:text-white transition-colors"
+            aria-label="Toggle Night Mode"
+          >
+            {mounted && resolvedTheme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
 
-          {/* User Menu */}
+
+          {/* User Profile */}
           <div className="relative">
-            <button
+            <div 
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-3 pl-4 border-l border-[#262a3d] cursor-pointer hover:opacity-80 transition-opacity"
             >
-              <div className="w-8 h-8 bg-teal-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                {user?.email?.charAt(0).toUpperCase()}
+              <div className="w-8 h-8 rounded-full bg-[#cbd5e1] text-slate-800 flex items-center justify-center font-bold text-sm">
+                {userInitials}
               </div>
-              <span className="hidden sm:inline text-sm font-medium text-gray-900">
-                {user?.email?.split('@')[0]}
-              </span>
-            </button>
+              <div className="flex items-center text-sm text-gray-300">
+                <span className="font-medium mr-1">{userName}</span>
+                <ChevronDown className="w-4 h-4 text-gray-500" />
+              </div>
+            </div>
 
             {isUserMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">

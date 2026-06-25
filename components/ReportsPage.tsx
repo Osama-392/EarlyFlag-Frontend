@@ -88,8 +88,8 @@ export default function ReportsPage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Classes</h1>
-        <p className="text-gray-500 mt-1">Quickly make a Detailed report for any student</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Classes</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Quickly make a Detailed report for any student</p>
         {error && <p className="text-red-600 mt-1 text-sm">{error}</p>}
       </div>
 
@@ -100,8 +100,8 @@ export default function ReportsPage() {
             <div key={grade}>
               {/* Grade Header */}
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Grade {grade}</h2>
-                <span className="text-sm text-gray-500">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Grade {grade}</h2>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
                   {groupedClasses[grade].length} class{groupedClasses[grade].length !== 1 ? 'es' : ''}
                 </span>
               </div>
@@ -120,7 +120,7 @@ export default function ReportsPage() {
                         logger.buttonClick(`Select Class: ${cls.name}`, 'ReportsPage');
                         setSelectedClass(cls);
                       }}
-                      className="group bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all text-left"
+                      className="group bg-white dark:bg-[#151722] rounded-lg border border-gray-200 dark:border-[#262a3d] p-4 hover:shadow-md transition-all text-left"
                     >
                       {/* Class Icon Circle */}
                       <div
@@ -130,10 +130,10 @@ export default function ReportsPage() {
                       </div>
 
                       {/* Class Details */}
-                      <h3 className="font-semibold text-gray-900 group-hover:text-teal-600 transition-colors">
+                      <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-teal-600 transition-colors">
                         {cls.name}
                       </h3>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         Period {cls.period || '-'}
                       </p>
                     </button>
@@ -145,7 +145,7 @@ export default function ReportsPage() {
         </div>
       ) : (
         <div className="text-center py-12">
-          <p className="text-gray-500">No classes found.</p>
+          <p className="text-gray-500 dark:text-gray-400">No classes found.</p>
         </div>
       )}
     </div>

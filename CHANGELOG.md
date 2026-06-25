@@ -2,6 +2,44 @@
 
 All notable changes to the Frontend project are documented in this file.
 
+## [2026-06-23]
+
+### Added
+- **Global Dark Mode**: Implemented comprehensive dark mode (Night Mode) support across the entire Teacher and Principal/Admin dashboards and all sub-pages (Classes, Reports, Student Profiles, Analytics, etc.).
+- **Weekly Flag Lookback History**: Integrated a weekly status visual in the Quick Log / student flag modal showing historic daily statuses (super green, green, yellow, red, absent) for the active week.
+- **Department Overview Risk Metric**: Redesigned the Department Overview display to compute and visualize a weighted Risk Score utilizing red, yellow, and super green counts, complete with progress bar indicators.
+- **Today (1d) Range Integration**: Enabled `1d` date range selection for reports and dashboards on the frontend.
+- **Today's Class Summary Banner**: Added a summary dashboard card/bar at the top of the Quick Log page showing real-time totals for each signal status and a visual logging completion percentage bar.
+
+### Changed
+- **Dashboard Styling**: Updated the Teacher and Principal Sidebars with a sleek dark header design, responsive logo placement, and bold orange active-state highlighting.
+- **Principal Dashboard Layout**: Repositioned the Recommendations block below the Department Overview and restyled it as "School Insights" with contextual icons and updated typography to match the sleek dark theme.
+- **Report Generator Modal**: Forced a strict light-mode theme for the Teacher Report Generator popup to ensure input fields and text remain readable regardless of the user's global dark mode settings.
+- **Service Schema Mapping**: Updated `lib/adminDashboardService.ts` to include `super_green_count` for subject and department schemas.
+
+## [2026-06-19]
+
+### Added
+- **Department Overview**: Added a side-by-side "Department Overview" panel next to the Admin Dashboard Heatmap, pulling real-time aggregate data and trend arrows (Vs Last Week) directly from the backend.
+- **Teacher Dashboard 7-Day Context**: Integrated a 7-day signal lookback visual directly within the `QuickLogPage` UI to provide teachers with immediate context on recent student flags before submitting a new one.
+
+### Changed
+- **Admin Dashboard Layout**: Redesigned the Classroom Heat Map from a grade-level grouped list into an interactive, responsive grid of cards featuring dynamic Subject filtering tabs ("Math", "English", etc.) derived directly from backend metadata.
+
+## [2026-06-18]
+
+### Added
+- **Admin Student Reports**: Admins can now generate and view complete, school-wide student reports via the "Student Reports" tab.
+- **"Today" Date Filter**: Added a new "Today" (1d) range option to the Admin Student, Teacher, and Grade Reports, allowing easy single-day filtering.
+
+### Changed
+- **Admin Class Roster UI**: Completely redesigned the `PrincipalClassRoster` UI into a polished, responsive 3-column card grid with status-colored top borders, color-coded avatar rings, inline badges, and signal dots.
+- **Dynamic Status Badges**: Fixed an issue where the report "Status Active" badge was hardcoded to red; it now adapts dynamically to Red, Yellow, or Super Green based on the student's actual flag data.
+- **Signal Count Colors**: Updated the color logic across the platform for better clarity:
+  - "Present" signals now display as light green (`bg-emerald-400`).
+  - "Super Green" signals now display as dark green (`bg-emerald-600`).
+- **Principal Reports Page**: Removed the "Counselor Escalation Log" and set "Super Green Export" as the default tab. Removed the "Orange" text from the classroom heatmap legend. Fixed TypeScript compilation errors by cleaning up all dead code, unused imports, and state variables related to the removed referrals log.
+
 ## [2026-06-12]
 
 ### Added
