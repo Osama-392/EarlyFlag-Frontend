@@ -460,7 +460,7 @@ export default function PrincipalReportsPage() {
           ) : sgData && (
             <>
               {/* Summary Card */}
-              <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-200 p-5 shadow-sm">
+              <div className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800/40 p-5 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-bold text-gray-900 dark:text-white dark:text-white text-lg flex items-center gap-2"><Sparkles size={20} className="text-emerald-600" /> Super Green Recognition</h3>
@@ -499,7 +499,7 @@ export default function PrincipalReportsPage() {
                           <td className="px-4 py-3">
                             <div className="flex flex-wrap gap-1">
                               {s.top_reasons.map((r, i) => (
-                                <span key={i} className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium">{r.replace(/_/g, ' ')}</span>
+                                <span key={i} className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-medium">{r.replace(/_/g, ' ')}</span>
                               ))}
                               {s.top_reasons.length === 0 && <span className="text-xs text-gray-400">—</span>}
                             </div>
@@ -507,8 +507,8 @@ export default function PrincipalReportsPage() {
                           <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">{formatDate(s.last_super_green_date)}</td>
                           <td className="px-4 py-3">
                             <div className="flex gap-1">
-                              {s.iep_status && <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-bold">IEP</span>}
-                              {s.ell_status && <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-bold">ELL</span>}
+                              {s.iep_status && <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded text-xs font-bold">IEP</span>}
+                              {s.ell_status && <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs font-bold">ELL</span>}
                             </div>
                           </td>
                         </tr>

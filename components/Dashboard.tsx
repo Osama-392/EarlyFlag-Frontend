@@ -3,8 +3,10 @@
 import { Mail, RefreshCw, AlertCircle, MessageSquare, CheckCircle2, Clock, User, Star, ClipboardList, ChevronRight } from 'lucide-react';
 import { useProtectedRoute } from '@/lib/useProtectedRoute';
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useAuth } from '@/app/providers';
 import EmailCounselorModal from '@/components/EmailCounselorModal';
 import ParentNotifyModal from '@/components/ParentNotifyModal';
+import DailyRecommendationBanner from '@/components/DailyRecommendationBanner';
 import {
   getTeacherDashboard,
   TeacherDashboardResponse,
@@ -45,6 +47,7 @@ export default function Dashboard() {
   const [emailModalStudent, setEmailModalStudent] = useState<RedUrgentRow | null>(null);
   const [notifyModalStudent, setNotifyModalStudent] = useState<RedUrgentRow | null>(null);
   const [unfinishedAlerts, setUnfinishedAlerts] = useState<UnfinishedLogRow[]>([]);
+  const { user } = useAuth();
 
   const loadDashboard = useCallback(async (isRefresh = false) => {
     try {
@@ -219,6 +222,9 @@ export default function Dashboard() {
           <RefreshCw size={14} className="animate-spin" /> Refreshing...
         </div>
       )}
+
+      {/* Daily Recommendation Banner */}
+      <DailyRecommendationBanner name={user?.first_name || 'Teacher'} />
 
       {/* Monday Brief */}
       {monday_brief?.active && (

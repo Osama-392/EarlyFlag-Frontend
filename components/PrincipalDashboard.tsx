@@ -12,6 +12,8 @@ import {
   AdminDashboardResponse, HeatmapBlock, HeatmapBand,
 } from '@/lib/adminDashboardService';
 import { getPendingTeachers } from '@/lib/adminService';
+import { useAuth } from '@/app/providers';
+import DailyRecommendationBanner from '@/components/DailyRecommendationBanner';
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -57,6 +59,7 @@ export default function PrincipalDashboard() {
   // Pending teachers state
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [showPendingAlert, setShowPendingAlert] = useState(false);
+  const { user } = useAuth();
 
   const fetchData = useCallback(async (showRefresh = false) => {
     try {
@@ -137,6 +140,9 @@ export default function PrincipalDashboard() {
         .fade-up:nth-child(3){animation-delay:.15s} .fade-up:nth-child(4){animation-delay:.2s}
         .fade-up:nth-child(5){animation-delay:.25s} .fade-up:nth-child(6){animation-delay:.3s}
       `}</style>
+
+      {/* Daily Recommendation Banner */}
+      <DailyRecommendationBanner name={user?.first_name || 'Admin'} />
 
       {/* Pending Teachers Approval Notification Bar */}
       {showPendingAlert && pendingCount > 0 && (

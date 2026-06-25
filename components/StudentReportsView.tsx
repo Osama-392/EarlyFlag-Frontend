@@ -207,7 +207,7 @@ export default function StudentReportsView({
                       <span>Create Report</span>
                     </button>
                     <button 
-                      onClick={() => router.push(`/students/${classData.id}/${student.id}`)}
+                      onClick={() => router.push(`/reports/${classData.id}/${student.id}`)}
                       className="flex items-center space-x-1 px-4 py-2 bg-gray-100 dark:bg-[#1b1e2c] hover:bg-gray-200 text-gray-700 dark:text-gray-300 rounded-lg transition-colors font-medium text-sm"
                     >
                       <Eye className="w-4 h-4" />
