@@ -150,6 +150,14 @@ export interface DepartmentOverviewBlock {
   subjects: SubjectPerformance[];
 }
 
+export interface TeacherLeaderboardRow {
+  teacher_id: string;
+  teacher_first_name: string;
+  teacher_last_name: string;
+  department: string | null;
+  super_green_count: number;
+}
+
 export interface AdminDashboardResponse {
   school: AdminDashboardSchoolBlock;
   range: AdminDashboardRangeBlock;
@@ -159,6 +167,7 @@ export interface AdminDashboardResponse {
   pending_teacher_flags: TeacherObservationFlagRow[];
   departments: DepartmentOverviewBlock[];
   recommendations: string[];
+  teacher_leaderboard: TeacherLeaderboardRow[];
   generated_at: string;
   school_timezone: string;
 }
@@ -591,6 +600,14 @@ export const getAdminDashboard = async (
   const params: Record<string, string | boolean> = { range };
   if (forceMondayBrief) params.force_monday_brief = true;
   const res = await api.get('/api/v1/admin/dashboard', { params });
+  return res.data;
+};
+
+export const getAdminLeaderboard = async (
+  range: '1d' | '7d' | '30d' = '7d',
+): Promise<TeacherLeaderboardRow[]> => {
+  const params: Record<string, string> = { range };
+  const res = await api.get('/api/v1/admin/leaderboard', { params });
   return res.data;
 };
 
