@@ -131,6 +131,33 @@ export interface TeacherObservationFlagRow {
   acknowledged_by_last_name?: string | null;
 }
 
+export interface SubjectPerformance {
+  subject_name: string;
+  yellow_count: number;
+  red_count: number;
+  super_green_count: number;
+  flag_percentage: number | null;
+  trend_value: number | null;
+  band: HeatmapBand;
+}
+
+export interface DepartmentOverviewBlock {
+  department_name: string;
+  yellow_count: number;
+  red_count: number;
+  super_green_count: number;
+  trend_value: number | null;
+  subjects: SubjectPerformance[];
+}
+
+export interface TeacherLeaderboardRow {
+  teacher_id: string;
+  teacher_first_name: string;
+  teacher_last_name: string;
+  department: string | null;
+  super_green_count: number;
+}
+
 export interface AdminDashboardResponse {
   school: AdminDashboardSchoolBlock;
   range: AdminDashboardRangeBlock;
@@ -138,7 +165,9 @@ export interface AdminDashboardResponse {
   monday_red_flag: MondayRedFlagBlock;
   urgent_alerts: AdminUrgentAlertRow[];
   pending_teacher_flags: TeacherObservationFlagRow[];
+  departments: DepartmentOverviewBlock[];
   recommendations: string[];
+  teacher_leaderboard: TeacherLeaderboardRow[];
   generated_at: string;
   school_timezone: string;
 }
@@ -161,6 +190,7 @@ export interface HeatmapTile {
   band: HeatmapBand;
   has_unresolved_high_critical: boolean;
   has_observation_flag: boolean;
+  subject?: string;
 }
 
 export interface HeatmapGradeBucket {
@@ -428,7 +458,7 @@ export interface ReferralFilterParams {
 // ─── Report Filter Params (shared across student/teacher/grade reports) ───
 
 export interface ReportFilterParams {
-  range?: '7d' | '30d';
+  range?: '1d' | '7d' | '30d';
   from?: string;
   to?: string;
   grade_level?: number;
@@ -519,6 +549,40 @@ export interface GradeReportBlock {
   grades: GradeReportItem[];
 }
 
+// ─── 14. Teacher-Specific Report (Admin) ─────────────────────────
+
+export interface AdminTeacherClassFlagRow {
+  class_id: string;
+  class_name: string;
+  grade_level: number;
+  active_enrollments: number;
+  counts: SignalCountsByType;
+}
+
+export interface AdminTeacherTopStudentRow {
+  student_id: string;
+  external_student_id: string;
+  first_name: string;
+  last_name: string;
+  grade_level: number;
+  iep_status: boolean;
+  ell_status: boolean;
+  weighted_score: number;
+  signal_counts: SignalCountsByType;
+}
+
+export interface AdminTeacherSpecificReportBlock {
+  teacher_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  range_days: number;
+  range_start: string;
+  range_end: string;
+  classes: AdminTeacherClassFlagRow[];
+  top_students: AdminTeacherTopStudentRow[];
+}
+
 
 // ═══════════════════════════════════════════════════════════════════
 //  API Functions
@@ -530,7 +594,7 @@ export interface GradeReportBlock {
  * pending teacher flags, and heuristic recommendations.
  */
 export const getAdminDashboard = async (
-  range: '7d' | '30d' = '7d',
+  range: '1d' | '7d' | '30d' = '7d',
   forceMondayBrief = false,
 ): Promise<AdminDashboardResponse> => {
   const params: Record<string, string | boolean> = { range };
@@ -539,12 +603,20 @@ export const getAdminDashboard = async (
   return res.data;
 };
 
+export const getAdminLeaderboard = async (
+  range: '1d' | '7d' | '30d' = '7d',
+): Promise<TeacherLeaderboardRow[]> => {
+  const params: Record<string, string> = { range };
+  const res = await api.get('/api/v1/admin/leaderboard', { params });
+  return res.data;
+};
+
 /**
  * GET /api/v1/admin/heatmap
  * Per-class flag percentage tiles grouped by grade, with color bands.
  */
 export const getAdminHeatmap = async (
-  range: '7d' | '30d' = '7d',
+  range: '1d' | '7d' | '30d' = '7d',
 ): Promise<HeatmapBlock> => {
   const res = await api.get('/api/v1/admin/heatmap', { params: { range } });
   return res.data;
@@ -556,7 +628,7 @@ export const getAdminHeatmap = async (
  */
 export const getAdminClassDrilldown = async (
   classId: string,
-  range: '7d' | '30d' = '7d',
+  range: '1d' | '7d' | '30d' = '7d',
 ): Promise<AdminClassDrilldownBlock> => {
   const res = await api.get(`/api/v1/admin/classes/${classId}`, { params: { range } });
   return res.data;
@@ -567,7 +639,7 @@ export const getAdminClassDrilldown = async (
  * Students ranked by weighted score (red×3 + yellow×1).
  */
 export const getAdminMostFlagged = async (
-  range: '7d' | '30d' = '7d',
+  range: '1d' | '7d' | '30d' = '7d',
   limit?: number,
   gradeLevel?: number,
 ): Promise<MostFlaggedBlock> => {
@@ -757,4 +829,73 @@ export const getAdminGradeReports = async (
 
   const res = await api.get('/api/v1/admin/reports/grades', { params: queryParams });
   return res.data;
+};
+
+// ─── 14. Teacher Specific Drill-Down Report ───────────────────────
+
+export interface AdminTeacherClassFlagRow {
+  class_id: string;
+  class_name: string;
+  grade_level: number;
+  super_green_count: number;
+  present_count: number;
+  yellow_count: number;
+  red_count: number;
+  absent_count: number;
+  total_flags: number;
+}
+
+export interface AdminTeacherTopStudentRow {
+  student_id: string;
+  first_name: string;
+  last_name: string;
+  grade_level: number;
+  super_green_count: number;
+  present_count: number;
+  yellow_count: number;
+  red_count: number;
+  absent_count: number;
+  weighted_score: number;
+}
+
+export interface AdminTeacherSpecificReportBlock {
+  teacher_id: string;
+  first_name: string;
+  last_name: string;
+  range_days: number;
+  range_start: string;
+  range_end: string;
+  classes: AdminTeacherClassFlagRow[];
+  top_students: AdminTeacherTopStudentRow[];
+}
+
+/**
+ * GET /api/v1/admin/reports/teachers/{teacher_id}
+ * Drill-down report for a specific teacher's classes and most flagged students.
+ */
+export const getAdminTeacherSpecificReport = async (
+  teacherId: string,
+  params?: { range?: '1d' | '7d' | '30d'; from?: string; to?: string },
+): Promise<AdminTeacherSpecificReportBlock> => {
+  const queryParams: Record<string, any> = {};
+  if (params?.range) queryParams.range = params.range;
+  if (params?.from) queryParams.from = params.from;
+  if (params?.to) queryParams.to = params.to;
+
+  const res = await api.get(`/api/v1/admin/reports/teachers/${teacherId}`, { params: queryParams });
+  return res.data;
+};
+
+/**
+ * POST /api/v1/admin/reports/students/{student_id}
+ * Generate an admin-scoped individual student report.
+ */
+export const generateAdminStudentReport = async (studentId: string, payload: any): Promise<any> => {
+  try {
+    const response = await api.post(`/api/v1/admin/reports/students/${studentId}`, payload);
+    return response.data;
+  } catch (error: any) {
+    console.error('Failed to generate admin student report:', error?.response?.data);
+    throw error;
+  }
 };

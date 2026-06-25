@@ -118,8 +118,8 @@ export default function ClassesPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Classes</h1>
-          <p className="text-gray-500 mt-1">Manage your classes</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Classes</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your classes</p>
           {error && <p className="text-red-600 mt-1 text-sm">{error}</p>}
         </div>
         <button
@@ -137,8 +137,8 @@ export default function ClassesPage() {
           {sortedGrades.map((grade) => (
             <div key={grade}>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Grade {grade}</h2>
-                <span className="text-sm text-gray-500">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Grade {grade}</h2>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
                   {classes[grade].length} class{classes[grade].length !== 1 ? 'es' : ''}
                 </span>
               </div>
@@ -157,7 +157,7 @@ export default function ClassesPage() {
         </div>
       ) : (
         <div className="text-center py-12">
-          <p className="text-gray-500">No classes yet. Create your first class to get started!</p>
+          <p className="text-gray-500 dark:text-gray-400">No classes yet. Create your first class to get started!</p>
         </div>
       )}
 

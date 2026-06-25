@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Check, X, Loader2, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, Loader2, Calendar, Star } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/components/Toast';
 import FlagModal from '@/components/FlagModal';
@@ -53,7 +53,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(() => new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0]);
   const [incompleteSessions, setIncompleteSessions] = useState<IncompleteLogSession[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -79,7 +79,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
         });
         setAvailableDates(workingDays);
         if (workingDays.length > 0) {
-          const today = new Date().toISOString().split('T')[0];
+          const today = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
           if (!workingDays.includes(today)) {
             setSelectedDate(workingDays[0]);
           }
@@ -107,7 +107,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
       if (!activeClassId) return;
       setStudentsLoading(true);
       try {
-        const targetDate = selectedDate || new Date().toISOString().split('T')[0];
+        const targetDate = selectedDate || new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
         const data = await getClassStudents(activeClassId, targetDate);
         setApiStudents(data);
       } catch (err) {
@@ -126,7 +126,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
       return;
     }
 
-    const targetDate = selectedDate || new Date().toISOString().split('T')[0];
+    const targetDate = selectedDate || new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     const draftSession = incompleteSessions.find(
       s => s.class_id === activeClassId && s.signal_date === targetDate
     );
@@ -228,7 +228,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
           },
         };
       }
-      
+
       // Turn it on and clear all others
       return {
         ...prev,
@@ -275,7 +275,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
               return {
                 student_id: studentId,
                 class_id: activeClassId,
-                signal_date: selectedDate || new Date().toISOString().split('T')[0],
+                signal_date: selectedDate || new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0],
                 signal_type: signalType as any,
                 category: flag.category,
                 reason_code: mappedReasonCode,
@@ -292,8 +292,8 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
 
         // Backend validation rules require specific reason codes for certain signals
         if (signalType === 'super_green' && entry.flagData?.reasons?.length) {
-           const firstReason = entry.flagData.reasons[0].toLowerCase().replace(/ /g, '_');
-           mappedReasonCode = firstReason;
+          const firstReason = entry.flagData.reasons[0].toLowerCase().replace(/ /g, '_');
+          mappedReasonCode = firstReason;
         }
 
         // For green/present and absent signals, don't send empty strings
@@ -302,7 +302,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
         return [{
           student_id: studentId,
           class_id: activeClassId,
-          signal_date: selectedDate || new Date().toISOString().split('T')[0],
+          signal_date: selectedDate || new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0],
           signal_type: signalType as any,
           category: undefined,
           reason_code: mappedReasonCode,
@@ -317,7 +317,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
       return;
     }
 
-    const targetDate = selectedDate || new Date().toISOString().split('T')[0];
+    const targetDate = selectedDate || new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     const draftSession = incompleteSessions.find(
       s => s.class_id === activeClassId && s.signal_date === targetDate
     );
@@ -328,9 +328,9 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
     }
 
     // ── Save with feedback: stay on page so teacher can review/edit ──
-    logger.formSubmit('QuickLog', { 
+    logger.formSubmit('QuickLog', {
       date: new Date().toLocaleDateString(),
-      entries: signalsToLog.length 
+      entries: signalsToLog.length
     });
 
     setSaving(true);
@@ -378,11 +378,11 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
       const colorMap = {
         absent: {
           active: 'bg-gray-300 hover:bg-gray-400',
-          inactive: 'bg-gray-100 hover:bg-gray-200',
+          inactive: 'bg-gray-100 dark:bg-[#262a3d] hover:bg-gray-200 dark:hover:bg-gray-600',
         },
         green: {
           active: 'bg-emerald-300 hover:bg-emerald-400',
-          inactive: 'bg-gray-100 hover:bg-gray-200',
+          inactive: 'bg-gray-100 dark:bg-[#262a3d] hover:bg-gray-200 dark:hover:bg-gray-600',
         },
       };
       const colors = colorMap[status];
@@ -390,9 +390,8 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
         <div className="flex justify-center">
           <button
             onClick={() => toggleStatus(studentId, status)}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-              isActive ? colors.active : colors.inactive
-            }`}
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isActive ? colors.active : colors.inactive
+              }`}
           >
             {isActive && <Check className="w-4 h-4 text-white" />}
           </button>
@@ -428,11 +427,10 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
               });
             }
           }}
-          className={`w-8 h-8 rounded-full transition-all flex items-center justify-center text-xs font-bold ${
-            isActive
-              ? `${statusColors[statusMap[status]]} text-amber-950 ring-2 ring-offset-2 ring-offset-white ring-gray-400`
-              : 'bg-gray-100 hover:bg-gray-200 text-transparent'
-          }`}
+          className={`w-8 h-8 rounded-full transition-all flex items-center justify-center text-xs font-bold ${isActive
+            ? `${statusColors[statusMap[status]]} text-amber-950 ring-2 ring-offset-2 ring-offset-white ring-gray-400`
+            : 'bg-gray-100 dark:bg-[#262a3d] hover:bg-gray-200 dark:hover:bg-gray-600 text-transparent'
+            }`}
         >
           {flagsCount > 1 ? flagsCount : ''}
         </button>
@@ -440,19 +438,31 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
     );
   };
 
+  const stats = {
+    superGreen: Object.values(logData).filter(v => v.superGreen).length,
+    green: Object.values(logData).filter(v => v.green).length,
+    yellow: Object.values(logData).filter(v => v.yellow).length,
+    red: Object.values(logData).filter(v => v.red).length,
+    absent: Object.values(logData).filter(v => v.absent).length,
+    loggedCount: Object.values(logData).filter(v => v.superGreen || v.green || v.yellow || v.red || v.absent).length,
+    totalStudents: mappedStudents.length
+  };
+  const loggedPercentage = stats.totalStudents > 0 ? Math.round((stats.loggedCount / stats.totalStudents) * 100) : 0;
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4 flex flex-col h-full">
       {/* Flag Modal */}
       {selectedFlagModal && (
         <FlagModal
           flagType={selectedFlagModal.type}
           student={selectedFlagModal.student}
+          apiStudent={apiStudents.find(s => s.id === selectedFlagModal.student.id)}
           initialData={logData[selectedFlagModal.student.id]?.flagData}
           onClose={() => setSelectedFlagModal(null)}
           onSubmit={(data) => {
             logger.info('Flag submitted', data, 'QuickLog');
             const newStatus = selectedFlagModal.type === 'super-green' ? 'superGreen' : selectedFlagModal.type;
-            
+
             // Mark the flag as selected and clear out others
             setLogData((prev) => ({
               ...prev,
@@ -473,8 +483,8 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Daily Quick Log</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Monitor top student concerns day to day performance</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Daily Quick Log</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Monitor top student concerns day to day performance</p>
         </div>
         <div className="flex items-center gap-3">
           {/* Date Selector */}
@@ -484,11 +494,11 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
               <select
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                className="px-3 py-2 border border-gray-300 dark:border-[#262a3d] rounded-lg text-sm bg-white dark:bg-[#151722] text-gray-900 dark:text-white"
               >
                 {availableDates.map((date) => {
                   const d = new Date(date + 'T00:00:00');
-                  const isToday = date === new Date().toISOString().split('T')[0];
+                  const isToday = date === new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
                   const label = isToday
                     ? `Today – ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
                     : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -508,7 +518,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
               setCurrentPage(1);
             }}
             disabled={classesLoading || classes.length === 0}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white min-w-[150px]"
+            className="px-3 py-2 border border-gray-300 dark:border-[#262a3d] rounded-lg text-sm bg-white dark:bg-[#151722] text-gray-900 dark:text-white min-w-[150px]"
           >
             {classesLoading ? (
               <option value="">Loading classes...</option>
@@ -526,111 +536,163 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
       </div>
 
       {saveSuccess && (
-        <div className="p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg flex items-center gap-2">
+        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50 rounded-lg flex items-center gap-2">
           <Check className="w-5 h-5" />
           Quick log saved successfully!
         </div>
       )}
       {saveError && (
-        <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg flex items-center gap-2">
+        <div className="p-3 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/50 rounded-lg flex items-center gap-2">
           <X className="w-5 h-5" />
           {saveError}
         </div>
       )}
 
+      {/* Today's Class Summary */}
+      <div className="bg-white dark:bg-[#151722] rounded-lg border border-gray-200 dark:border-[#262a3d] p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Today's Class Summary</h3>
+          <div className="flex items-center gap-8">
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5 font-bold text-lg text-gray-900 dark:text-white">
+                <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                {stats.superGreen}
+              </div>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Super Green</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5 font-bold text-lg text-gray-900 dark:text-white">
+                <div className="w-3.5 h-3.5 rounded-full bg-emerald-500" />
+                {stats.green}
+              </div>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Green</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5 font-bold text-lg text-gray-900 dark:text-white">
+                <div className="w-3.5 h-3.5 rounded-full bg-amber-400" />
+                {stats.yellow}
+              </div>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Yellow</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5 font-bold text-lg text-gray-900 dark:text-white">
+                <div className="w-3.5 h-3.5 rounded-full bg-rose-500" />
+                {stats.red}
+              </div>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Red</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5 font-bold text-lg text-gray-900 dark:text-white">
+                <div className="w-3.5 h-3.5 rounded-full bg-gray-900" />
+                {stats.absent}
+              </div>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Absent</span>
+            </div>
+          </div>
+        </div>
+        <div className="w-full md:w-64 border-t md:border-t-0 md:border-l border-gray-100 dark:border-[#262a3d] pt-4 md:pt-0 md:pl-6">
+          <div className="flex justify-between items-end mb-1">
+            <span className="text-sm font-bold text-gray-900 dark:text-white">{stats.loggedCount} / {stats.totalStudents} Logged</span>
+          </div>
+          <span className="text-xs text-gray-500 dark:text-gray-400 mb-2 block">{loggedPercentage}% Complete</span>
+          <div className="w-full bg-gray-200 dark:bg-[#1b1e2c] rounded-full h-2.5 overflow-hidden">
+            <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${loggedPercentage}%` }}></div>
+          </div>
+        </div>
+      </div>
+
       {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
+      <div className="bg-white dark:bg-[#151722] rounded-lg border border-gray-200 dark:border-[#262a3d] overflow-hidden flex-1 flex flex-col min-h-0">
         <div className="overflow-y-auto max-h-[calc(100vh-320px)]">
           <table className="w-full">
-            <thead className="sticky top-0 z-10 bg-gray-50 shadow-sm">
-              <tr className="border-b border-gray-200">
-                <th className="px-4 py-2.5 text-left text-sm font-semibold text-gray-900">Name</th>
-                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900">
+            <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-[#1b1e2c] shadow-sm">
+              <tr className="border-b border-gray-200 dark:border-[#262a3d]">
+                <th className="px-4 py-2.5 text-left text-sm font-semibold text-gray-900 dark:text-white">Name</th>
+                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900 dark:text-white">
                   <div className="flex items-center justify-center space-x-1">
                     <div className="w-3 h-3 rounded-full bg-emerald-500" />
                     <span>Super Green</span>
                   </div>
                 </th>
-                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900">
+                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900 dark:text-white">
                   <div className="flex items-center justify-center space-x-1">
                     <div className="w-3 h-3 rounded-full bg-emerald-300" />
                     <span>Green</span>
                   </div>
                 </th>
-                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900">
+                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900 dark:text-white">
                   <div className="flex items-center justify-center space-x-1">
                     <div className="w-3 h-3 rounded-full bg-amber-300" />
                     <span>Yellow</span>
                   </div>
                 </th>
-                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900">
+                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900 dark:text-white">
                   <div className="flex items-center justify-center space-x-1">
                     <div className="w-3 h-3 rounded-full bg-rose-300" />
                     <span>Red</span>
                   </div>
                 </th>
-                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900">Absent</th>
+                <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900 dark:text-white">Absent</th>
               </tr>
             </thead>
             <tbody>
               {classesLoading || studentsLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
                     Loading students...
                   </td>
                 </tr>
               ) : mappedStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                     No students found in this class.
                   </td>
                 </tr>
               ) : (
                 mappedStudents.map((student, idx) => (
-                <tr
-                  key={student.id}
-                  className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                    idx === mappedStudents.length - 1 ? 'border-b-0' : ''
-                  }`}
-                >
-                  <td className="px-4 py-2">
-                    <div className="flex items-center space-x-2">
-                      <div
-                        className={`w-8 h-8 rounded-full bg-gradient-to-br ${student.bgColor} flex items-center justify-center text-white font-bold text-xs flex-shrink-0`}
-                      >
-                        {student.initial}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900 text-sm">{student.name}</p>
-                          {logData[student.id]?.isDraft && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase tracking-wider">
-                              Draft
-                            </span>
-                          )}
+                  <tr
+                    key={student.id}
+                    className={`border-b border-gray-100 dark:border-[#262a3d] hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors ${idx === mappedStudents.length - 1 ? 'border-b-0' : ''
+                      }`}
+                  >
+                    <td className="px-4 py-2">
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className={`w-8 h-8 rounded-full bg-gradient-to-br ${student.bgColor} flex items-center justify-center text-white font-bold text-xs flex-shrink-0`}
+                        >
+                          {student.initial}
                         </div>
-                        <p className="text-xs text-gray-500">Grade {student.grade}</p>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900 dark:text-white text-sm">{student.name}</p>
+                            {logData[student.id]?.isDraft && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase tracking-wider">
+                                Draft
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Grade {student.grade}</p>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2">
-                    {getStatusIndicator(student.id, 'superGreen')}
-                  </td>
-                  <td className="px-4 py-2">
-                    {getStatusIndicator(student.id, 'green')}
-                  </td>
-                  <td className="px-4 py-2">
-                    {getStatusIndicator(student.id, 'yellow')}
-                  </td>
-                  <td className="px-4 py-2">
-                    {getStatusIndicator(student.id, 'red')}
-                  </td>
-                  <td className="px-4 py-2">
-                    {getStatusIndicator(student.id, 'absent')}
-                  </td>
-                </tr>
-              )))}
+                    </td>
+                    <td className="px-4 py-2">
+                      {getStatusIndicator(student.id, 'superGreen')}
+                    </td>
+                    <td className="px-4 py-2">
+                      {getStatusIndicator(student.id, 'green')}
+                    </td>
+                    <td className="px-4 py-2">
+                      {getStatusIndicator(student.id, 'yellow')}
+                    </td>
+                    <td className="px-4 py-2">
+                      {getStatusIndicator(student.id, 'red')}
+                    </td>
+                    <td className="px-4 py-2">
+                      {getStatusIndicator(student.id, 'absent')}
+                    </td>
+                  </tr>
+                )))}
             </tbody>
           </table>
         </div>
@@ -639,13 +701,13 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
 
 
       {/* Flag Legend - compact inline */}
-      <div className="flex items-center flex-wrap gap-4 px-2 text-xs text-gray-500">
-        <span className="font-medium text-gray-700">Flags:</span>
+      <div className="flex items-center flex-wrap gap-4 px-2 text-xs text-gray-500 dark:text-gray-400">
+        <span className="font-medium text-gray-700 dark:text-gray-300">Flags:</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> Super Green</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-emerald-300 inline-block" /> Green</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-amber-300 inline-block" /> Yellow</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-rose-300 inline-block" /> Red</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-gray-300 inline-block" /> Absent</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-500 inline-block" /> Absent</span>
       </div>
 
       {/* Action Buttons */}

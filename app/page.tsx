@@ -36,96 +36,193 @@ export default function RootPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col md:flex-row overflow-hidden font-sans">
+    <div className="min-h-screen bg-white flex flex-col md:flex-row overflow-hidden">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        .font-inter { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        .font-display { font-family: 'DM Serif Display', serif; }
+        .font-body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        @keyframes float-flag {
+          0%, 100% { transform: rotate(0deg); }
+          50% { transform: rotate(1.5deg); }
+        }
+        @keyframes trail-draw {
+          from { stroke-dashoffset: 600; }
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes fade-up {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-up { animation: fade-up 0.7s ease-out forwards; }
+        .animate-fade-up-delay-1 { animation: fade-up 0.7s ease-out 0.1s forwards; opacity: 0; }
+        .animate-fade-up-delay-2 { animation: fade-up 0.7s ease-out 0.2s forwards; opacity: 0; }
+        .animate-fade-up-delay-3 { animation: fade-up 0.7s ease-out 0.35s forwards; opacity: 0; }
+        .animate-trail { animation: trail-draw 2s ease-out 0.5s forwards; stroke-dashoffset: 600; }
       `}</style>
 
       {/* Left Panel */}
-      <div className="w-full md:w-[55%] relative flex flex-col justify-between pt-12 lg:pt-20 px-8 lg:px-20 overflow-hidden bg-gradient-to-b from-white to-orange-50/30">
+      <div className="w-full md:w-[55%] relative flex flex-col justify-between pt-10 lg:pt-16 px-8 lg:px-16 xl:px-20 overflow-hidden" style={{ background: 'linear-gradient(175deg, #ffffff 0%, #fffbf5 40%, #fff7ed 100%)' }}>
 
-        {/* Background Waves (SVG) Updated */}
-        <div className="absolute bottom-0 left-0 w-full z-0 h-[100%] md:h-[50%] pointer-events-none">
-          <svg viewBox="0 0 1000 500" preserveAspectRatio="none" className="w-full h-full text-orange-400/20 absolute bottom-0">
-            <path fill="url(#grad1)" d="M0,300 C200,200 300,400 500,300 C700,200 800,400 1000,250 L1000,500 L0,500 Z" opacity="0.6" />
-            <path fill="url(#grad2)" d="M0,400 C250,500 400,200 700,300 C850,350 950,250 1000,200 L1000,500 L0,500 Z" opacity="0.8" />
-            <path fill="url(#grad3)" d="M0,500 C150,350 350,350 550,450 C750,550 900,300 1000,400 L1000,500 L0,500 Z" />
-
-            {/* Dashed Line */}
-            <path d="M-50,450 C100,400 200,300 350,350" fill="none" stroke="white" strokeWidth="4" strokeDasharray="12 12" />
-
-            <defs>
-              <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#fdba74" />
-                <stop offset="100%" stopColor="#f97316" />
-              </linearGradient>
-              <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#ffedd5" />
-                <stop offset="100%" stopColor="#f97316" />
-              </linearGradient>
-              <linearGradient id="grad3" x1="0%" y1="100%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#ea580c" />
-                <stop offset="100%" stopColor="#fb923c" />
-              </linearGradient>
-            </defs>
+        {/* Subtle decorative accents */}
+        <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden z-0">
+          {/* Top-left rotated square */}
+          <div className="absolute -top-6 -left-6 w-24 h-24 border-2 border-orange-200/30 rotate-45 rounded-md" />
+          {/* Floating accent dot */}
+          <div className="absolute top-[18%] right-[8%] w-2 h-2 rounded-full bg-orange-300/40" />
+          {/* Cross accent */}
+          <svg className="absolute top-[12%] right-[14%] w-5 h-5 opacity-[0.12]" viewBox="0 0 20 20">
+            <line x1="0" y1="10" x2="20" y2="10" stroke="#f97316" strokeWidth="2" />
+            <line x1="10" y1="0" x2="10" y2="20" stroke="#f97316" strokeWidth="2" />
           </svg>
-
-          {/* Flag Illustration */}
-          <div className="absolute bottom-[20%] left-[30%] z-10 w-24 h-32">
-            <svg viewBox="0 0 100 120" className="w-full h-full drop-shadow-xl overflow-visible">
-              {/* Pole Base */}
-              <ellipse cx="20" cy="115" rx="16" ry="4" fill="#000000" />
-              {/* Pole */}
-              <rect x="17" y="5" width="6" height="110" fill="#000000" rx="1" />
-              {/* Pole Top */}
-              <circle cx="20" cy="5" r="6" fill="#000000" />
-              {/* Flag Body */}
-              <path d="M23 12 C 45 0, 60 30, 98 10 L 75 38 L 98 66 C 60 86, 45 46, 23 58 Z" fill="#eb4b00" />
-            </svg>
-          </div>
+          {/* Another rotated square, larger, faint */}
+          <div className="absolute top-[45%] right-[3%] w-16 h-16 border border-orange-200/20 rotate-[30deg] rounded-sm" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-start font-inter">
+        {/* Mountain Landscape with Flag — bottom portion */}
+        <div className="absolute bottom-0 left-0 w-full z-[1] pointer-events-none" style={{ height: '48%' }}>
+          <svg
+            viewBox="0 0 1000 420"
+            preserveAspectRatio="none"
+            className="w-full h-full absolute bottom-0"
+          >
+            <defs>
+              <linearGradient id="mtnBack" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#fde5c7" />
+                <stop offset="100%" stopColor="#fdd8a8" />
+              </linearGradient>
+              <linearGradient id="mtnMid" x1="0%" y1="0%" x2="80%" y2="100%">
+                <stop offset="0%" stopColor="#fdba74" />
+                <stop offset="100%" stopColor="#f9a54b" />
+              </linearGradient>
+              <linearGradient id="mtnMidFront" x1="0%" y1="0%" x2="100%" y2="80%">
+                <stop offset="0%" stopColor="#fb923c" />
+                <stop offset="100%" stopColor="#f97316" />
+              </linearGradient>
+              <linearGradient id="mtnFront" x1="20%" y1="0%" x2="80%" y2="100%">
+                <stop offset="0%" stopColor="#f97316" />
+                <stop offset="100%" stopColor="#ea580c" />
+              </linearGradient>
+              <linearGradient id="flagGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#fb923c" />
+                <stop offset="100%" stopColor="#ea580c" />
+              </linearGradient>
+            </defs>
+
+            {/* Layer 1 — farthest back, very faded rolling hills */}
+            <path
+              fill="url(#mtnBack)"
+              d="M-50,350 C50,310 120,270 220,240 C320,210 380,280 480,250 C580,220 650,190 750,220 C850,250 950,230 1050,200 L1050,420 L-50,420 Z"
+              opacity="0.3"
+            />
+
+            {/* Layer 2 — mid-back, gentle ridgeline */}
+            <path
+              fill="url(#mtnMid)"
+              d="M-50,370 C30,340 90,300 180,310 C270,320 340,260 420,220 C480,190 530,210 600,250 C680,295 780,260 880,280 C950,295 1010,270 1050,260 L1050,420 L-50,420 Z"
+              opacity="0.4"
+            />
+
+            {/* Layer 3 — mid-front mountain with ridge */}
+            <path
+              fill="url(#mtnMidFront)"
+              d="M-50,390 C20,375 80,355 160,360 C240,365 300,310 370,250 C410,215 440,200 470,215 C510,240 560,290 640,320 C730,355 840,340 940,350 C990,356 1030,360 1050,365 L1050,420 L-50,420 Z"
+              opacity="0.6"
+            />
+
+            {/* Layer 4 — front mountain range, solid, prominent peak in center-left */}
+            <path
+              fill="url(#mtnFront)"
+              d="M-50,410 C0,405 50,395 120,380 C190,365 250,340 310,300 C350,275 380,235 415,190 C430,170 442,160 455,160 C468,160 480,170 495,190 C530,230 560,280 620,315 C690,355 770,370 850,378 C920,384 980,392 1050,398 L1050,420 L-50,420 Z"
+            />
+
+            {/* Dashed trail — from bottom-left curving up to the peak */}
+            <path
+              d="M-20,415 C30,408 90,398 170,380 C250,362 310,335 360,298 C390,275 410,248 435,215"
+              fill="none"
+              stroke="rgba(255,255,255,0.7)"
+              strokeWidth="3"
+              strokeDasharray="9 9"
+              strokeLinecap="round"
+              className="animate-trail"
+            />
+
+            {/* Flag on the peak */}
+            <g transform="translate(443, 65)">
+              {/* Pole shadow */}
+              <line x1="11" y1="12" x2="11" y2="96" stroke="rgba(0,0,0,0.08)" strokeWidth="5" strokeLinecap="round" />
+              {/* Pole */}
+              <line x1="10" y1="0" x2="10" y2="95" stroke="#1a202c" strokeWidth="3" strokeLinecap="round" />
+              {/* Pole knob */}
+              <circle cx="10" cy="0" r="3" fill="#1a202c" />
+              {/* Flag pennant */}
+              <path d="M12 5 C24 -1, 34 12, 50 6 L42 19 L50 32 C34 40, 24 25, 12 31 Z" fill="url(#flagGrad)" />
+            </g>
+          </svg>
+        </div>
+
+        {/* Text content — above the mountains */}
+        <div className="relative z-10 flex flex-col items-start font-body">
           {/* Logo */}
-          <div className="flex items-center gap-2 mb-16 lg:mb-24">
-            <span className="text-xl font-bold tracking-widest text-slate-800">EARLY <span className="text-orange-500">FLAG</span></span>
+          <div className="flex items-center gap-1.5 mb-12 lg:mb-16 animate-fade-up">
+            <span className="text-[0.95rem] font-extrabold tracking-[0.32em] uppercase text-slate-800">
+              Early <span className="text-orange-500">Flag</span>
+            </span>
           </div>
 
           {/* Headlines */}
-          <div className="max-w-xl">
-            <h1 className="text-5xl lg:text-6xl font-bold text-slate-800 tracking-tight leading-tight mb-2">
+          <div className="max-w-xl animate-fade-up-delay-1">
+            <h1 className="font-display text-[2.8rem] sm:text-[3.4rem] lg:text-[3.8rem] text-slate-800 leading-[1.08] mb-1.5 tracking-tight">
               See risk earlier.
             </h1>
-            <h1 className="text-5xl lg:text-6xl font-bold text-slate-800 tracking-tight leading-tight mb-6">
-              Support students <span className="text-orange-500">better.</span>
+            <h1 className="font-display text-[2.8rem] sm:text-[3.4rem] lg:text-[3.8rem] text-slate-800 leading-[1.08] mb-7 tracking-tight">
+              Support students{' '}
+              <span className="text-orange-500" style={{ fontStyle: 'italic' }}>better.</span>
             </h1>
-            <p className="text-lg lg:text-xl text-slate-600 leading-relaxed mb-10 max-w-lg">
+            <p className="text-[1.05rem] lg:text-[1.12rem] text-slate-500 leading-[1.7] mb-10 max-w-md font-medium">
               The all-in-one platform for monitoring students, identifying risks, and driving early intervention.
             </p>
           </div>
 
-          {/* Features */}
-          <div className="flex flex-wrap items-center gap-4 lg:gap-6 pb-20">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center text-orange-500">
-                <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+          {/* Feature pills */}
+          <div className="flex flex-wrap items-center gap-5 lg:gap-7 pb-16 animate-fade-up-delay-3">
+            {/* Identify */}
+            <div className="flex items-center gap-3 group">
+              <div className="w-9 h-9 rounded-lg bg-orange-100/80 flex items-center justify-center transition-transform group-hover:scale-110">
+                <svg className="w-[18px] h-[18px] text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                </svg>
               </div>
-              <span className="text-sm font-semibold text-slate-700 leading-tight">Identify<br /><span className="font-normal text-slate-500">at-risk students</span></span>
+              <span className="text-[0.82rem] font-bold text-slate-700 leading-tight">
+                Identify<br /><span className="font-medium text-slate-400">at-risk students</span>
+              </span>
             </div>
-            <div className="hidden md:block w-px h-8 bg-slate-200"></div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-500">
-                <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+
+            <div className="hidden md:block w-px h-7 bg-slate-200/80" />
+
+            {/* Collaborate */}
+            <div className="flex items-center gap-3 group">
+              <div className="w-9 h-9 rounded-lg bg-indigo-100/80 flex items-center justify-center transition-transform group-hover:scale-110">
+                <svg className="w-[18px] h-[18px] text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
               </div>
-              <span className="text-sm font-semibold text-slate-700 leading-tight">Collaborate<br /><span className="font-normal text-slate-500">with your team</span></span>
+              <span className="text-[0.82rem] font-bold text-slate-700 leading-tight">
+                Collaborate<br /><span className="font-medium text-slate-400">with your team</span>
+              </span>
             </div>
-            <div className="hidden md:block w-px h-8 bg-slate-200"></div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-500">
-                <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+
+            <div className="hidden md:block w-px h-7 bg-slate-200/80" />
+
+            {/* Save time */}
+            <div className="flex items-center gap-3 group">
+              <div className="w-9 h-9 rounded-lg bg-emerald-100/80 flex items-center justify-center transition-transform group-hover:scale-110">
+                <svg className="w-[18px] h-[18px] text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
-              <span className="text-sm font-semibold text-slate-700 leading-tight">Save time,<br /><span className="font-normal text-slate-500">increase impact</span></span>
+              <span className="text-[0.82rem] font-bold text-slate-700 leading-tight">
+                Save time,<br /><span className="font-medium text-slate-400">increase impact</span>
+              </span>
             </div>
           </div>
         </div>
@@ -134,7 +231,7 @@ export default function RootPage() {
       {/* Right Panel */}
       <div className="w-full md:w-[45%] flex flex-col items-center justify-center p-8 lg:p-16 bg-[#fafafa] relative z-20 shadow-[-20px_0_40px_-10px_rgba(0,0,0,0.05)]">
 
-        <div className="w-full max-w-md font-inter">
+        <div className="w-full max-w-md font-body">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-bold text-slate-800 mb-2">Welcome back</h2>
             <p className="text-slate-500 text-sm">Choose how you'd like to sign in.</p>
@@ -203,7 +300,7 @@ export default function RootPage() {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 

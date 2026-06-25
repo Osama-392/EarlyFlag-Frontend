@@ -29,40 +29,40 @@ export default function PrincipalSettingsPage() {
 
       {/* Page Header */}
       <div className="space-y-2">
-        <h1 className="text-4xl font-bold text-gray-900" style={{ fontFamily: 'Playfair Display' }}>
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white dark:text-white" style={{ fontFamily: 'Playfair Display' }}>
           Settings
         </h1>
-        <p className="text-gray-600">Manage your school and account preferences</p>
+        <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400">Manage your school and account preferences</p>
       </div>
 
       {/* Account Settings */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
+      <div className="bg-white dark:bg-[#151722] dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d]">
           <Shield size={24} className="text-teal-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Account Security</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white dark:text-white">Account Security</h3>
         </div>
 
         <div className="space-y-4">
-          <button className="w-full flex items-center justify-between px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+          <button className="w-full flex items-center justify-between px-4 py-3 border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-lg hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
             <div className="flex items-center gap-3">
-              <Lock size={20} className="text-gray-600" />
-              <span className="text-gray-900 font-medium">Change Password</span>
+              <Lock size={20} className="text-gray-600 dark:text-gray-400 dark:text-gray-400" />
+              <span className="text-gray-900 dark:text-white dark:text-white font-medium">Change Password</span>
             </div>
             <span className="text-gray-400">→</span>
           </button>
 
-          <button className="w-full flex items-center justify-between px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+          <button className="w-full flex items-center justify-between px-4 py-3 border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-lg hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
             <div className="flex items-center gap-3">
-              <Users size={20} className="text-gray-600" />
-              <span className="text-gray-900 font-medium">Two-Factor Authentication</span>
+              <Users size={20} className="text-gray-600 dark:text-gray-400 dark:text-gray-400" />
+              <span className="text-gray-900 dark:text-white dark:text-white font-medium">Two-Factor Authentication</span>
             </div>
             <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">Not Enabled</span>
           </button>
 
-          <button className="w-full flex items-center justify-between px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+          <button className="w-full flex items-center justify-between px-4 py-3 border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-lg hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
             <div className="flex items-center gap-3">
-              <Eye size={20} className="text-gray-600" />
-              <span className="text-gray-900 font-medium">Active Sessions</span>
+              <Eye size={20} className="text-gray-600 dark:text-gray-400 dark:text-gray-400" />
+              <span className="text-gray-900 dark:text-white dark:text-white font-medium">Active Sessions</span>
             </div>
             <span className="text-gray-400">→</span>
           </button>
@@ -70,10 +70,10 @@ export default function PrincipalSettingsPage() {
       </div>
 
       {/* Notification Preferences */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
+      <div className="bg-white dark:bg-[#151722] dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d]">
           <Bell size={24} className="text-teal-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Notification Preferences</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white dark:text-white">Notification Preferences</h3>
         </div>
 
         <div className="space-y-4">
@@ -82,10 +82,10 @@ export default function PrincipalSettingsPage() {
             { key: 'criticalAlerts', label: 'Critical Alerts', desc: 'Immediate alerts for critical student cases' },
             { key: 'weeklyDigest', label: 'Weekly Digest', desc: 'Summary of school-wide metrics' },
           ].map((pref) => (
-            <div key={pref.key} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+            <div key={pref.key} className="flex items-center justify-between p-4 border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-lg hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
               <div>
-                <p className="font-medium text-gray-900">{pref.label}</p>
-                <p className="text-sm text-gray-600">{pref.desc}</p>
+                <p className="font-medium text-gray-900 dark:text-white dark:text-white">{pref.label}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400">{pref.desc}</p>
               </div>
               <button
                 onClick={() => handleToggle(pref.key)}
@@ -94,7 +94,7 @@ export default function PrincipalSettingsPage() {
                 }`}
               >
                 <span
-                  className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                  className={`inline-block h-6 w-6 transform rounded-full bg-white dark:bg-[#151722] dark:bg-[#151722] transition-transform ${
                     settings[pref.key as keyof typeof settings] ? 'translate-x-9' : 'translate-x-1'
                   }`}
                 />
@@ -105,17 +105,17 @@ export default function PrincipalSettingsPage() {
       </div>
 
       {/* Data & Privacy */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
+      <div className="bg-white dark:bg-[#151722] dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d]">
           <Database size={24} className="text-teal-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Data & Privacy</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white dark:text-white">Data & Privacy</h3>
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+          <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-lg">
             <div>
-              <p className="font-medium text-gray-900">Data Collection</p>
-              <p className="text-sm text-gray-600">Allow anonymous usage analytics</p>
+              <p className="font-medium text-gray-900 dark:text-white dark:text-white">Data Collection</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400">Allow anonymous usage analytics</p>
             </div>
             <button
               onClick={() => handleToggle('dataCollection')}
@@ -124,15 +124,15 @@ export default function PrincipalSettingsPage() {
               }`}
             >
               <span
-                className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                className={`inline-block h-6 w-6 transform rounded-full bg-white dark:bg-[#151722] dark:bg-[#151722] transition-transform ${
                   settings.dataCollection ? 'translate-x-9' : 'translate-x-1'
                 }`}
               />
             </button>
           </div>
 
-          <button className="w-full flex items-center justify-between px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
-            <span className="text-gray-900 font-medium">Download My Data</span>
+          <button className="w-full flex items-center justify-between px-4 py-3 border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-lg hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
+            <span className="text-gray-900 dark:text-white dark:text-white font-medium">Download My Data</span>
             <span className="text-gray-400">→</span>
           </button>
 

@@ -77,7 +77,7 @@ export default function AnalyticsPage() {
         <div className="skeleton h-10 w-48" />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="rounded-xl border border-gray-200 p-6">
+            <div key={i} className="rounded-xl border border-gray-200 dark:border-[#262a3d] p-6">
               <div className="skeleton h-4 w-2/3 mb-3" />
               <div className="skeleton h-8 w-1/3 mb-2" />
               <div className="skeleton h-3 w-1/2" />
@@ -86,7 +86,7 @@ export default function AnalyticsPage() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[1, 2].map(i => (
-            <div key={i} className="rounded-xl border border-gray-200 p-6">
+            <div key={i} className="rounded-xl border border-gray-200 dark:border-[#262a3d] p-6">
               <div className="skeleton h-5 w-1/3 mb-4" />
               <div className="skeleton h-48 w-full" />
             </div>
@@ -101,8 +101,8 @@ export default function AnalyticsPage() {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <AlertCircle size={48} className="text-red-400 mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load analytics</h3>
-        <p className="text-gray-500 text-sm mb-6 text-center max-w-md">{error}</p>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to load analytics</h3>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 text-center max-w-md">{error}</p>
         <button
           onClick={() => fetchData()}
           className="px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition font-medium text-sm flex items-center gap-2"
@@ -160,7 +160,7 @@ export default function AnalyticsPage() {
     { label: 'Present', count: current.present_count, color: 'bg-blue-500', lightBg: 'bg-blue-50', textColor: 'text-blue-700' },
     { label: 'Yellow', count: current.yellow_count, color: 'bg-amber-400', lightBg: 'bg-amber-50', textColor: 'text-amber-700' },
     { label: 'Red', count: current.red_count, color: 'bg-red-500', lightBg: 'bg-red-50', textColor: 'text-red-700' },
-    { label: 'Absent', count: current.absent_count, color: 'bg-gray-400', lightBg: 'bg-gray-50', textColor: 'text-gray-700' },
+    { label: 'Absent', count: current.absent_count, color: 'bg-gray-400', lightBg: 'bg-gray-50 dark:bg-[#1b1e2c]', textColor: 'text-gray-700 dark:text-gray-300' },
   ];
   const maxDistribution = Math.max(...distributionData.map(d => d.count), 1);
 
@@ -230,28 +230,28 @@ export default function AnalyticsPage() {
             Signal Health Summary
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white/10 rounded-lg p-4">
+            <div className="bg-white/10 dark:bg-black/20 rounded-lg p-4">
               <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Engagement Rate</p>
               <p className="text-2xl font-bold font-sora mt-1">
                 {pct(current.super_green_count + current.present_count, current.total_signals)}%
               </p>
               <p className="text-xs text-slate-400 mt-1">Green + Present</p>
             </div>
-            <div className="bg-white/10 rounded-lg p-4">
+            <div className="bg-white/10 dark:bg-black/20 rounded-lg p-4">
               <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Concern Rate</p>
               <p className="text-2xl font-bold font-sora mt-1">
                 {pct(current.yellow_count + current.red_count, current.total_signals)}%
               </p>
               <p className="text-xs text-slate-400 mt-1">Yellow + Red</p>
             </div>
-            <div className="bg-white/10 rounded-lg p-4">
+            <div className="bg-white/10 dark:bg-black/20 rounded-lg p-4">
               <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Absence Rate</p>
               <p className="text-2xl font-bold font-sora mt-1">
                 {pct(current.absent_count, current.total_signals)}%
               </p>
               <p className="text-xs text-slate-400 mt-1">Absent signals</p>
             </div>
-            <div className="bg-white/10 rounded-lg p-4">
+            <div className="bg-white/10 dark:bg-black/20 rounded-lg p-4">
               <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Active Alerts</p>
               <p className="text-2xl font-bold font-sora mt-1">{red_urgent.length}</p>
               <p className="text-xs text-slate-400 mt-1">Unresolved red</p>
@@ -263,22 +263,22 @@ export default function AnalyticsPage() {
       {/* ─── Page Header ───────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 font-sora">Analytics</h1>
-          <p className="text-gray-500 text-sm mt-0.5">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white font-sora">Analytics</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
             Signal trends and insights across your classes
           </p>
         </div>
         <div className="flex items-center gap-3">
           {/* Time Window Switcher */}
-          <div className="inline-flex bg-gray-100 rounded-lg p-1">
+          <div className="inline-flex bg-gray-100 dark:bg-[#1b1e2c] rounded-lg p-1">
             {(Object.keys(WINDOW_LABELS) as TimeWindow[]).map(w => (
               <button
                 key={w}
                 onClick={() => setActiveWindow(w)}
                 className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                   activeWindow === w
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-white dark:bg-[#151722] text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300'
                 }`}
               >
                 {WINDOW_LABELS[w]}
@@ -288,10 +288,10 @@ export default function AnalyticsPage() {
           <button
             onClick={() => fetchData(true)}
             disabled={refreshing}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            className="p-2 hover:bg-gray-100 dark:bg-[#1b1e2c] rounded-lg transition-colors disabled:opacity-50"
             title="Refresh data"
           >
-            <RefreshCw size={18} className={`text-gray-500 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw size={18} className={`text-gray-500 dark:text-gray-400 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
@@ -299,14 +299,14 @@ export default function AnalyticsPage() {
       {/* ─── Summary Cards ─────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {summaryCards.map((card, idx) => (
-          <div key={idx} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+          <div key={idx} className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] p-5 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-3">
               <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${card.color} flex items-center justify-center text-white`}>
                 {card.icon}
               </div>
             </div>
-            <p className="text-sm text-gray-500 font-medium">{card.label}</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1 font-sora">{card.value}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{card.label}</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1 font-sora">{card.value}</p>
             {current.total_signals > 0 && card.label !== 'Total Signals' && (
               <p className="text-xs text-gray-400 mt-1">
                 {pct(card.value, current.total_signals)}% of total
@@ -318,31 +318,31 @@ export default function AnalyticsPage() {
 
       {/* ─── Quick Overview Chips ──────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200 rounded-xl p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
-            <Users className="w-5 h-5 text-teal-700" />
+        <div className="bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 border border-teal-200 dark:border-teal-900/50 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center">
+            <Users className="w-5 h-5 text-teal-700 dark:text-teal-400" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900 font-sora">{totalStudents}</p>
-            <p className="text-xs text-gray-500 font-medium">Active Students</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white font-sora">{totalStudents}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Active Students</p>
           </div>
         </div>
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-            <BarChart3 className="w-5 h-5 text-blue-700" />
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-900/50 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+            <BarChart3 className="w-5 h-5 text-blue-700 dark:text-blue-400" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900 font-sora">{totalClasses}</p>
-            <p className="text-xs text-gray-500 font-medium">Classes Assigned</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white font-sora">{totalClasses}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Classes Assigned</p>
           </div>
         </div>
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-            <Calendar className="w-5 h-5 text-green-700" />
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-900/50 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+            <Calendar className="w-5 h-5 text-green-700 dark:text-green-400" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900 font-sora">{loggedToday}/{totalClasses}</p>
-            <p className="text-xs text-gray-500 font-medium">Logged Today</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white font-sora">{loggedToday}/{totalClasses}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Logged Today</p>
           </div>
         </div>
       </div>
@@ -351,9 +351,9 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Signal Distribution (Horizontal Bars) */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-gray-100">
-            <h3 className="text-base font-bold text-gray-900 font-sora flex items-center gap-2">
+        <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-gray-100 dark:border-[#262a3d]">
+            <h3 className="text-base font-bold text-gray-900 dark:text-white font-sora flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-gray-400" />
               Signal Distribution
             </h3>
@@ -363,13 +363,13 @@ export default function AnalyticsPage() {
             {distributionData.map((d, idx) => (
               <div key={idx} className="group">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-sm font-medium text-gray-700">{d.label}</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{d.label}</span>
                   <div className="flex items-center gap-2">
                     <span className={`text-sm font-bold ${d.textColor}`}>{d.count}</span>
                     <span className="text-xs text-gray-400">({pct(d.count, current.total_signals)}%)</span>
                   </div>
                 </div>
-                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                <div className="w-full bg-gray-100 dark:bg-[#1b1e2c] rounded-full h-3 overflow-hidden">
                   <div
                     className={`${d.color} h-full rounded-full transition-all duration-700 ease-out`}
                     style={{ width: `${(d.count / maxDistribution) * 100}%`, minWidth: d.count > 0 ? '8px' : '0' }}
@@ -387,9 +387,9 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Category Breakdown (Academic vs Behavioral) */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-gray-100">
-            <h3 className="text-base font-bold text-gray-900 font-sora flex items-center gap-2">
+        <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-gray-100 dark:border-[#262a3d]">
+            <h3 className="text-base font-bold text-gray-900 dark:text-white font-sora flex items-center gap-2">
               <Activity className="w-4 h-4 text-gray-400" />
               Category Breakdown
             </h3>
@@ -399,12 +399,12 @@ export default function AnalyticsPage() {
             {categoryData.map((d, idx) => (
               <div key={idx}>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                     <span>{d.icon}</span> {d.label}
                   </span>
-                  <span className="text-sm font-bold text-gray-900">{d.count}</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">{d.count}</span>
                 </div>
-                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                <div className="w-full bg-gray-100 dark:bg-[#1b1e2c] rounded-full h-3 overflow-hidden">
                   <div
                     className={`${d.color} h-full rounded-full transition-all duration-700 ease-out`}
                     style={{ width: `${(d.count / maxCategory) * 100}%`, minWidth: d.count > 0 ? '8px' : '0' }}
@@ -423,9 +423,9 @@ export default function AnalyticsPage() {
       </div>
 
       {/* ─── Trend Comparison Table ────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-gray-100">
-          <h3 className="text-base font-bold text-gray-900 font-sora flex items-center gap-2">
+      <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-gray-100 dark:border-[#262a3d]">
+          <h3 className="text-base font-bold text-gray-900 dark:text-white font-sora flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-gray-400" />
             Trend Comparison
           </h3>
@@ -434,12 +434,12 @@ export default function AnalyticsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50/80">
-                <th className="px-5 py-3.5 text-left font-semibold text-gray-600">Metric</th>
-                <th className="px-5 py-3.5 text-center font-semibold text-gray-600">Today</th>
-                <th className="px-5 py-3.5 text-center font-semibold text-gray-600">7 Days</th>
-                <th className="px-5 py-3.5 text-center font-semibold text-gray-600">30 Days</th>
-                <th className="px-5 py-3.5 text-center font-semibold text-gray-600">Trend (7d vs 30d avg)</th>
+              <tr className="bg-gray-50 dark:bg-[#1b1e2c]/80">
+                <th className="px-5 py-3.5 text-left font-semibold text-gray-600 dark:text-gray-400">Metric</th>
+                <th className="px-5 py-3.5 text-center font-semibold text-gray-600 dark:text-gray-400">Today</th>
+                <th className="px-5 py-3.5 text-center font-semibold text-gray-600 dark:text-gray-400">7 Days</th>
+                <th className="px-5 py-3.5 text-center font-semibold text-gray-600 dark:text-gray-400">30 Days</th>
+                <th className="px-5 py-3.5 text-center font-semibold text-gray-600 dark:text-gray-400">Trend (7d vs 30d avg)</th>
               </tr>
             </thead>
             <tbody>
@@ -454,11 +454,11 @@ export default function AnalyticsPage() {
                 const trendLabel = trendDir === 'up' ? 'Above avg' : trendDir === 'down' ? 'Below avg' : 'On par';
 
                 return (
-                  <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 transition">
-                    <td className="px-5 py-3.5 font-medium text-gray-900">{metric.label}</td>
-                    <td className="px-5 py-3.5 text-center text-gray-600">{metric.today}</td>
-                    <td className="px-5 py-3.5 text-center font-bold text-gray-900">{metric.week}</td>
-                    <td className="px-5 py-3.5 text-center text-gray-600">{metric.month}</td>
+                  <tr key={idx} className="border-b border-gray-100 dark:border-[#262a3d] hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
+                    <td className="px-5 py-3.5 font-medium text-gray-900 dark:text-white">{metric.label}</td>
+                    <td className="px-5 py-3.5 text-center text-gray-600 dark:text-gray-400">{metric.today}</td>
+                    <td className="px-5 py-3.5 text-center font-bold text-gray-900 dark:text-white">{metric.week}</td>
+                    <td className="px-5 py-3.5 text-center text-gray-600 dark:text-gray-400">{metric.month}</td>
                     <td className="px-5 py-3.5 text-center">
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold ${trendClass}`}>
                         {trendDir === 'up' && <ArrowUpRight className="w-3.5 h-3.5" />}
@@ -479,17 +479,17 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Yellow Watch List Summary */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-base font-bold text-gray-900 font-sora">🟡 Yellow Watch List</h3>
+        <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-gray-100 dark:border-[#262a3d] flex items-center justify-between">
+            <h3 className="text-base font-bold text-gray-900 dark:text-white font-sora">🟡 Yellow Watch List</h3>
             <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-full">{yellow_watch_list.length}</span>
           </div>
           {yellow_watch_list.length > 0 ? (
             <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
               {yellow_watch_list.slice(0, 8).map(row => (
-                <div key={row.student_id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50 transition">
+                <div key={row.student_id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
                   <div>
-                    <p className="font-medium text-gray-900 text-sm">{row.first_name} {row.last_name}</p>
+                    <p className="font-medium text-gray-900 dark:text-white text-sm">{row.first_name} {row.last_name}</p>
                     <p className="text-xs text-gray-400">Gr {row.grade_level} — Acd: {row.yellow_academic_count} / Beh: {row.yellow_behavioral_count}</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -515,9 +515,9 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Class Logging Completion */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-base font-bold text-gray-900 font-sora">📋 Today&apos;s Logging Status</h3>
+        <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-gray-100 dark:border-[#262a3d] flex items-center justify-between">
+            <h3 className="text-base font-bold text-gray-900 dark:text-white font-sora">📋 Today&apos;s Logging Status</h3>
             <span className={`text-xs font-bold px-2 py-1 rounded-full ${
               loggedToday === totalClasses
                 ? 'text-green-700 bg-green-100'
@@ -527,9 +527,9 @@ export default function AnalyticsPage() {
           {classes.length > 0 ? (
             <div className="divide-y divide-gray-100">
               {classes.map(c => (
-                <div key={c.class_id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50 transition">
+                <div key={c.class_id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
                   <div>
-                    <p className="font-medium text-gray-900 text-sm">{c.class_name}</p>
+                    <p className="font-medium text-gray-900 dark:text-white text-sm">{c.class_name}</p>
                     <p className="text-xs text-gray-400">{c.student_count_active} students</p>
                   </div>
                   {c.logged_today ? (
@@ -537,7 +537,7 @@ export default function AnalyticsPage() {
                       ✓ Logged
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-400 bg-gray-50 px-2 py-1 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-400 bg-gray-50 dark:bg-[#1b1e2c] px-2 py-1 rounded-full">
                       Pending
                     </span>
                   )}
