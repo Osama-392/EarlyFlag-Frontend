@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/app/providers';
 import EmailCounselorModal from '@/components/EmailCounselorModal';
 import ParentNotifyModal from '@/components/ParentNotifyModal';
-import DailyRecommendationBanner from '@/components/DailyRecommendationBanner';
+import GoodMorningBanner from '@/components/GoodMorningBanner';
 import {
   getTeacherDashboard,
   TeacherDashboardResponse,
@@ -223,8 +223,13 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Daily Recommendation Banner */}
-      <DailyRecommendationBanner name={user?.first_name || 'Teacher'} />
+      <GoodMorningBanner 
+        name={user?.first_name || 'Teacher'}
+        metric1={<>You have <span className="text-orange-600 dark:text-orange-500 font-bold">{dashboardData?.yellow_watch_list?.length || 0}</span> students on your watch list</>}
+        metric2={<><span className="text-emerald-600 dark:text-emerald-500 font-bold">{dashboardData?.super_green_highlights?.length || 0}</span> students showing exceptional growth</>}
+        metric3={<><span className="text-orange-600 dark:text-orange-500 font-bold">{dashboardData?.classes?.filter((c: any) => !c.logged_today).length || 0}</span> classes that still need logging today</>}
+        recommendation={dashboardData?.recommendations?.[0]}
+      />
 
       {/* Monday Brief */}
       {monday_brief?.active && (
