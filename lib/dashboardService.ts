@@ -32,6 +32,18 @@ export interface UnfinishedLogRow {
   student_count: number;
 }
 
+export interface StudentRecognitionRow {
+  student_id: string;
+  student_first_name: string;
+  student_last_name: string;
+  class_name: string;
+  period: string;
+  signal_date: string;
+  reason_code?: string;
+  notes?: string;
+  total_recognitions: number;
+}
+
 export interface YellowWatchListRow {
   student_id: string;
   first_name: string;
@@ -130,6 +142,18 @@ export const dismissUnfinishedAlert = async (sessionId: string): Promise<void> =
     await api.post(`/api/v1/teacher/morning-brief/unfinished-alerts/${sessionId}/dismiss`);
   } catch (error: any) {
     console.error(`Failed to dismiss unfinished alert ${sessionId}:`, error?.response?.data);
+    throw error;
+  }
+};
+
+export const getTeacherRecognitions = async (limit: number = 50): Promise<StudentRecognitionRow[]> => {
+  try {
+    const response = await api.get<StudentRecognitionRow[]>('/api/v1/teacher/recognitions', {
+      params: { limit },
+    });
+    return response.data || [];
+  } catch (error: any) {
+    console.error('Failed to fetch teacher recognitions:', error?.response?.data);
     throw error;
   }
 };

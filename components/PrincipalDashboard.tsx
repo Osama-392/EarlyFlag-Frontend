@@ -14,7 +14,7 @@ import {
 } from '@/lib/adminDashboardService';
 import { getPendingTeachers } from '@/lib/adminService';
 import { useAuth } from '@/app/providers';
-import DailyRecommendationBanner from '@/components/DailyRecommendationBanner';
+import GoodMorningBanner from '@/components/GoodMorningBanner';
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -142,8 +142,14 @@ export default function PrincipalDashboard() {
         .fade-up:nth-child(5){animation-delay:.25s} .fade-up:nth-child(6){animation-delay:.3s}
       `}</style>
 
-      {/* Daily Recommendation Banner */}
-      <DailyRecommendationBanner name={user?.first_name || 'Admin'} />
+      {/* Good Morning Banner */}
+      <GoodMorningBanner 
+        name={user?.first_name || 'Admin'}
+        metric1={<>You have <span className="text-orange-600 dark:text-orange-500 font-bold">{dashboard?.urgent_alerts?.length || 0}</span> urgent alerts needing attention</>}
+        metric2={<><span className="text-emerald-600 dark:text-emerald-500 font-bold">{dashboard?.kpis?.super_green_total || 0}</span> students showing exceptional growth school-wide</>}
+        metric3={<><span className="text-orange-600 dark:text-orange-500 font-bold">{dashboard?.pending_teacher_flags?.length || 0}</span> teacher observation flag{dashboard?.pending_teacher_flags?.length !== 1 ? 's' : ''} to review</>}
+        recommendation={dashboard?.recommendations?.[0]}
+      />
 
       {/* Pending Teachers Approval Notification Bar */}
       {showPendingAlert && pendingCount > 0 && (
