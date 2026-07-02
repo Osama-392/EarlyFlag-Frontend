@@ -17,10 +17,10 @@ export default function RootPage() {
     if (!mounted) return;
 
     if (user) {
-      if (user.role === 'admin') {
+      const normalizedRole = user.role ? user.role.trim().toLowerCase() : null;
+      const isAdmin = normalizedRole === 'admin' || normalizedRole === 'principal';
+      if (isAdmin) {
         router.push('/principal-dashboard');
-      } else if (user.role === 'teacher') {
-        router.push('/dashboard');
       } else {
         router.push('/dashboard');
       }

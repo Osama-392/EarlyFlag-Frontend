@@ -40,7 +40,7 @@ export default function TeacherLeaderboardPage() {
           </button>
           <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
             <Trophy className="text-yellow-500" size={28} />
-            Teacher Leaderboard
+            Most Supergreen This Week
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Top performing teachers ranked by positive student outcomes this week.

@@ -49,10 +49,11 @@ export default function Dashboard() {
   const [unfinishedAlerts, setUnfinishedAlerts] = useState<UnfinishedLogRow[]>([]);
   const { user } = useAuth();
 
-  const loadDashboard = useCallback(async (isRefresh = false) => {
+  const loadDashboard = useCallback(async (refreshMode: boolean | 'silent' = false) => {
     try {
-      if (isRefresh) setRefreshing(true);
-      else setLoading(true);
+      if (refreshMode === true) setRefreshing(true);
+      else if (!refreshMode) setLoading(true);
+      // If 'silent', we don't set any loading state to keep the UI uninterrupted
       setError(null);
 
       const [data, alerts] = await Promise.all([
@@ -80,6 +81,18 @@ export default function Dashboard() {
       loadDashboard();
     }
   }, [authLoading, loadDashboard]);
+
+  // Listen for refresh events triggered by QuickLog submission
+  useEffect(() => {
+    const handleRefresh = () => {
+      loadDashboard('silent');
+    };
+
+    window.addEventListener('dashboard-refresh', handleRefresh);
+    return () => {
+      window.removeEventListener('dashboard-refresh', handleRefresh);
+    };
+  }, [loadDashboard]);
 
   const handleDismissAlert = async (sessionId: string) => {
     try {
@@ -176,7 +189,6 @@ export default function Dashboard() {
     red_urgent,
     super_green_highlights,
     classes,
-    monday_brief,
     recommendations
   } = dashboardData;
 
@@ -230,33 +242,6 @@ export default function Dashboard() {
         metric3={<><span className="text-orange-600 dark:text-orange-500 font-bold">{dashboardData?.classes?.filter((c: any) => !c.logged_today).length || 0}</span> classes that still need logging today</>}
         recommendation={dashboardData?.recommendations?.[0]}
       />
-
-      {/* Monday Brief */}
-      {monday_brief?.active && (
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-6 text-white shadow-md relative overflow-hidden">
-          <div className="absolute right-0 top-0 opacity-10">
-            <AlertCircle size={150} />
-          </div>
-          <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'Sora' }}>Monday Morning Brief</h2>
-          <p className="text-blue-100 text-sm mb-4">Summary for {new Date(monday_brief.prior_week_start).toLocaleDateString()} – {new Date(monday_brief.prior_week_end).toLocaleDateString()}</p>
-          <div className="flex gap-4">
-            <div className="bg-white/20 rounded-lg p-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-blue-100">Unresolved Criticals</p>
-              <p className="text-2xl font-bold">{monday_brief.prior_week_unresolved_critical}</p>
-            </div>
-            {monday_brief.top_students && monday_brief.top_students.length > 0 && (
-              <div className="bg-white/20 rounded-lg p-3 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-wider text-blue-100 mb-1">Top Needs Support</p>
-                <div className="flex gap-2">
-                  {monday_brief.top_students.map(ts => (
-                     <span key={ts.student_id} className="bg-white/10 px-2 py-1 rounded text-sm font-medium">{ts.first_name} {ts.last_name} ({ts.total_signals})</span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ── End-of-Day QuickLog Reminder ── */}
       {isEndOfDay && (
@@ -380,7 +365,7 @@ export default function Dashboard() {
               <span className="text-xs font-bold text-amber-700 dark:text-amber-500 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-full">{yellow_watch_list.length}</span>
             </div>
             {yellow_watch_list.length > 0 ? (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50/50 dark:bg-[#151722]/50">
                     <tr>
@@ -431,7 +416,7 @@ export default function Dashboard() {
               )}
             </div>
             {classes.length > 0 ? (
-              <div className="divide-y divide-gray-100 dark:divide-[#2e3240]">
+              <div className="divide-y divide-gray-100 dark:divide-[#2e3240] max-h-[300px] overflow-y-auto">
                 {[...classes]
                   .sort((a, b) => {
                     // Float unlogged classes to the top
