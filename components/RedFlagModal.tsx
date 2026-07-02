@@ -68,7 +68,7 @@ export default function RedFlagModal({ isOpen, onClose }: RedFlagModalProps) {
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`px-4 py-2.5 rounded-lg font-semibold text-sm transition-all border ${
                     selectedCategory === cat.id
-                      ? 'bg-gray-200 border-gray-400 text-gray-900'
+                      ? 'bg-rose-100 border-rose-500 text-rose-900 shadow-sm ring-1 ring-rose-500'
                       : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >

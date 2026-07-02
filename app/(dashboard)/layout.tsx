@@ -3,13 +3,32 @@
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { useAuth } from "@/app/providers";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { loading } = useAuth();
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    const normalizedRole = user?.role ? user.role.trim().toLowerCase() : null;
+    const isAdmin = normalizedRole === 'admin' || normalizedRole === 'principal';
+
+    if (!loading && (!user || isAdmin)) {
+      console.log('⛔ Teacher access denied - redirecting');
+      if (isAdmin) {
+        // If an admin tries to visit teacher dashboard, redirect them to principal dashboard
+        router.push('/principal-dashboard');
+      } else {
+        // If not logged in, redirect to teacher auth
+        router.push('/auth');
+      }
+    }
+  }, [user, loading, router]);
 
   if (loading) {
     return (
@@ -17,6 +36,12 @@ export default function DashboardLayout({
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
+  }
+
+  const normalizedRole = user?.role ? user.role.trim().toLowerCase() : null;
+  const isAdmin = normalizedRole === 'admin' || normalizedRole === 'principal';
+  if (!user || isAdmin) {
+    return null;
   }
 
   return (

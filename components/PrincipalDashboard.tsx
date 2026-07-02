@@ -6,7 +6,9 @@ import Link from 'next/link';
 import {
   BarChart3, TrendingUp, AlertTriangle, CheckCircle, Zap, Shield,
   AlertCircle, RefreshCw, Sparkles, ChevronRight, Clock, X, FileText,
-  Users, Activity, User, Star, ClipboardList
+  Users, Activity, User, Star, ClipboardList, Building2, Palette, BookOpen,
+  Landmark, Calculator, FlaskConical, ArrowUp, ArrowDown, Minus, Info, Globe,
+  BookMarked, Languages, Music, Code
 } from 'lucide-react';
 import {
   getAdminDashboard, getAdminHeatmap,
@@ -15,6 +17,20 @@ import {
 import { getPendingTeachers } from '@/lib/adminService';
 import { useAuth } from '@/app/providers';
 import GoodMorningBanner from '@/components/GoodMorningBanner';
+
+// ─── Predefined Subjects (from Create Class dropdown) ─────────────
+const PREDEFINED_SUBJECTS = [
+  'Math',
+  'Language arts',
+  'Science',
+  'Social studies',
+  'Religion',
+  'Spanish',
+  'PE',
+  'Art',
+  'Music',
+  'Technology',
+];
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -42,11 +58,46 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+const getDepartmentBadge = (name: string) => {
+  const lower = name.toLowerCase().trim();
+  if (lower.includes('art')) {
+    return { icon: <Palette className="w-5 h-5 text-[#fb923c]" />, bg: 'bg-[#ffedd5] dark:bg-orange-950/40' };
+  }
+  if (lower.includes('english') || lower.includes('lit') || lower.includes('reading') || lower.includes('lang') || lower.includes('writing')) {
+    return { icon: <BookOpen className="w-5 h-5 text-[#3b82f6]" />, bg: 'bg-[#eff6ff] dark:bg-blue-950/40' };
+  }
+  if (lower.includes('general') || lower.includes('hist') || lower.includes('social') || lower.includes('human') || lower.includes('civic') || lower.includes('geog')) {
+    return { icon: <Globe className="w-5 h-5 text-[#f97316]" />, bg: 'bg-[#ffedd5] dark:bg-orange-950/40' };
+  }
+  if (lower.includes('math') || lower.includes('alg') || lower.includes('calc') || lower.includes('geom')) {
+    return { icon: <Calculator className="w-5 h-5 text-[#10b981]" />, bg: 'bg-[#ecfdf5] dark:bg-emerald-950/40' };
+  }
+  if (lower.includes('scien') || lower.includes('bio') || lower.includes('chem') || lower.includes('phys') && !lower.includes('pe')) {
+    return { icon: <FlaskConical className="w-5 h-5 text-[#a855f7]" />, bg: 'bg-[#faf5ff] dark:bg-purple-950/40' };
+  }
+  if (lower.includes('relig') || lower.includes('theo') || lower.includes('bib') || lower.includes('faith')) {
+    return { icon: <BookMarked className="w-5 h-5 text-[#f43f5e]" />, bg: 'bg-[#ffe4e6] dark:bg-rose-950/40' };
+  }
+  if (lower.includes('span') || lower.includes('french') || lower.includes('latin') || lower.includes('foreign')) {
+    return { icon: <Languages className="w-5 h-5 text-[#0d9488]" />, bg: 'bg-[#f0fdf4] dark:bg-teal-950/40' };
+  }
+  if (lower === 'pe' || lower.includes('physical') || lower.includes('gym') || lower.includes('health') || lower.includes('sport')) {
+    return { icon: <Activity className="w-5 h-5 text-[#6366f1]" />, bg: 'bg-[#e0e7ff] dark:bg-indigo-950/40' };
+  }
+  if (lower.includes('music') || lower.includes('band') || lower.includes('choir') || lower.includes('orch')) {
+    return { icon: <Music className="w-5 h-5 text-[#ef4444]" />, bg: 'bg-[#fef2f2] dark:bg-red-950/40' };
+  }
+  if (lower.includes('tech') || lower.includes('comp') || lower.includes('code') || lower.includes('robot')) {
+    return { icon: <Code className="w-5 h-5 text-[#8b5cf6]" />, bg: 'bg-[#ede9fe] dark:bg-violet-950/40' };
+  }
+  return { icon: <Building2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />, bg: 'bg-gray-100 dark:bg-[#1b1e2c]' };
+};
+
 // ─── Component ────────────────────────────────────────────────────
 
 export default function PrincipalDashboard() {
   const router = useRouter();
-  const [range, setRange] = useState<'1d' | '7d' | '30d'>('7d');
+  const [range, setRange] = useState<'1d' | '7d' | '30d'>('1d');
   const [activeTab, setActiveTab] = useState<string>('All Subjects');
   const [showAllClasses, setShowAllClasses] = useState(false);
   const [dashboard, setDashboard] = useState<AdminDashboardResponse | null>(null);
@@ -92,13 +143,26 @@ export default function PrincipalDashboard() {
   const allTiles = heatmap?.grade_buckets?.flatMap(b => b.tiles) || [];
   const totalClasses = allTiles.length;
 
-  // Extract unique subjects from backend data dynamically
-  const uniqueSubjects = Array.from(new Set(allTiles.map(t => t.subject).filter(Boolean))) as string[];
-  const dynamicTabs = ['All Subjects', ...uniqueSubjects.sort()];
+  // Only display the predefined subjects created in the Create Class dropdown
+  const dynamicTabs = ['All Subjects', ...PREDEFINED_SUBJECTS];
 
   const filteredTiles = activeTab === 'All Subjects'
     ? allTiles
-    : allTiles.filter(t => t.subject === activeTab);
+    : allTiles.filter(t => {
+        if (!t.subject) return false;
+        if (t.subject === activeTab) return true;
+        const subLower = t.subject.toLowerCase().trim();
+        const tabLower = activeTab.toLowerCase().trim();
+        if (tabLower === 'language arts' && (subLower.includes('english') || subLower.includes('reading') || subLower.includes('lit') || subLower.includes('lang') || subLower.includes('writing'))) return true;
+        if (tabLower === 'social studies' && (subLower.includes('social') || subLower.includes('history') || subLower.includes('human') || subLower.includes('geog') || subLower.includes('civic') || subLower.includes('general'))) return true;
+        if (tabLower === 'pe' && (subLower.includes('pe') || subLower.includes('physical') || subLower.includes('gym') || subLower.includes('health') || subLower.includes('sport'))) return true;
+        if (tabLower === 'technology' && (subLower.includes('tech') || subLower.includes('comp') || subLower.includes('code') || subLower.includes('robot'))) return true;
+        if (tabLower === 'religion' && (subLower.includes('relig') || subLower.includes('theo') || subLower.includes('bib') || subLower.includes('faith'))) return true;
+        if (tabLower === 'spanish' && (subLower.includes('span') || subLower.includes('lang') || subLower.includes('french') || subLower.includes('latin') || subLower.includes('foreign'))) return true;
+        if (tabLower === 'math' && (subLower.includes('math') || subLower.includes('alg') || subLower.includes('calc') || subLower.includes('geom'))) return true;
+        if (tabLower === 'science' && (subLower.includes('scien') || subLower.includes('bio') || subLower.includes('chem') || subLower.includes('phys') && !subLower.includes('pe'))) return true;
+        return subLower === tabLower;
+      });
 
   const displayedTiles = showAllClasses ? filteredTiles : filteredTiles.slice(0, 9);
 
@@ -267,13 +331,13 @@ export default function PrincipalDashboard() {
       )}
 
       {/* ── School Heat Map & Department Overview ───────────────── */}
-      <div className="grid lg:grid-cols-3 gap-6 mb-8">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+        <div className="lg:col-span-7">
           {heatmap && allTiles.length > 0 && (
             <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm p-6 space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Sora' }}>Classroom Heat Map</h2>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Sora' }}>School Wide Heat Map</h2>
                   <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{totalClasses} classes</span>
                 </div>
                 <div className="hidden md:flex items-center gap-3 text-xs">
@@ -361,65 +425,103 @@ export default function PrincipalDashboard() {
           )}
         </div>
 
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-5">
           {/* ── Department Overview ────────────────────────────────── */}
           {dashboard && dashboard.departments && dashboard.departments.length > 0 && (() => {
-            // Pre-compute risk scores for all departments to find the max for bar scaling
             const deptData = dashboard.departments.map(dept => {
               const totalFlags = dept.red_count + dept.yellow_count + dept.super_green_count;
               const riskScore = totalFlags > 0
                 ? Math.round(((dept.red_count + dept.yellow_count) / totalFlags) * 100)
                 : 0;
 
-              const maxCount = Math.max(dept.red_count, dept.yellow_count, dept.super_green_count);
-              let barColor = 'bg-gray-300';
-              if (maxCount > 0) {
-                if (maxCount === dept.red_count) barColor = 'bg-red-500';
-                else if (maxCount === dept.yellow_count) barColor = 'bg-yellow-400';
-                else if (maxCount === dept.super_green_count) barColor = 'bg-green-500';
+              let barColor = 'bg-[#facc15]';
+              if (riskScore === 0) {
+                barColor = 'bg-gray-200 dark:bg-gray-700';
+              } else if (riskScore <= 50 || (dept.trend_value !== null && dept.trend_value < 0 && riskScore < 60)) {
+                barColor = 'bg-[#10b981]';
+              } else if (riskScore >= 80) {
+                barColor = 'bg-[#ef4444]';
               }
 
-              return { ...dept, riskScore, barColor };
+              const badge = getDepartmentBadge(dept.department_name);
+              return { ...dept, riskScore, barColor, badge };
             });
-            const maxRisk = Math.max(...deptData.map(d => d.riskScore), 1);
 
             return (
-              <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm p-6">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-5" style={{ fontFamily: 'Sora' }}>Department Overview</h3>
+              <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm p-6 md:p-8">
+                {/* Header Section */}
+                <div className="flex items-center gap-3.5 mb-8">
+                  <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/40 text-[#2563eb] flex items-center justify-center shrink-0">
+                    <Building2 className="w-6 h-6 stroke-[2]" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Sora, sans-serif' }}>Department Overview</h3>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Monitor overall risk across departments.</p>
+                  </div>
+                </div>
 
-                <div className="overflow-hidden">
+                {/* Table */}
+                <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead>
-                      <tr className="text-gray-400 text-[11px] border-b border-gray-100 dark:border-[#262a3d] uppercase tracking-wider">
-                        <th className="font-bold pb-3" style={{ width: '30%' }}>Department</th>
-                        <th className="font-bold pb-3" style={{ width: '40%' }}>Risk Score</th>
-                        <th className="font-bold pb-3 text-right" style={{ width: '30%' }}>Trend (Vs Last Week)</th>
+                      <tr className="text-gray-400 dark:text-gray-400 text-[11px] font-bold border-b border-gray-100 dark:border-[#262a3d] uppercase tracking-wider">
+                        <th className="pb-4 pl-1" style={{ width: '28%' }}>DEPARTMENT</th>
+                        <th className="pb-4" style={{ width: '34%' }}>RISK SCORE</th>
+                        <th className="pb-4 text-right pr-1" style={{ width: '38%' }}>
+                          <span className="inline-flex items-center gap-1 justify-end">
+                            STATUS (VS 30D) <Info className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          </span>
+                        </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-gray-50 dark:divide-[#262a3d]/60">
                       {deptData.map(dept => {
-                        let trendColor = 'text-yellow-500';
-                        let trendIcon = '→';
-                        let trendText = '0%';
+                        let badgeIcon = <Minus className="w-4 h-4 stroke-[2.5]" />;
+                        let statusColorClass = "text-gray-700 dark:text-gray-300";
+                        let subTextColorClass = "text-gray-500 dark:text-gray-400";
+                        let statusBgClass = "bg-gray-100 dark:bg-[#1b1e2c] text-gray-500 dark:text-gray-400";
+                        let titleText = "No change";
+                        let subText = "vs last 30d";
+
                         if (dept.trend_value && dept.trend_value > 0) {
-                          trendColor = 'text-red-500';
-                          trendIcon = '↑';
-                          trendText = `${dept.trend_value}%`;
+                          badgeIcon = <ArrowUp className="w-4 h-4 stroke-[2.5]" />;
+                          statusColorClass = "text-[#ef4444]";
+                          subTextColorClass = "text-[#ef4444]";
+                          statusBgClass = "bg-[#fef2f2] dark:bg-red-950/40 text-[#ef4444]";
+                          titleText = `Increasing (+${dept.trend_value}%)`;
+                          subText = "vs last 30d";
                         } else if (dept.trend_value && dept.trend_value < 0) {
-                          trendColor = 'text-green-500';
-                          trendIcon = '↓';
-                          trendText = `${Math.abs(dept.trend_value)}%`;
+                          badgeIcon = <ArrowDown className="w-4 h-4 stroke-[2.5]" />;
+                          statusColorClass = "text-[#10b981]";
+                          subTextColorClass = "text-[#10b981]";
+                          statusBgClass = "bg-[#ecfdf5] dark:bg-emerald-950/40 text-[#10b981]";
+                          titleText = `Improving (-${Math.abs(dept.trend_value)}%)`;
+                          subText = "vs last 30d";
                         }
 
-                        const barWidth = maxRisk > 0 ? Math.max((dept.riskScore / maxRisk) * 100, 4) : 4;
+                        const barWidth = Math.max(dept.riskScore, 3);
 
                         return (
-                          <tr key={dept.department_name} className="hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c]/50 transition-colors">
-                            <td className="py-3 font-bold text-gray-800 dark:text-gray-200">{dept.department_name}</td>
-                            <td className="py-3">
+                          <tr key={dept.department_name} className="hover:bg-gray-50/80 dark:hover:bg-[#1b1e2c]/50 transition-colors">
+                            {/* Column 1: Department */}
+                            <td className="py-3.5 pl-1">
                               <div className="flex items-center gap-2.5">
-                                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 w-8 tabular-nums">{dept.riskScore}%</span>
-                                <div className="flex-1 h-2.5 bg-gray-100 dark:bg-[#1b1e2c] rounded-full overflow-hidden">
+                                <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${dept.badge.bg}`}>
+                                  {dept.badge.icon}
+                                </div>
+                                <span className="font-bold text-sm md:text-[15px] text-[#0f172a] dark:text-gray-100 truncate max-w-[100px] sm:max-w-[140px]" style={{ fontFamily: 'Sora, sans-serif' }} title={dept.department_name}>
+                                  {dept.department_name}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* Column 2: Risk Score */}
+                            <td className="py-3.5 pr-3">
+                              <div className="flex items-center gap-2.5">
+                                <span className="text-sm font-bold text-[#0f172a] dark:text-gray-200 w-9 tabular-nums shrink-0" style={{ fontFamily: 'Sora, sans-serif' }}>
+                                  {dept.riskScore}%
+                                </span>
+                                <div className="flex-1 h-2.5 bg-gray-100 dark:bg-[#1b1e2c] rounded-full overflow-hidden min-w-[45px] max-w-[90px]">
                                   <div
                                     className={`h-full rounded-full ${dept.barColor} transition-all duration-500`}
                                     style={{ width: `${barWidth}%` }}
@@ -427,17 +529,61 @@ export default function PrincipalDashboard() {
                                 </div>
                               </div>
                             </td>
-                            <td className={`py-3 font-bold text-right`}>
-                              <span className={`inline-flex items-center gap-1 ${trendColor}`}>
-                                <span>{trendIcon}</span>
-                                <span>{trendText}</span>
-                              </span>
+
+                            {/* Column 3: Status */}
+                            <td className="py-3.5 pr-1 text-right">
+                              <div className="flex items-center justify-end gap-2.5">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${statusBgClass}`}>
+                                  {badgeIcon}
+                                </div>
+                                <div className="flex flex-col text-right">
+                                  <span className={`font-bold text-xs sm:text-sm whitespace-nowrap ${statusColorClass}`} style={{ fontFamily: 'Sora, sans-serif' }}>
+                                    {titleText}
+                                  </span>
+                                  <span className={`text-[11px] font-medium ${subTextColorClass}`}>
+                                    {subText}
+                                  </span>
+                                </div>
+                              </div>
                             </td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Legend Footer */}
+                <div className="border-t border-gray-100 dark:border-[#262a3d] pt-5 mt-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-[#ecfdf5] dark:bg-emerald-950/40 text-[#10b981] flex items-center justify-center shrink-0">
+                        <ArrowDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-[#0f172a] dark:text-gray-200" style={{ fontFamily: 'Sora, sans-serif' }}>Improving</span>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Lower risk vs 30d</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-[#1b1e2c] text-gray-500 dark:text-gray-400 flex items-center justify-center shrink-0">
+                        <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-[#0f172a] dark:text-gray-200" style={{ fontFamily: 'Sora, sans-serif' }}>No change</span>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Same risk vs 30d</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-[#fef2f2] dark:bg-red-950/40 text-[#ef4444] flex items-center justify-center shrink-0">
+                        <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-[#0f172a] dark:text-gray-200" style={{ fontFamily: 'Sora, sans-serif' }}>Increasing</span>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Higher risk vs 30d</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             );
@@ -530,16 +676,16 @@ export default function PrincipalDashboard() {
         )}
       </div>
 
-      {/* Teacher Leaderboard */}
+      {/* Most Supergreen This Week */}
       {dashboard && dashboard.teacher_leaderboard && dashboard.teacher_leaderboard.length > 0 && (
         <div className="bg-[#151722] rounded-xl border border-[#262a3d] p-5 shadow-sm mt-6">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-lg font-bold text-white tracking-wide">Teacher Leaderboard</h2>
+              <h2 className="text-lg font-bold text-white tracking-wide">Most Supergreen This Week</h2>
               <p className="text-xs text-gray-400 mt-0.5">Based on positive student outcomes this week</p>
             </div>
             <Link href="/leaderboard" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
-              View Full Leaderboard
+              View Full List
             </Link>
           </div>
 

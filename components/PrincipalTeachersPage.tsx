@@ -92,6 +92,11 @@ export default function PrincipalTeachersPage() {
       if (urlTab === 'pending' || urlTab === 'approved' || urlTab === 'observation') {
         setTab(urlTab as any);
       }
+      const q = params.get('q');
+      if (q) {
+        setSearchTerm(q);
+        if (!urlTab) setTab('approved');
+      }
     }
   }, []);
 

@@ -17,12 +17,15 @@ export default function PrincipalLayout({
   useEffect(() => {
     console.log('🔍 Principal Layout - Checking auth:', { loading, userEmail: user?.email, userRole: user?.role });
     
-    // Redirect to principal auth if user is not logged in or not an admin
-    if (!loading && (!user || user.role !== 'admin')) {
+    const normalizedRole = user?.role ? user.role.trim().toLowerCase() : null;
+    const isAdmin = normalizedRole === 'admin' || normalizedRole === 'principal';
+
+    // Redirect to principal auth if user is not logged in or not an admin/principal
+    if (!loading && (!user || !isAdmin)) {
       console.log('⛔ Access denied - redirecting to principal-auth');
       console.log('  Reason:', !user ? 'No user logged in' : `Wrong role: ${user.role}`);
       router.push('/principal-auth');
-    } else if (!loading && user && user.role === 'admin') {
+    } else if (!loading && user && isAdmin) {
       console.log('✅ Admin access granted - showing principal dashboard');
     }
   }, [user, loading, router]);
@@ -35,7 +38,9 @@ export default function PrincipalLayout({
     );
   }
 
-  if (!user || user.role !== 'admin') {
+  const normalizedRole = user?.role ? user.role.trim().toLowerCase() : null;
+  const isAdmin = normalizedRole === 'admin' || normalizedRole === 'principal';
+  if (!user || !isAdmin) {
     return null;
   }
 

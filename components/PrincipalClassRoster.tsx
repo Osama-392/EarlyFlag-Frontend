@@ -106,7 +106,8 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
   const students = data.students || [];
   const filteredStudents = students.filter(s => {
     const name = `${s.first_name} ${s.last_name}`.toLowerCase();
-    return name.includes(searchTerm.toLowerCase()) || s.external_student_id.toLowerCase().includes(searchTerm.toLowerCase());
+    const extId = (s.external_student_id || s.student_id || '').toString().toLowerCase();
+    return name.includes(searchTerm.toLowerCase()) || extId.includes(searchTerm.toLowerCase());
   });
 
   const stats = {

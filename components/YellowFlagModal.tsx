@@ -10,6 +10,7 @@ interface YellowFlagModalProps {
 
 export default function YellowFlagModal({ isOpen, onClose }: YellowFlagModalProps) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
 
   const categories = [
@@ -29,6 +30,14 @@ export default function YellowFlagModal({ isOpen, onClose }: YellowFlagModalProp
       prev.includes(categoryId)
         ? prev.filter((c) => c !== categoryId)
         : [...prev, categoryId]
+    );
+  };
+
+  const toggleConcern = (option: string) => {
+    setSelectedConcerns((prev) =>
+      prev.includes(option)
+        ? prev.filter((c) => c !== option)
+        : [...prev, option]
     );
   };
 
@@ -80,7 +89,7 @@ export default function YellowFlagModal({ isOpen, onClose }: YellowFlagModalProp
                   onClick={() => toggleCategory(cat.id)}
                   className={`px-6 py-2 rounded-full font-semibold text-sm transition-all ${
                     selectedCategories.includes(cat.id)
-                      ? 'bg-yellow-400 text-yellow-900 shadow-md'
+                      ? 'bg-yellow-400 text-yellow-900 shadow-md ring-1 ring-yellow-500'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -96,18 +105,28 @@ export default function YellowFlagModal({ isOpen, onClose }: YellowFlagModalProp
               Select concern(s)
             </label>
             <div className="grid grid-cols-2 gap-3">
-              {flagOptions.map((option) => (
-                <label
-                  key={option}
-                  className="flex items-center space-x-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                >
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500"
-                  />
-                  <span className="text-sm text-gray-700">{option}</span>
-                </label>
-              ))}
+              {flagOptions.map((option) => {
+                const isSelected = selectedConcerns.includes(option);
+                return (
+                  <label
+                    key={option}
+                    onClick={() => toggleConcern(option)}
+                    className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-all font-medium ${
+                      isSelected
+                        ? 'bg-amber-100 border-amber-400 text-amber-900 ring-1 ring-amber-400 font-semibold shadow-sm'
+                        : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {}}
+                      className="w-4 h-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500"
+                    />
+                    <span className="text-sm">{option}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
 
