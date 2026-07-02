@@ -1,7 +1,7 @@
 import TeacherLeaderboardPage from '@/components/TeacherLeaderboardPage';
 
 export const metadata = {
-  title: 'Teacher Leaderboard - Early Flag',
+  title: 'Most Supergreen This Week - Early Flag',
 };
 
 export default function LeaderboardRoute() {

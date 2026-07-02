@@ -33,7 +33,7 @@ function getLoginRoute(): string {
       if (user.role === 'principal' || user.role === 'admin') {
         return '/principal-auth';
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // Fallback: check the current URL path to determine context
@@ -52,6 +52,23 @@ function getLoginRoute(): string {
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
+    // Normalize Pydantic validation error arrays or objects in response detail to strings
+    // to prevent React child rendering crashes ({type, loc, msg, input, ctx})
+    if (error.response?.data && typeof error.response.data === 'object') {
+      const detail = (error.response.data as any).detail;
+      if (Array.isArray(detail)) {
+        (error.response.data as any).detail = detail.map((e: any) => {
+          if (typeof e === 'object' && e !== null && e.msg) {
+            const loc = Array.isArray(e.loc) && e.loc.length > 0 ? `${e.loc[e.loc.length - 1]}: ` : '';
+            return `${loc}${e.msg}`;
+          }
+          return typeof e === 'string' ? e : JSON.stringify(e);
+        }).join(', ');
+      } else if (detail !== null && typeof detail === 'object') {
+        (error.response.data as any).detail = detail.msg || detail.message || JSON.stringify(detail);
+      }
+    }
+
     const originalRequest = error.config as any;
 
     // Don't intercept auth endpoints (login, signup, refresh) —

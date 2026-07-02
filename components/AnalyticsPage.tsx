@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   RefreshCw, AlertCircle, TrendingUp, TrendingDown,
-  BarChart3, Activity, Users, Calendar, ArrowUpRight, ArrowDownRight, Minus
+  BarChart3, Activity, Users, Calendar, ArrowUpRight, ArrowDownRight, Minus,
+  AlertTriangle, Flag, Star, User, ArrowUp, ArrowDown, Info
 } from 'lucide-react';
 import { getMultiWindowStats, SignalStats } from '@/lib/analyticsService';
 import { getTeacherDashboard, TeacherDashboardResponse } from '@/lib/dashboardService';
@@ -177,31 +178,51 @@ export default function AnalyticsPage() {
   const comparisonMetrics = [
     {
       label: 'Yellow Flags',
+      subtitle: 'Needs attention',
+      icon: <AlertTriangle className="w-5 h-5 text-amber-700 dark:text-amber-400" />,
+      iconBg: 'bg-amber-100 dark:bg-amber-900/40',
       today: stats.today.yellow_count,
       week: stats.week.yellow_count,
       month: stats.month.yellow_count,
       invertGood: true,
+      fewerText: "You're seeing fewer yellow flags than usual.",
+      moreText: "You're seeing more yellow flags than usual.",
     },
     {
       label: 'Red Flags',
+      subtitle: 'High priority',
+      icon: <Flag className="w-5 h-5 text-white fill-white" />,
+      iconBg: 'bg-red-500',
       today: stats.today.red_count,
       week: stats.week.red_count,
       month: stats.month.red_count,
       invertGood: true,
+      fewerText: "You're seeing fewer red flags than usual.",
+      moreText: "You're seeing more red flags than usual.",
     },
     {
       label: 'Super Greens',
+      subtitle: 'Positive recognition',
+      icon: <Star className="w-5 h-5 text-white fill-white" />,
+      iconBg: 'bg-emerald-500',
       today: stats.today.super_green_count,
       week: stats.week.super_green_count,
       month: stats.month.super_green_count,
       invertGood: false,
+      fewerText: "You're seeing fewer positive recognitions than usual.",
+      moreText: "You're seeing more positive recognitions than usual.",
     },
     {
       label: 'Absent',
+      subtitle: 'Attendance',
+      icon: <User className="w-5 h-5 text-white fill-white" />,
+      iconBg: 'bg-purple-600',
       today: stats.today.absent_count,
       week: stats.week.absent_count,
       month: stats.month.absent_count,
       invertGood: true,
+      fewerText: "You have fewer absences than usual.",
+      moreText: "You have more absences than usual.",
     },
   ];
 
@@ -434,38 +455,79 @@ export default function AnalyticsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 dark:bg-[#1b1e2c]/80">
-                <th className="px-5 py-3.5 text-left font-semibold text-gray-600 dark:text-gray-400">Metric</th>
-                <th className="px-5 py-3.5 text-center font-semibold text-gray-600 dark:text-gray-400">Today</th>
-                <th className="px-5 py-3.5 text-center font-semibold text-gray-600 dark:text-gray-400">7 Days</th>
-                <th className="px-5 py-3.5 text-center font-semibold text-gray-600 dark:text-gray-400">30 Days</th>
-                <th className="px-5 py-3.5 text-center font-semibold text-gray-600 dark:text-gray-400">Trend (7d vs 30d avg)</th>
+              <tr className="bg-gray-50 dark:bg-[#1b1e2c]/80 border-b border-gray-200 dark:border-[#262a3d]">
+                <th className="px-6 py-4 text-left font-semibold text-gray-600 dark:text-gray-400">Metric</th>
+                <th className="px-6 py-4 text-center font-semibold text-gray-600 dark:text-gray-400">Today</th>
+                <th className="px-6 py-4 text-center font-semibold text-gray-600 dark:text-gray-400">7 Days</th>
+                <th className="px-6 py-4 text-center font-semibold text-gray-600 dark:text-gray-400">30 Days</th>
+                <th className="px-6 py-4 text-left font-semibold text-gray-600 dark:text-gray-400">
+                  <span className="inline-flex items-center gap-1">
+                    Compared to 30-Day Average
+                    <span className="text-gray-400 cursor-help inline-flex items-center" title="Comparison against your monthly weekly average">
+                      <Info className="w-3.5 h-3.5" />
+                    </span>
+                  </span>
+                </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100 dark:divide-[#262a3d]">
               {comparisonMetrics.map((metric, idx) => {
-                const monthWeeklyAvg = Math.round(metric.month / 4.3);
+                const monthWeeklyAvg = Math.round((metric.month / 30) * 7);
                 const trendDir = metric.week > monthWeeklyAvg ? 'up' : metric.week < monthWeeklyAvg ? 'down' : 'flat';
-                const trendClass = trendDir === 'flat'
-                  ? 'text-gray-400'
-                  : (trendDir === 'up' && metric.invertGood) || (trendDir === 'down' && !metric.invertGood)
-                    ? 'text-red-500'
-                    : 'text-green-500';
-                const trendLabel = trendDir === 'up' ? 'Above avg' : trendDir === 'down' ? 'Below avg' : 'On par';
+                const isGood = (trendDir === 'down' && metric.invertGood) || (trendDir === 'up' && !metric.invertGood);
+                const isBad = (trendDir === 'up' && metric.invertGood) || (trendDir === 'down' && !metric.invertGood);
+                
+                const badgeColor = isGood
+                  ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                  : isBad
+                    ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400';
+                const textColor = isGood
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : isBad
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : 'text-gray-600 dark:text-gray-400';
+                
+                const diff = Math.abs(metric.week - monthWeeklyAvg);
+                
+                let titleText = 'On par with your average';
+                let descText = 'Your count is consistent with your monthly average.';
+                if (trendDir === 'down') {
+                  titleText = diff > 0 ? `${diff} fewer than your average` : 'Fewer than your average';
+                  descText = metric.fewerText;
+                } else if (trendDir === 'up') {
+                  titleText = diff > 0 ? `${diff} more than your average` : 'More than your average';
+                  descText = metric.moreText;
+                }
 
                 return (
-                  <tr key={idx} className="border-b border-gray-100 dark:border-[#262a3d] hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
-                    <td className="px-5 py-3.5 font-medium text-gray-900 dark:text-white">{metric.label}</td>
-                    <td className="px-5 py-3.5 text-center text-gray-600 dark:text-gray-400">{metric.today}</td>
-                    <td className="px-5 py-3.5 text-center font-bold text-gray-900 dark:text-white">{metric.week}</td>
-                    <td className="px-5 py-3.5 text-center text-gray-600 dark:text-gray-400">{metric.month}</td>
-                    <td className="px-5 py-3.5 text-center">
-                      <span className={`inline-flex items-center gap-1 text-xs font-semibold ${trendClass}`}>
-                        {trendDir === 'up' && <ArrowUpRight className="w-3.5 h-3.5" />}
-                        {trendDir === 'down' && <ArrowDownRight className="w-3.5 h-3.5" />}
-                        {trendDir === 'flat' && <Minus className="w-3.5 h-3.5" />}
-                        {trendLabel}
-                      </span>
+                  <tr key={idx} className="hover:bg-gray-50/80 dark:hover:bg-[#1b1e2c] transition">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3.5">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm ${metric.iconBg}`}>
+                          {metric.icon}
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900 dark:text-white text-base">{metric.label}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">{metric.subtitle}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center text-gray-600 dark:text-gray-400 font-medium text-base">{metric.today}</td>
+                    <td className="px-6 py-4 text-center font-extrabold text-gray-900 dark:text-white text-base">{metric.week}</td>
+                    <td className="px-6 py-4 text-center text-gray-600 dark:text-gray-400 font-medium text-base">{metric.month}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-start gap-2.5">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${badgeColor}`}>
+                          {trendDir === 'up' && <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />}
+                          {trendDir === 'down' && <ArrowDown className="w-3.5 h-3.5 stroke-[2.5]" />}
+                          {trendDir === 'flat' && <Minus className="w-3.5 h-3.5 stroke-[2.5]" />}
+                        </div>
+                        <div>
+                          <p className={`font-bold text-sm leading-snug ${textColor}`}>{titleText}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">{descText}</p>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -485,8 +547,8 @@ export default function AnalyticsPage() {
             <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-full">{yellow_watch_list.length}</span>
           </div>
           {yellow_watch_list.length > 0 ? (
-            <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
-              {yellow_watch_list.slice(0, 8).map(row => (
+            <div className="divide-y divide-gray-100 dark:divide-[#262a3d] max-h-[300px] overflow-y-auto">
+              {yellow_watch_list.map(row => (
                 <div key={row.student_id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white text-sm">{row.first_name} {row.last_name}</p>
@@ -500,11 +562,6 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
               ))}
-              {yellow_watch_list.length > 8 && (
-                <div className="px-5 py-3 text-center text-xs text-gray-400 font-medium">
-                  +{yellow_watch_list.length - 8} more students on watch list
-                </div>
-              )}
             </div>
           ) : (
             <div className="p-8 text-center text-gray-400">
@@ -525,7 +582,7 @@ export default function AnalyticsPage() {
             }`}>{loggedToday}/{totalClasses}</span>
           </div>
           {classes.length > 0 ? (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-gray-100 dark:divide-[#262a3d] max-h-[300px] overflow-y-auto">
               {classes.map(c => (
                 <div key={c.class_id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
                   <div>

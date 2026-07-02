@@ -193,7 +193,7 @@ export default function PrincipalReportsPage() {
   const [studentLoading, setStudentLoading] = useState(false);
   const [studentError, setStudentError] = useState<string | null>(null);
   const [studentPage, setStudentPage] = useState(0);
-  const [studentRange, setStudentRange] = useState<'1d' | '7d' | '30d'>('7d');
+  const [studentRange, setStudentRange] = useState<'1d' | '7d' | '30d'>('1d');
   const [studentFrom, setStudentFrom] = useState('');
   const [studentTo, setStudentTo] = useState('');
   const [studentGrade, setStudentGrade] = useState('');
@@ -209,7 +209,7 @@ export default function PrincipalReportsPage() {
   const [teacherLoading, setTeacherLoading] = useState(false);
   const [teacherError, setTeacherError] = useState<string | null>(null);
   const [teacherPage, setTeacherPage] = useState(0);
-  const [teacherRange, setTeacherRange] = useState<'1d' | '7d' | '30d'>('7d');
+  const [teacherRange, setTeacherRange] = useState<'1d' | '7d' | '30d'>('1d');
   const [teacherFrom, setTeacherFrom] = useState('');
   const [teacherTo, setTeacherTo] = useState('');
 
@@ -218,7 +218,7 @@ export default function PrincipalReportsPage() {
   const [gradeLoading, setGradeLoading] = useState(false);
   const [gradeError, setGradeError] = useState<string | null>(null);
   const [gradePage, setGradePage] = useState(0);
-  const [gradeRange, setGradeRange] = useState<'1d' | '7d' | '30d'>('7d');
+  const [gradeRange, setGradeRange] = useState<'1d' | '7d' | '30d'>('1d');
   const [gradeFrom, setGradeFrom] = useState('');
   const [gradeTo, setGradeTo] = useState('');
   const [gradeGrade, setGradeGrade] = useState('');

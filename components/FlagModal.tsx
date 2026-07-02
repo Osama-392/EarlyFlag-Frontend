@@ -29,10 +29,8 @@ export default function FlagModal({
   onClose,
   onSubmit,
 }: FlagModalProps) {
-  const [selectedCategories, setSelectedCategories] = useState<('academic' | 'behavioral')[]>(
-    initialData?.flags?.map((f: any) => f.category) ||
-    (initialData?.category ? [initialData.category] : ['academic'])
-  );
+  // We no longer track selected categories explicitly. 
+  // Instead, categories are implicitly selected when their reasons are chosen.
   const [selectedReasons, setSelectedReasons] = useState<string[]>(
     initialData?.reasons || initialData?.flags?.flatMap((f: any) => f.reasons) || []
   );
@@ -48,6 +46,7 @@ export default function FlagModal({
       ),
       studentBg: 'bg-slate-50',
       activeCategoryBg: 'bg-emerald-500 text-white border-emerald-500',
+      selectedReasonBg: 'bg-emerald-100 text-emerald-900 border-emerald-500 ring-1 ring-emerald-500 font-semibold',
       reasons: [
         'Leadership',
         'Academic growth',
@@ -66,6 +65,7 @@ export default function FlagModal({
       ),
       studentBg: 'bg-slate-50',
       activeCategoryBg: 'bg-emerald-400 text-white border-emerald-400',
+      selectedReasonBg: 'bg-emerald-100 text-emerald-900 border-emerald-500 ring-1 ring-emerald-500 font-semibold',
       reasons: [],
       categories: ['default'],
     },
@@ -78,6 +78,7 @@ export default function FlagModal({
       ),
       studentBg: 'bg-[#f4f7fb]', // Light grayish blue from image
       activeCategoryBg: 'bg-[#ffca4b] text-amber-900 border-[#ffca4b]', // Yellow from image
+      selectedReasonBg: 'bg-amber-100 text-amber-900 border-amber-400 ring-1 ring-amber-400 font-semibold',
       reasons: {
         academic: [
           'Missing assignment',
@@ -104,6 +105,7 @@ export default function FlagModal({
       ),
       studentBg: 'bg-slate-50',
       activeCategoryBg: 'bg-red-500 text-white border-red-500',
+      selectedReasonBg: 'bg-rose-100 text-rose-900 border-rose-500 ring-1 ring-rose-500 font-semibold',
       reasons: {
         academic: ['Cheating'],
         behavioral: [
@@ -125,6 +127,7 @@ export default function FlagModal({
       ),
       studentBg: 'bg-slate-50',
       activeCategoryBg: 'bg-gray-500 text-white border-gray-500',
+      selectedReasonBg: 'bg-gray-200 text-gray-900 border-gray-400 ring-1 ring-gray-400 font-semibold',
       reasons: [],
       categories: [],
     },
@@ -133,7 +136,7 @@ export default function FlagModal({
   const config = flagConfig[flagType];
 
   const hasReasons = typeof config.reasons === 'object' && 'academic' in config.reasons
-    ? selectedCategories.some(cat => ((config.reasons as any)[cat] || []).length > 0)
+    ? config.categories.some(cat => ((config.reasons as any)[cat] || []).length > 0)
     : Array.isArray(config.reasons) && config.reasons.length > 0;
 
   const toggleReason = (reason: string, categoryName?: string) => {
@@ -141,17 +144,7 @@ export default function FlagModal({
 
     if (selectedReasons.includes(reason)) {
       // Removing reason
-      const newReasons = selectedReasons.filter((r) => r !== reason);
-      setSelectedReasons(newReasons);
-
-      // Auto-deselect the category if it has no more reasons selected
-      if (categoryName && selectedCategories.includes(categoryName as any) && selectedCategories.length > 1) {
-        const catReasons = (config.reasons as any)[categoryName] || [];
-        const hasRemaining = newReasons.some(r => catReasons.includes(r));
-        if (!hasRemaining) {
-          setSelectedCategories(prev => prev.filter(c => c !== categoryName));
-        }
-      }
+      setSelectedReasons(prev => prev.filter((r) => r !== reason));
     } else {
       // Adding reason
       setSelectedReasons(prev => [...prev, reason]);
@@ -165,20 +158,19 @@ export default function FlagModal({
 
     let flags: Array<{ category: string; reasons: string[] }> = [];
     if (isCategorized) {
-      flags = selectedCategories.map(cat => {
+      flags = config.categories.map(cat => {
         const catReasons = (config.reasons as any)[cat] || [];
         const reasonsSelected = selectedReasons.filter(r => catReasons.includes(r));
         return {
           category: cat,
           reasons: reasonsSelected
         };
-      }).filter(f => f.reasons.length > 0 || flagType === 'red');
+      }).filter(f => f.reasons.length > 0);
     }
 
     logger.formSubmit('FlagModal', {
       flagType,
       studentId: student.id,
-      categories: selectedCategories,
       reasons: selectedReasons,
       flags,
     });
@@ -294,63 +286,22 @@ export default function FlagModal({
             </div>
           )}
 
-          {/* Category Selection (only for yellow/red) */}
-          {config.categories.length > 1 && (
-            <div className="mb-6">
-              <p className="text-[15px] font-medium text-slate-700 mb-3">Category (Select one or both)</p>
-              <div className="flex gap-4">
-                {config.categories.map((cat) => {
-                  const isSelected = selectedCategories.includes(cat as any);
-                  return (
-                    <button
-                      key={cat}
-                      onClick={() => {
-                        logger.buttonClick(`Toggle category: ${cat}`, 'FlagModal');
-                        setSelectedCategories(prev => {
-                          if (prev.includes(cat as any)) {
-                            if (prev.length === 1) return prev; // Keep at least one selected
-
-                            // Clear the reasons associated with the deselected category
-                            const catReasons = (config.reasons as any)[cat] || [];
-                            setSelectedReasons(currentReasons =>
-                              currentReasons.filter(r => !catReasons.includes(r))
-                            );
-
-                            return prev.filter(c => c !== cat);
-                          } else {
-                            return [...prev, cat as any];
-                          }
-                        });
-                      }}
-                      className={`flex-1 px-4 py-2.5 rounded-full font-medium text-sm transition-all border ${isSelected
-                          ? config.activeCategoryBg
-                          : 'bg-white text-slate-500 border-gray-200 hover:bg-gray-50'
-                        }`}
-                    >
-                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* Reason Selection */}
           {typeof config.reasons === 'object' && 'academic' in config.reasons ? (
-            config.categories.filter(cat => selectedCategories.includes(cat as any)).map((cat) => {
+            config.categories.map((cat, idx) => {
               const catReasons = (config.reasons as any)[cat] || [];
               if (catReasons.length === 0) return null;
               return (
-                <div key={cat} className="mb-6">
-                  <p className="text-[15px] font-semibold text-slate-700 mb-3 capitalize">{cat} Reason(s)</p>
+                <div key={cat} className={`${idx > 0 ? 'mt-8 pt-6 border-t border-gray-100' : 'mb-6'}`}>
+                  <p className="text-[16px] font-bold text-[#1e293b] mb-4 capitalize" style={{ fontFamily: 'Sora, sans-serif' }}>{cat} Flag(s)</p>
                   <div className="flex flex-wrap gap-2.5">
                     {catReasons.map((reason: string) => (
                       <button
                         key={reason}
                         onClick={() => toggleReason(reason, cat)}
-                        className={`px-4 py-2 rounded-full text-sm transition-all font-medium border ${selectedReasons.includes(reason)
-                            ? 'bg-slate-700 text-white border-slate-700'
-                            : 'bg-white text-slate-500 border-gray-200 hover:border-gray-300'
+                        className={`px-4 py-2.5 rounded-full text-sm transition-all font-medium border shadow-sm hover:shadow ${selectedReasons.includes(reason)
+                            ? (config as any).selectedReasonBg || 'bg-[#f8fafc] text-[#0f172a] border-[#cbd5e1] ring-1 ring-[#cbd5e1]'
+                            : 'bg-white text-[#64748b] border-[#e2e8f0] hover:border-[#cbd5e1]'
                           }`}
                       >
                         {reason}
@@ -370,7 +321,7 @@ export default function FlagModal({
                       key={reason}
                       onClick={() => toggleReason(reason)}
                       className={`px-4 py-2 rounded-full text-sm transition-all font-medium border ${selectedReasons.includes(reason)
-                          ? 'bg-slate-700 text-white border-slate-700'
+                          ? (config as any).selectedReasonBg || 'bg-slate-700 text-white border-slate-700'
                           : 'bg-white text-slate-500 border-gray-200 hover:border-gray-300'
                         }`}
                     >

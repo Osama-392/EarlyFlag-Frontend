@@ -25,3 +25,19 @@ body {
   }
 }
 
+/* Ensure inputs on auth forms stay crisp white and override Chrome/Edge/Safari autofill grey/blue backgrounds */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #1f2937 !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+form input[type="email"],
+form input[type="password"] {
+  background-color: #ffffff !important;
+}
+

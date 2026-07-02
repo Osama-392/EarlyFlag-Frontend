@@ -113,9 +113,9 @@ export default function RecognitionPage() {
                   <div key={student.student_id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1a1c29] transition-colors border border-transparent hover:border-gray-100 dark:hover:border-[#2a2e42] relative overflow-hidden">
                     {/* Rank Badge */}
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold shrink-0 border shadow-sm ${idx === 0 ? 'bg-gradient-to-br from-yellow-100 to-amber-200 dark:from-yellow-900/40 dark:to-amber-700/40 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-600/50' :
-                        idx === 1 ? 'bg-gradient-to-br from-gray-100 to-slate-200 dark:from-gray-800 dark:to-slate-700 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600' :
-                          idx === 2 ? 'bg-gradient-to-br from-orange-100 to-amber-200/50 dark:from-orange-900/40 dark:to-amber-900/20 text-orange-800 dark:text-orange-400 border-orange-200 dark:border-orange-800' :
-                            'bg-gray-50 dark:bg-[#151722] text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-800'
+                      idx === 1 ? 'bg-gradient-to-br from-gray-100 to-slate-200 dark:from-gray-800 dark:to-slate-700 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600' :
+                        idx === 2 ? 'bg-gradient-to-br from-orange-100 to-amber-200/50 dark:from-orange-900/40 dark:to-amber-900/20 text-orange-800 dark:text-orange-400 border-orange-200 dark:border-orange-800' :
+                          'bg-gray-50 dark:bg-[#151722] text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-800'
                       }`}>
                       {idx + 1}
                     </div>

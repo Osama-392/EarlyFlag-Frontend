@@ -14,7 +14,7 @@ interface AdminTeacherReportModalProps {
 }
 
 export default function AdminTeacherReportModal({ isOpen, onClose, teacherId, teacherName }: AdminTeacherReportModalProps) {
-  const [range, setRange] = useState<'1d' | '7d' | '30d'>('7d');
+  const [range, setRange] = useState<'1d' | '7d' | '30d'>('1d');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [data, setData] = useState<AdminTeacherSpecificReportBlock | null>(null);

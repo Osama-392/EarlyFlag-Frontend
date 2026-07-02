@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { getAdminTrends, AdminTrendsBlock } from '@/lib/adminDashboardService';
 
 export default function SchoolOverviewPage() {
-  const [range, setRange] = useState<'1d' | '7d' | '30d'>('30d');
+  const [range, setRange] = useState<'1d' | '7d' | '30d'>('1d');
   const [trends, setTrends] = useState<AdminTrendsBlock | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

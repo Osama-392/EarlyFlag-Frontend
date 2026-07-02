@@ -594,7 +594,7 @@ export interface AdminTeacherSpecificReportBlock {
  * pending teacher flags, and heuristic recommendations.
  */
 export const getAdminDashboard = async (
-  range: '1d' | '7d' | '30d' = '7d',
+  range: '1d' | '7d' | '30d' = '1d',
   forceMondayBrief = false,
 ): Promise<AdminDashboardResponse> => {
   const params: Record<string, string | boolean> = { range };
@@ -604,7 +604,7 @@ export const getAdminDashboard = async (
 };
 
 export const getAdminLeaderboard = async (
-  range: '1d' | '7d' | '30d' = '7d',
+  range: '1d' | '7d' | '30d' = '1d',
 ): Promise<TeacherLeaderboardRow[]> => {
   const params: Record<string, string> = { range };
   const res = await api.get('/api/v1/admin/leaderboard', { params });
@@ -616,7 +616,7 @@ export const getAdminLeaderboard = async (
  * Per-class flag percentage tiles grouped by grade, with color bands.
  */
 export const getAdminHeatmap = async (
-  range: '1d' | '7d' | '30d' = '7d',
+  range: '1d' | '7d' | '30d' = '1d',
 ): Promise<HeatmapBlock> => {
   const res = await api.get('/api/v1/admin/heatmap', { params: { range } });
   return res.data;
@@ -628,7 +628,7 @@ export const getAdminHeatmap = async (
  */
 export const getAdminClassDrilldown = async (
   classId: string,
-  range: '1d' | '7d' | '30d' = '7d',
+  range: '1d' | '7d' | '30d' = '1d',
 ): Promise<AdminClassDrilldownBlock> => {
   const res = await api.get(`/api/v1/admin/classes/${classId}`, { params: { range } });
   return res.data;
@@ -639,7 +639,7 @@ export const getAdminClassDrilldown = async (
  * Students ranked by weighted score (red×3 + yellow×1).
  */
 export const getAdminMostFlagged = async (
-  range: '1d' | '7d' | '30d' = '7d',
+  range: '1d' | '7d' | '30d' = '1d',
   limit?: number,
   gradeLevel?: number,
 ): Promise<MostFlaggedBlock> => {
@@ -721,7 +721,7 @@ export const acknowledgeTeacherFlag = async (
  * Daily stacked counts + weekly accumulation + attendance trend.
  */
 export const getAdminTrends = async (
-  range: '1d' | '7d' | '30d' = '7d',
+  range: '1d' | '7d' | '30d' = '1d',
 ): Promise<AdminTrendsBlock> => {
   const res = await api.get('/api/v1/admin/trends', { params: { range } });
   return res.data;
@@ -899,3 +899,36 @@ export const generateAdminStudentReport = async (studentId: string, payload: any
     throw error;
   }
 };
+
+export interface AdminSearchResponse {
+  teachers: Array<{
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    department?: string;
+  }>;
+  classes: Array<{
+    id: string;
+    name: string;
+    subject?: string;
+    grade_level: number;
+    teacher_name: string;
+  }>;
+  students: Array<{
+    id: string;
+    student_id?: string;
+    external_student_id?: string;
+    first_name: string;
+    last_name: string;
+    grade_level: number;
+    teacher_name: string;
+    class_name: string;
+  }>;
+}
+
+export const getAdminSearch = async (q: string): Promise<AdminSearchResponse> => {
+  const res = await api.get('/api/v1/admin/search', { params: { q } });
+  return res.data;
+};
+
