@@ -14,7 +14,8 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronDown
+  ChevronUp,
+  User
 } from 'lucide-react';
 
 export default function PrincipalSidebar() {
@@ -54,11 +55,6 @@ export default function PrincipalSidebar() {
       label: 'Reports',
       href: '/principal-reports',
       icon: BarChart3,
-    },
-    {
-      label: 'Settings',
-      href: '/principal-settings',
-      icon: Settings,
     },
   ];
 
@@ -115,22 +111,48 @@ export default function PrincipalSidebar() {
           })}
         </nav>
         {/* User Info & Logout */}
-        <div className="p-4 border-t border-gray-200 dark:border-[#262a3d] space-y-3">
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-[#1b1e2c]">
-            <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 font-medium">
-              {user?.email?.charAt(0).toUpperCase()}
+        <div className="p-4 border-t border-gray-200 dark:border-[#262a3d] relative">
+          {isUserMenuOpen && (
+            <div className="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] rounded-xl shadow-lg overflow-hidden py-1 z-50">
+              <button
+                onClick={() => { router.push('/principal-profile'); setIsUserMenuOpen(false); }}
+                className="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#202330] transition-colors text-left text-sm"
+              >
+                <User className="w-4 h-4" />
+                <span className="font-medium">Profile</span>
+              </button>
+              <button
+                onClick={() => { router.push('/principal-settings'); setIsUserMenuOpen(false); }}
+                className="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#202330] transition-colors text-left text-sm"
+              >
+                <Settings className="w-4 h-4" />
+                <span className="font-medium">Settings</span>
+              </button>
+              <div className="h-px bg-gray-200 dark:bg-[#262a3d]" />
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center space-x-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left text-sm"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="font-medium">Logout</span>
+              </button>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">{user?.email}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Principal</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/20 dark:hover:text-red-500 transition-colors"
+          )}
+
+          <button 
+            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+            className="w-full flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-[#1b1e2c] hover:bg-gray-100 dark:hover:bg-[#202330] transition-colors text-left"
           >
-            <LogOut size={20} />
-            <span className="font-medium text-sm">Logout</span>
+            <div className="flex items-center space-x-3 min-w-0">
+              <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 font-medium flex-shrink-0">
+                {user?.email?.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">{user?.email}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Principal</p>
+              </div>
+            </div>
+            <ChevronUp className={`w-4 h-4 text-gray-400 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
           </button>
         </div>
       </aside>

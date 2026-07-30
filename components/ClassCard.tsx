@@ -1,6 +1,6 @@
 'use client';
 
-import { Edit2, Users } from 'lucide-react';
+import { Edit2, Trash2, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { Class } from '@/lib/classService';
@@ -11,14 +11,15 @@ interface ClassCardProps {
     color?: string;
   };
   onEdit: (classData: any) => void;
+  onDelete?: (classData: any) => void;
 }
 
-export default function ClassCard({ classData, onEdit }: ClassCardProps) {
+export default function ClassCard({ classData, onEdit, onDelete }: ClassCardProps) {
   const router = useRouter();
 
-  const handleCardClick = () => {
-    console.log('Navigating to class:', classData.id);
-    router.push(`/students/${classData.id}`);
+  const handleCardClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/classes/${classData.id}`);
   };
 
   return (
@@ -35,16 +36,30 @@ export default function ClassCard({ classData, onEdit }: ClassCardProps) {
         >
           {classData.icon}
         </div>
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onEdit(classData);
-          }}
-          className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:bg-[#1b1e2c] rounded-lg transition-colors"
-        >
-          <Edit2 className="w-4 h-4" />
-        </button>
+        <div className="flex items-center space-x-1">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onEdit(classData);
+            }}
+            className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:bg-[#1b1e2c] rounded-lg transition-colors"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+          {onDelete && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDelete(classData);
+              }}
+              className="p-2 text-gray-400 hover:text-red-600 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Class Info */}

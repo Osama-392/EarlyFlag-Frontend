@@ -193,7 +193,7 @@ export default function PrincipalTeachersPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="w-full max-w-[1600px] mx-auto space-y-8 pb-12">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Sora:wght@400;500;600;700&display=swap');
 

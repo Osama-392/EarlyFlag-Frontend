@@ -156,20 +156,20 @@ export default function ClassSetupModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 overflow-visible relative">
+      <div className="bg-white dark:bg-[#151722] rounded-xl shadow-xl max-w-md w-full mx-4 overflow-visible relative">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b-2 border-blue-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b-2 border-blue-200 dark:border-[#262a3d]">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">{isEdit ? 'Edit' : 'Create'} Class</h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{isEdit ? 'Edit' : 'Create'} Class</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               {isEdit ? 'Update class details' : 'Add a new class to your roster'}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
@@ -187,7 +187,7 @@ export default function ClassSetupModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Class Name - Required */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
+            <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
               Class Name <span className="text-red-500">*</span>
             </label>
             <input
@@ -198,14 +198,14 @@ export default function ClassSetupModal({
                 setFormData({ ...formData, name: e.target.value })
               }
               placeholder="e.g., AP Calculus BC, Physics 101"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-colors text-sm"
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-colors text-sm"
               disabled={loading}
             />
           </div>
 
           {/* Subject - Custom Dropdown */}
           <div className="relative">
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
+            <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
               Subject <span className="text-red-500">*</span>
             </label>
             <button
@@ -215,8 +215,8 @@ export default function ClassSetupModal({
                 setIsSubjectOpen(!isSubjectOpen);
                 setIsGradeOpen(false);
               }}
-              className={`w-full px-4 py-2.5 border rounded-lg flex items-center justify-between text-sm transition-all bg-white text-left ${
-                isSubjectOpen ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-300 hover:border-gray-400'
+              className={`w-full px-4 py-2.5 border rounded-lg flex items-center justify-between text-sm transition-all bg-white dark:bg-[#1b1e2c] text-left ${
+                isSubjectOpen ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-300 dark:border-[#262a3d] hover:border-gray-400 dark:hover:border-gray-500'
               }`}
             >
               {(() => {
@@ -229,16 +229,16 @@ export default function ClassSetupModal({
                       <div className={`w-5 h-5 rounded ${selectedObj.bgColor} flex items-center justify-center text-white`}>
                         {selectedObj.icon}
                       </div>
-                      <span className="text-gray-900 font-medium">{selectedObj.name}</span>
+                      <span className="text-gray-900 dark:text-white font-medium">{selectedObj.name}</span>
                     </div>
                   );
                 }
                 if (formData.subject) {
-                  return <span className="text-gray-900 font-medium">{formData.subject}</span>;
+                  return <span className="text-gray-900 dark:text-white font-medium">{formData.subject}</span>;
                 }
                 return <span className="text-gray-400">Select a subject</span>;
               })()}
-              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isSubjectOpen ? 'rotate-180 text-blue-600' : ''}`} />
+              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isSubjectOpen ? 'rotate-180 text-blue-600 dark:text-blue-400' : ''}`} />
             </button>
 
             {isSubjectOpen && (
@@ -247,7 +247,7 @@ export default function ClassSetupModal({
                   className="fixed inset-0 z-40" 
                   onClick={() => setIsSubjectOpen(false)} 
                 />
-                <div className="absolute left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-[260px] overflow-y-auto p-2 divide-y divide-gray-100">
+                <div className="absolute left-0 right-0 mt-1.5 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] rounded-xl shadow-xl z-50 max-h-[260px] overflow-y-auto p-2 divide-y divide-gray-100 dark:divide-[#262a3d]">
                   {SUBJECT_GROUPS.map((group) => (
                     <div key={group.group} className="py-2 first:pt-1 last:pb-1">
                       <div className="px-3 pb-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
@@ -265,7 +265,7 @@ export default function ClassSetupModal({
                                 setIsSubjectOpen(false);
                               }}
                               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors text-left text-sm ${
-                                isSelected ? 'bg-blue-50 text-blue-900 font-semibold' : 'hover:bg-gray-50 text-gray-700 font-medium'
+                                isSelected ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-400 font-semibold' : 'hover:bg-gray-50 dark:hover:bg-[#1b1e2c] text-gray-700 dark:text-gray-300 font-medium'
                               }`}
                             >
                               <div className="flex items-center gap-3">
@@ -274,7 +274,7 @@ export default function ClassSetupModal({
                                 </div>
                                 <span>{item.name}</span>
                               </div>
-                              {isSelected && <Check className="w-4 h-4 text-blue-600" />}
+                              {isSelected && <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
                             </button>
                           );
                         })}
@@ -289,7 +289,7 @@ export default function ClassSetupModal({
           {/* Grade and Period - Side by Side */}
           <div className="grid grid-cols-2 gap-4">
             <div className="relative">
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
                 Grade Level <span className="text-red-500">*</span>
               </label>
               <button
@@ -299,14 +299,14 @@ export default function ClassSetupModal({
                   setIsGradeOpen(!isGradeOpen);
                   setIsSubjectOpen(false);
                 }}
-                className={`w-full px-4 py-2.5 border rounded-lg flex items-center justify-between text-sm transition-all bg-white text-left ${
-                  isGradeOpen ? 'border-orange-500 ring-2 ring-orange-100' : 'border-gray-300 hover:border-gray-400'
+                className={`w-full px-4 py-2.5 border rounded-lg flex items-center justify-between text-sm transition-all bg-white dark:bg-[#1b1e2c] text-left ${
+                  isGradeOpen ? 'border-orange-500 ring-2 ring-orange-100' : 'border-gray-300 dark:border-[#262a3d] hover:border-gray-400 dark:hover:border-gray-500'
                 }`}
               >
                 {(() => {
                   const selectedGrade = GRADE_OPTIONS.find(g => g.value === formData.grade_level);
                   if (selectedGrade) {
-                    return <span className="text-gray-900 font-medium">{selectedGrade.label}</span>;
+                    return <span className="text-gray-900 dark:text-white font-medium">{selectedGrade.label}</span>;
                   }
                   return <span className="text-gray-400">Select grade level</span>;
                 })()}
@@ -319,7 +319,7 @@ export default function ClassSetupModal({
                     className="fixed inset-0 z-40" 
                     onClick={() => setIsGradeOpen(false)} 
                   />
-                  <div className="absolute left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-[200px] overflow-y-auto p-1.5 space-y-0.5">
+                  <div className="absolute left-0 right-0 mt-1.5 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] rounded-xl shadow-xl z-50 max-h-[200px] overflow-y-auto p-1.5 space-y-0.5">
                     {GRADE_OPTIONS.map((grade) => {
                       const isSelected = formData.grade_level === grade.value;
                       return (
@@ -331,7 +331,7 @@ export default function ClassSetupModal({
                             setIsGradeOpen(false);
                           }}
                           className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors text-left text-sm ${
-                            isSelected ? 'bg-orange-50 text-orange-900 font-semibold' : 'hover:bg-gray-50 text-gray-700 font-medium'
+                            isSelected ? 'bg-orange-50 text-orange-900 font-semibold' : 'hover:bg-gray-50 dark:hover:bg-[#1b1e2c] text-gray-700 dark:text-gray-300 font-medium'
                           }`}
                         >
                           <span>{grade.label}</span>
@@ -345,7 +345,7 @@ export default function ClassSetupModal({
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
                 Period
               </label>
               <input
@@ -355,7 +355,7 @@ export default function ClassSetupModal({
                   setFormData({ ...formData, period: e.target.value })
                 }
                 placeholder="e.g., 1, 2, 3"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-colors text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-colors text-sm"
                 disabled={loading}
               />
             </div>
@@ -363,10 +363,10 @@ export default function ClassSetupModal({
 
           {/* Teaching Days */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
+            <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
               What days do you teach this class? <span className="text-red-500">*</span>
             </label>
-            <div className="w-full px-4 py-3 border border-gray-300 rounded-lg flex items-center justify-between bg-white shadow-sm">
+            <div className="w-full px-4 py-3 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white dark:border-[#262a3d] rounded-lg flex items-center justify-between bg-white dark:bg-[#1b1e2c] shadow-sm">
               {DAYS_OF_WEEK.map((day) => {
                 const isChecked = formData.teaching_days.includes(day.id);
                 return (
@@ -386,9 +386,9 @@ export default function ClassSetupModal({
                             : [...prev.teaching_days, day.id],
                         }));
                       }}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      className="w-4 h-4 rounded border-gray-300 dark:border-[#262a3d] text-blue-600 dark:text-blue-400 focus:ring-blue-500 cursor-pointer"
                     />
-                    <span className="text-sm font-medium text-gray-700">{day.label}</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{day.label}</span>
                   </label>
                 );
               })}
@@ -398,7 +398,7 @@ export default function ClassSetupModal({
           {/* Room Number & Academic Year - Side by Side */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
                 Room Number
               </label>
               <input
@@ -408,13 +408,13 @@ export default function ClassSetupModal({
                   setFormData({ ...formData, room_number: e.target.value })
                 }
                 placeholder="e.g., 101, A201"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-colors text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-colors text-sm"
                 disabled={loading}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
                 Academic Year <span className="text-red-500">*</span>
               </label>
               <input
@@ -425,7 +425,7 @@ export default function ClassSetupModal({
                   setFormData({ ...formData, academic_year: e.target.value })
                 }
                 placeholder="e.g., 2025-2026"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-colors text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-colors text-sm"
                 disabled={loading}
               />
             </div>

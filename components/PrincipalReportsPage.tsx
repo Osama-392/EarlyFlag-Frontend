@@ -129,21 +129,21 @@ function ReportFilterBar({
         </div>
         {/* Custom date */}
         <div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 mb-1.5">Custom Date (overrides range)</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Custom Date (overrides range)</p>
           <div className="flex items-center gap-2">
             <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-              className="px-2 py-1.5 text-xs border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500" />
-            <span className="text-xs text-gray-400">to</span>
+              className="px-2 py-1.5 text-xs bg-white dark:bg-[#1b1e2c] text-gray-900 dark:text-white border border-gray-200 dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500" />
+            <span className="text-xs text-gray-400 dark:text-gray-300">to</span>
             <input type="date" value={to} onChange={e => setTo(e.target.value)}
-              className="px-2 py-1.5 text-xs border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500" />
+              className="px-2 py-1.5 text-xs bg-white dark:bg-[#1b1e2c] text-gray-900 dark:text-white border border-gray-200 dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500" />
           </div>
         </div>
         {/* Grade filter */}
         {showGrade && (
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 mb-1.5">Grade</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Grade</p>
             <select value={gradeLevel} onChange={e => setGradeLevel(e.target.value)}
-              className="px-2 py-1.5 text-xs border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white dark:bg-[#151722] dark:bg-[#151722]">
+              className="px-2 py-1.5 text-xs bg-white dark:bg-[#1b1e2c] text-gray-900 dark:text-white border border-gray-200 dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500">
               <option value="">All Grades</option>
               {[6, 7, 8, 9, 10, 11, 12].map(g => <option key={g} value={g}>Grade {g}</option>)}
             </select>
@@ -442,7 +442,7 @@ export default function PrincipalReportsPage() {
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
-              tab === t.id ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-500 dark:text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 dark:text-gray-300'}`}>
+              tab === t.id ? 'border-teal-600 text-teal-700 dark:text-teal-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
             <t.icon size={16} />{t.label}
           </button>
         ))}
@@ -492,7 +492,6 @@ export default function PrincipalReportsPage() {
                         <tr key={s.student_id} className="border-b border-gray-100 dark:border-[#262a3d] dark:border-[#262a3d] hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
                           <td className="px-4 py-3">
                             <p className="text-sm font-medium text-gray-900 dark:text-white dark:text-white">{s.first_name} {s.last_name}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">{s.student_id_external}</p>
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{s.grade_level}</td>
                           <td className="px-4 py-3"><span className="text-lg font-bold text-emerald-600">{s.super_green_count}</span></td>
@@ -568,7 +567,7 @@ export default function PrincipalReportsPage() {
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Student</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Signals</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Categories</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Score</th>
+
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Alerts</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Referrals</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Last Flag</th>
@@ -581,7 +580,7 @@ export default function PrincipalReportsPage() {
                       <tr key={s.student_id} className="border-b border-gray-100 dark:border-[#262a3d] dark:border-[#262a3d] hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
                         <td className="px-4 py-3">
                           <p className="text-sm font-medium text-gray-900 dark:text-white dark:text-white">{s.first_name} {s.last_name}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">{s.external_student_id} · Grade {s.grade_level}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">Grade {s.grade_level}</p>
                           <div className="flex gap-1 mt-1">
                             {s.iep_status && <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-bold">IEP</span>}
                             {s.ell_status && <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-bold">ELL</span>}
@@ -598,7 +597,7 @@ export default function PrincipalReportsPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3"><WeightedScoreBadge score={s.weighted_score} /></td>
+
                         <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{s.unresolved_alert_count}</td>
                         <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{s.open_referral_count}</td>
                         <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">{formatDate(s.last_flag_date)}</td>

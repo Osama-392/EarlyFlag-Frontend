@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { X, Upload as UploadIcon, AlertCircle, CheckCircle, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { bulkUploadStudents } from '@/lib/studentService';
-import { cacheInvalidate } from '@/lib/dataCache';
+
 
 interface BulkUploadModalProps {
   isOpen: boolean;
@@ -72,7 +72,7 @@ export default function BulkUploadModal({
       await onUploadSuccess();
 
       // Invalidate cache so dashboard reflects new student counts
-      cacheInvalidate();
+      // cache cleared (no-op — cache layer removed)
 
       // Auto-close only when everything succeeded with no issues
       const hasErrors = data.errors && data.errors.length > 0;
@@ -141,7 +141,7 @@ export default function BulkUploadModal({
       <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Bulk Upload Students</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Bulk Upload Students</h2>
           <button
             onClick={handleClose}
             disabled={loading}
@@ -166,7 +166,7 @@ export default function BulkUploadModal({
                     </div>
                   </div>
                   <div className="text-center space-y-2">
-                    <h3 className="font-semibold text-gray-900 text-lg">Roster Already Exists</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-lg">Roster Already Exists</h3>
                     <p className="text-sm text-gray-600">
                       All <span className="font-semibold text-amber-700">{result.skipped}</span> student{result.skipped !== 1 ? 's' : ''} in this file {result.skipped !== 1 ? 'are' : 'is'} already enrolled in this class.
                     </p>
@@ -206,7 +206,7 @@ export default function BulkUploadModal({
                     </div>
                   </div>
                   <div className="text-center space-y-1">
-                    <h3 className="font-semibold text-gray-900 text-lg">Upload Successful!</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-lg">Upload Successful!</h3>
                     <p className="text-sm text-gray-600">
                       <span className="font-semibold text-green-700">{result.created}</span> student{result.created !== 1 ? 's' : ''} added successfully.
                     </p>
@@ -223,7 +223,7 @@ export default function BulkUploadModal({
                     </div>
                   </div>
                   <div className="text-center space-y-1">
-                    <h3 className="font-semibold text-gray-900 text-lg">Upload Completed</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-lg">Upload Completed</h3>
                     <p className="text-sm text-gray-600">
                       <span className="font-semibold text-green-700">{result.created}</span> student{result.created !== 1 ? 's' : ''} added successfully.
                     </p>
@@ -273,7 +273,7 @@ export default function BulkUploadModal({
                         </div>
                       </div>
                       <div className="text-center space-y-1">
-                        <h3 className="font-semibold text-gray-900 text-lg">Upload Failed</h3>
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-lg">Upload Failed</h3>
                       </div>
                     </>
                   )}
@@ -308,7 +308,7 @@ export default function BulkUploadModal({
                 <div className="flex justify-center">
                   <UploadIcon className="w-8 h-8 text-gray-400" />
                 </div>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {file ? file.name : 'Choose a file to upload'}
                 </p>
                 <p className="text-xs text-gray-500">CSV or XLSX files up to 5MB</p>

@@ -76,7 +76,7 @@ export default function PrincipalStudentsPage() {
   const sortedBuckets = heatmap?.grade_buckets ? [...heatmap.grade_buckets].sort((a, b) => b.grade_level - a.grade_level) : [];
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-12">
+    <div className="w-full max-w-[1600px] mx-auto space-y-8 pb-12">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Sora:wght@400;500;600;700&display=swap');
       `}</style>
@@ -85,7 +85,7 @@ export default function PrincipalStudentsPage() {
       <div className="flex items-center">
         <button 
           onClick={() => router.push('/principal-dashboard')}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-white dark:bg-[#151722] dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm"
         >
           <ArrowLeft size={16} /> Back to Dashboard
         </button>
