@@ -84,3 +84,13 @@ export const getClass = async (classId: string): Promise<Class> => {
     throw error;
   }
 };
+
+// --- Deletion & Unenrollment ---
+
+export const deleteClassTeacher = async (classId: string): Promise<void> => {
+  await api.delete(`/api/v1/teacher/classes/${classId}`);
+};
+
+export const unenrollStudentTeacher = async (classId: string, studentId: string): Promise<void> => {
+  await api.delete(`/api/v1/teacher/classes/${classId}/students/${studentId}`);
+};

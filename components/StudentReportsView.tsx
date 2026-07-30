@@ -113,9 +113,9 @@ export default function StudentReportsView({
           logger.buttonClick('Back to Reports', 'StudentReportsView');
           onBack();
         }}
-        className="inline-flex items-center text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors"
+        className="inline-flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm"
       >
-        <ArrowLeft className="w-4 h-4 mr-1" />
+        <ArrowLeft className="w-4 h-4" />
         Back to Classes
       </button>
 

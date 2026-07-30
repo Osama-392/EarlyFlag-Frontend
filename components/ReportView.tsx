@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { Download, Printer, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { getCategoryStyle } from '@/lib/categoryColors';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -135,11 +136,37 @@ export default function ReportView({
   const yellowPercent = Math.round(((summaryCounts?.yellow || 0) / divisor) * 100);
   const positivePercent = Math.round((((summaryCounts?.super_green || 0) + (summaryCounts?.present || 0)) / divisor) * 100);
 
-  const incidents = report?.recent_notes?.map((note: any) => ({
-    type: note.class_name ? `Flag in ${note.class_name}` : 'Flag Note',
-    date: formatDisplayDate(note.signal_date) || note.signal_date,
-    description: note.excerpt,
-  })) || [];
+  // Use the new flag_log from the backend
+  const incidents = report?.flag_log?.map((flag: any) => {
+    let rawDate = new Date(flag.signal_date + 'T00:00:00');
+    let dayOfWeek = '';
+    let shortDate = flag.signal_date;
+    try {
+      shortDate = rawDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      dayOfWeek = rawDate.toLocaleDateString('en-US', { weekday: 'short' });
+    } catch (e) {}
+    
+    const sType = flag.signal_type ? flag.signal_type.toUpperCase() : '';
+    const typeLabel = flag.signal_type ? flag.signal_type.charAt(0).toUpperCase() + flag.signal_type.slice(1).toLowerCase() : '';
+    
+    let catLabel = '';
+    if (flag.category) {
+      if (flag.category.toLowerCase() === 'super_green') catLabel = 'Super Green';
+      else catLabel = flag.category.charAt(0).toUpperCase() + flag.category.slice(1).toLowerCase();
+    }
+    const displayType = catLabel && sType !== 'SUPER_GREEN' ? `${typeLabel} - ${catLabel}` : (sType === 'SUPER_GREEN' ? 'Super Green' : typeLabel);
+
+    return {
+      date: shortDate,
+      dayOfWeek,
+      type: displayType,
+      title: flag.title || 'Flag Logged',
+      description: flag.description,
+      className: flag.class_name,
+      teacherName: flag.teacher_name,
+      signalType: sType,
+    };
+  }) || [];
 
   const recommendations = report?.talking_points || [];
   const teachersNotes = report?.one_ask_for_parents || (report ? 'No notes provided.' : '');
@@ -165,9 +192,9 @@ export default function ReportView({
                 logger.buttonClick('Back from Report', 'ReportView');
                 onBack();
               }}
-              className="inline-flex items-center text-sm text-blue-500 bg-white dark:bg-[#151722] border border-blue-100 px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors shadow-sm font-medium mb-2"
+              className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm mb-2"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="w-4 h-4" />
               <span>Back to Reports</span>
             </button>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{student.name}</h1>
@@ -310,17 +337,41 @@ export default function ReportView({
               {incidents.length > 0 ? (
                 <div className="space-y-5">
                   {incidents.map((incident: any, idx: number) => {
-                    const isRed = incident.type.toLowerCase().includes('red');
-                    const isYellow = incident.type.toLowerCase().includes('yellow') || incident.type.toLowerCase().includes('academic') || incident.type.toLowerCase().includes('behavioral');
+                    const categoryStyle = getCategoryStyle(incident.type);
                     return (
-                      <div key={idx} className="flex items-center space-x-4 group">
-                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 w-20 shrink-0">{incident.date}</span>
-                        <div className={`w-3 h-1 rounded-full ${isRed ? 'bg-red-500' : isYellow ? 'bg-amber-400' : 'bg-emerald-500'}`}></div>
-                        <div className={`px-3 py-1.5 rounded-lg text-[11px] font-bold ${isRed ? 'bg-red-50 text-red-600 border border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50' : isYellow ? 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50' : 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'}`}>
-                          {incident.type}
+                      <div key={idx} className="flex items-start gap-4 group p-3 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] rounded-xl transition-colors">
+                        <div className="flex flex-col text-left shrink-0 w-14 pt-0.5">
+                          <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{incident.date}</span>
+                          <span className="text-xs font-semibold text-gray-400">{incident.dayOfWeek}</span>
                         </div>
-                        <div className="flex-1 px-4 py-1.5 bg-gray-50 dark:bg-[#1b1e2c] rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 border border-gray-100 dark:border-[#262a3d] truncate">
-                          {incident.description}
+                        
+                        <div className="flex-1 flex flex-col gap-1 pr-4">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-bold text-slate-800 dark:text-white leading-tight">
+                              {incident.title}
+                            </h3>
+                          </div>
+                          {incident.description && incident.description.toLowerCase() !== (incident.title || '').toLowerCase() && (
+                            <p className="text-[13px] text-gray-500 dark:text-gray-400 leading-snug">
+                              {incident.description}
+                            </p>
+                          )}
+                          <div className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 mt-1">
+                            {incident.className} • {incident.teacherName}
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 pt-0.5">
+                          <div className={`px-2.5 py-1 rounded-full text-[11px] font-bold border flex items-center gap-1.5 ${
+                            incident.signalType === 'RED' 
+                              ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30'
+                              : incident.signalType === 'YELLOW'
+                              ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30'
+                              : 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30'
+                          }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${incident.signalType === 'RED' ? 'bg-red-500' : incident.signalType === 'YELLOW' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                            {incident.type}
+                          </div>
                         </div>
                       </div>
                     );

@@ -61,7 +61,7 @@ export default function ParentNotifyModal({
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-indigo-600" />
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Notify Parent of {studentName}
             </h2>
           </div>

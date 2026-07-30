@@ -20,7 +20,7 @@ export default function StudentInfoModal({ isOpen, onClose }: StudentInfoModalPr
               SR
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Sarah Williams</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Sarah Williams</h2>
               <p className="text-xs text-gray-500">Grade 10 - Period 3</p>
             </div>
           </div>
@@ -63,33 +63,33 @@ export default function StudentInfoModal({ isOpen, onClose }: StudentInfoModalPr
 
           {/* Current Issues */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4 text-sm">Current Issues</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-sm">Current Issues</h3>
             <div className="space-y-3">
               <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded">
                 <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0 mt-2"></div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">Academic Issues (1)</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Academic Issues (1)</p>
                   <p className="text-xs text-gray-500 mt-1">Missing homework assignments</p>
                 </div>
               </div>
               <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded">
                 <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0 mt-2"></div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">Behavioral Issues (1)</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Behavioral Issues (1)</p>
                   <p className="text-xs text-gray-500 mt-1">Off-task behavior in class</p>
                 </div>
               </div>
               <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded">
                 <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0 mt-2"></div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">Attendance (1)</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Attendance (1)</p>
                   <p className="text-xs text-gray-500 mt-1">Testing during instruction</p>
                 </div>
               </div>
               <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded">
                 <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0 mt-2"></div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">Testing Issues (1)</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Testing Issues (1)</p>
                   <p className="text-xs text-gray-500 mt-1">Low scores</p>
                 </div>
               </div>

@@ -317,6 +317,7 @@ export interface AdminStudentProfileBlock {
   unresolved_alerts: AdminStudentAlertRow[];
   recent_referrals: AdminStudentReferralRow[];
   recent_notes: ReportRecentNoteRow[];
+  flag_log: any[]; // Or import ReportFlagLogRow if available, but any[] is fine for now
 }
 
 // ─── 6. Counselor Escalation Log ──────────────────────────────────
@@ -900,6 +901,34 @@ export const generateAdminStudentReport = async (studentId: string, payload: any
   }
 };
 
+// ─── 15. School Overview ──────────────────────────────────────────
+
+export interface AdminSchoolOverviewStudentRow {
+  student_id: string;
+  first_name: string;
+  last_name: string;
+  grade_level: number;
+  classes: string[];
+  yellow_count: number;
+  red_count: number;
+  super_green_count: number;
+  absent_count: number;
+  risk_level: string;
+}
+
+export interface AdminSchoolOverviewResponse {
+  total_yellow: number;
+  total_red: number;
+  total_super_green: number;
+  total_absences: number;
+  students: AdminSchoolOverviewStudentRow[];
+}
+
+export const getAdminSchoolOverview = async (days: number): Promise<AdminSchoolOverviewResponse> => {
+  const res = await api.get('/api/v1/admin/school-overview', { params: { days } });
+  return res.data;
+};
+
 export interface AdminSearchResponse {
   teachers: Array<{
     id: string;
@@ -932,3 +961,12 @@ export const getAdminSearch = async (q: string): Promise<AdminSearchResponse> =>
   return res.data;
 };
 
+// --- Deletion & Unenrollment ---
+
+export const deactivateStudentAdmin = async (studentId: string): Promise<void> => {
+  await api.delete(`/api/v1/admin/students/${studentId}`);
+};
+
+export const unenrollStudentAdmin = async (classId: string, studentId: string): Promise<void> => {
+  await api.delete(`/api/v1/admin/classes/${classId}/students/${studentId}`);
+};

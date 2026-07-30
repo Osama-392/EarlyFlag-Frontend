@@ -56,7 +56,7 @@ export default function SignupForm() {
         <div className="flex justify-center">
           <CheckCircle size={48} className="text-green-600" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-800">Signup Successful!</h3>
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Signup Successful!</h3>
         <p className="text-gray-600">
           Your account has been created and is pending approval. Your school administrator will
           review your request soon. You'll receive an email when your account is approved.

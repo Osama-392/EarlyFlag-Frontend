@@ -33,8 +33,8 @@ export default function EmailCounselorModal({
     try {
       await sendCounselorReferral({
         student_id: studentId,
-        subject,
-        message,
+        referral_type: subject,
+        note: message,
       });
 
       setSuccess(true);
@@ -59,7 +59,7 @@ export default function EmailCounselorModal({
       <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             Email Counselor about {studentName}
           </h2>
           <button

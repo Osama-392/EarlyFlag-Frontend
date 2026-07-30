@@ -33,9 +33,9 @@ export default function TeacherLeaderboardPage() {
         <div>
           <button 
             onClick={() => router.back()}
-            className="flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-2"
+            className="inline-flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm mb-2"
           >
-            <ChevronLeft size={16} className="mr-1" />
+            <ChevronLeft size={16} />
             Back to Dashboard
           </button>
           <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">

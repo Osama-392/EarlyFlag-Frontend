@@ -56,7 +56,7 @@ export default function UploadStudentsModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Upload Roster PDF</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Upload Roster PDF</h2>
             <p className="text-sm text-gray-600 mt-1">Add new students to your class roster</p>
           </div>
           <button

@@ -3,22 +3,21 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Home, Users, BarChart3, FileText, Award, LogOut } from 'lucide-react';
+import { Home, Users, BarChart3, FileText, Award, LogOut, User, Settings, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/app/providers';
 import { useRouter, usePathname } from 'next/navigation';
 
 const menuItems = [
   { icon: Home, label: 'Dashboard', href: '/dashboard' },
-  { icon: Users, label: 'Classes', href: '/students' },
-  { icon: BarChart3, label: 'Analytics', href: '/analytics' },
+  { icon: Users, label: 'Classes', href: '/classes' },
   { icon: FileText, label: 'Reports', href: '/reports' },
-  { icon: Award, label: 'Recognition', href: '/recognition' },
 ];
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const isActive = (href: string) => {
     if (!pathname) return false;
@@ -76,23 +75,49 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      {/* User Info & Logout */}
-      <div className="p-4 border-t border-gray-200 dark:border-[#262a3d] space-y-3">
-        <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 dark:bg-[#1b1e2c]">
-          <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 font-medium flex-shrink-0">
-            {userInitials}
+      {/* User Info & Settings */}
+      <div className="p-4 border-t border-gray-200 dark:border-[#262a3d] relative">
+        {isUserMenuOpen && (
+          <div className="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-[#1b1e2c] rounded-lg shadow-xl border border-gray-200 dark:border-[#262a3d] overflow-hidden z-50">
+            <button
+              onClick={() => { router.push('/profile'); setIsUserMenuOpen(false); }}
+              className="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#202330] transition-colors text-left text-sm"
+            >
+              <User className="w-4 h-4" />
+              <span className="font-medium">Profile</span>
+            </button>
+            <button
+              onClick={() => { router.push('/settings'); setIsUserMenuOpen(false); }}
+              className="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#202330] transition-colors text-left text-sm"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="font-medium">Settings</span>
+            </button>
+            <div className="h-px bg-gray-200 dark:bg-[#262a3d]" />
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center space-x-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left text-sm"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="font-medium">Logout</span>
+            </button>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">{userName}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
-          </div>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-white hover:bg-red-500/20 hover:text-red-500 transition-colors"
+        )}
+
+        <button 
+          onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+          className="w-full flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-[#1b1e2c] hover:bg-gray-100 dark:hover:bg-[#202330] transition-colors text-left"
         >
-          <LogOut className="w-5 h-5" />
-          <span className="font-medium">Logout</span>
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 font-medium flex-shrink-0">
+              {userInitials}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">{userName}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
+            </div>
+          </div>
+          <ChevronUp className={`w-4 h-4 text-gray-400 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
         </button>
       </div>
     </aside>

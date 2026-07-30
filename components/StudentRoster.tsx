@@ -140,9 +140,9 @@ export default function StudentRoster() {
     <div className="max-w-6xl mx-auto space-y-6 pb-12" style={{ fontFamily: 'Inter, sans-serif' }}>
       {/* Back to Classes */}
       <div>
-        <Link
-          href="/students"
-          className="inline-flex items-center text-sm text-blue-500 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors"
+        <Link 
+          href="/classes"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Classes
@@ -152,7 +152,7 @@ export default function StudentRoster() {
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800" style={{ fontFamily: 'Playfair Display, serif' }}>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
             {classInfo ? classInfo.name : 'Student Roster'}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
@@ -160,12 +160,12 @@ export default function StudentRoster() {
               ? `Grade ${classInfo.grade_level} · ${classInfo.subject || ''} · ${filteredStudents.length} student${filteredStudents.length !== 1 ? 's' : ''}`
               : 'View or edit profile of any student'}
           </p>
-          {classId && <p className="text-xs text-gray-400 mt-2 font-mono bg-gray-100 dark:bg-[#1b1e2c] inline-block px-2 py-1 rounded">Class ID: {classId}</p>}
+
         </div>
         <div className="flex items-center space-x-3">
           <button 
             onClick={() => setIsBulkUploadOpen(true)}
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] text-slate-700 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors text-sm font-medium shadow-sm"
+            className="inline-flex items-center space-x-2 px-4 py-2 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] text-slate-700 dark:text-gray-300 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors text-sm font-medium shadow-sm"
           >
             <Upload className="w-4 h-4 text-gray-500 dark:text-gray-400" />
             <span>Upload Students</span>
@@ -210,13 +210,13 @@ export default function StudentRoster() {
       <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden mt-6">
         <div className="p-8">
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-slate-800">{classInfo ? classInfo.name : 'Loading Class...'}</h2>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">{classInfo ? classInfo.name : 'Loading Class...'}</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">Period {classInfo?.period || '—'}</p>
           </div>
 
           {loading ? (
             <div className="flex justify-center py-10">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-700"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-700 dark:border-gray-300"></div>
             </div>
           ) : filteredStudents.length === 0 ? (
             <div className="text-center py-10 text-gray-500 dark:text-gray-400">No students found.</div>
@@ -257,7 +257,7 @@ export default function StudentRoster() {
                       {/* Student Info */}
                       <div>
                         <div className="flex items-center gap-3">
-                          <p className="font-semibold text-slate-800">
+                          <p className="font-semibold text-slate-800 dark:text-white">
                             {student.first_name} {student.last_name}
                           </p>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor} tracking-wide uppercase`}>
@@ -270,23 +270,11 @@ export default function StudentRoster() {
 
                     {/* Actions Panel */}
                     <div className="flex items-center space-x-3">
-                      {/* Indicator Pills */}
-                      <div className="flex space-x-2 mr-2">
-                        <div className="flex items-center px-2 py-1 bg-amber-50 rounded text-xs font-bold text-amber-600 border border-amber-100">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
-                          {yellowCount}
-                        </div>
-                        <div className="flex items-center px-2 py-1 bg-red-50 rounded text-xs font-bold text-red-600 border border-red-100">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5"></span>
-                          {redCount}
-                        </div>
-                      </div>
-
                       {/* Action Buttons */}
                       {student.today_signal && (
                         <button
                           onClick={() => setSelectedSignalToEdit({ student, signal: student.today_signal })}
-                          className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-xs font-bold transition-colors border border-indigo-100/50 flex items-center gap-1"
+                          className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold transition-colors border border-indigo-100/50 dark:border-indigo-800/50 flex items-center gap-1"
                           title="Correct today's signal"
                         >
                           <Edit2 className="w-3 h-3" />
@@ -294,11 +282,11 @@ export default function StudentRoster() {
                         </button>
                       )}
                       <button
-                        onClick={() => router.push(`/students/${classId}/${student.id}`)}
-                        className="px-4 py-1.5 bg-gray-50 dark:bg-[#1b1e2c] hover:bg-gray-100 dark:bg-[#1b1e2c] border border-gray-200 dark:border-[#262a3d] text-slate-700 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ml-2"
+                        onClick={() => router.push(`/classes/${classId}/${student.id}`)}
+                        className="px-4 py-1.5 bg-gray-50 dark:bg-[#1b1e2c] hover:bg-gray-100 dark:hover:bg-black/20 border border-gray-200 dark:border-[#262a3d] text-slate-700 dark:text-gray-300 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ml-2"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        View Profile
+                        Profile
                       </button>
                     </div>
                   </div>

@@ -28,7 +28,7 @@ export default function RedFlagModal({ isOpen, onClose }: RedFlagModalProps) {
             <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center">
               <AlertCircle className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900">Red Flag – Urgent</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Red Flag – Urgent</h2>
           </div>
           <button
             onClick={onClose}
@@ -47,7 +47,7 @@ export default function RedFlagModal({ isOpen, onClose }: RedFlagModalProps) {
                 ET
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-900">Emma Thompson</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">Emma Thompson</p>
                 <p className="text-xs text-gray-500">Grade 10 - Period 3</p>
                 <span className="inline-block mt-2 px-2.5 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">
                   2 total flags
@@ -58,7 +58,7 @@ export default function RedFlagModal({ isOpen, onClose }: RedFlagModalProps) {
 
           {/* Category Selection */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
+            <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
               Category <span className="text-red-600">*</span>
             </label>
             <div className="grid grid-cols-2 gap-3">
@@ -80,7 +80,7 @@ export default function RedFlagModal({ isOpen, onClose }: RedFlagModalProps) {
 
           {/* Issue Description */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
+            <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
               What happened? <span className="text-red-600">*</span>
             </label>
             <textarea

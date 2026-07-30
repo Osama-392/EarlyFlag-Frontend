@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Search, ArrowLeft, AlertCircle, ChevronRight, Shield, BookOpen, Flag } from 'lucide-react';
-import { getAdminClassDrilldown, AdminClassDrilldownBlock } from '@/lib/adminDashboardService';
+import { Users, Search, ArrowLeft, AlertCircle, ChevronRight, Shield, BookOpen, Flag, Trash2 } from 'lucide-react';
+import { getAdminClassDrilldown, AdminClassDrilldownBlock, unenrollStudentAdmin } from '@/lib/adminDashboardService';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
+import { useToast } from '@/components/Toast';
 
 const getStatusFromScore = (score: number): 'critical' | 'at-risk' | 'on-track' => {
   if (score >= 6) return 'critical';
@@ -61,6 +63,8 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
   const [data, setData] = useState<AdminClassDrilldownBlock | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [studentToUnenroll, setStudentToUnenroll] = useState<any>(null);
+  const { showToast } = useToast();
 
   const fetchClassData = useCallback(async () => {
     try {
@@ -79,6 +83,21 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
   useEffect(() => {
     fetchClassData();
   }, [fetchClassData]);
+
+  const handleUnenrollStudent = async () => {
+    if (!studentToUnenroll) return;
+    
+    try {
+      await unenrollStudentAdmin(classId, studentToUnenroll.student_id);
+      showToast(`Unenrolled ${studentToUnenroll.first_name} from class`, 'success');
+      await fetchClassData();
+    } catch (err: any) {
+      console.error('Failed to unenroll student:', err);
+      showToast('Failed to unenroll student', 'error');
+    } finally {
+      setStudentToUnenroll(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -118,7 +137,7 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+    <div className="w-full max-w-[1600px] mx-auto space-y-8 pb-12">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@700;800&display=swap');
         @keyframes fadeSlideIn {
@@ -143,7 +162,7 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
       {/* Back */}
       <button
         onClick={() => router.push('/principal-students')}
-        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 dark:text-gray-400 bg-white dark:bg-[#151722] dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors shadow-sm"
+        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm"
       >
         <ArrowLeft size={16} /> Back to Classes
       </button>
@@ -214,10 +233,21 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
                   {student.first_name[0]}{student.last_name[0]}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white dark:text-white truncate">{student.first_name} {student.last_name}</h3>
-                  <p className="text-xs text-gray-400">{student.external_student_id}</p>
+                  <h3 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 truncate">{student.first_name} {student.last_name}</h3>
                 </div>
-                <ChevronRight size={16} className="text-gray-300 group-hover:text-gray-500 dark:text-gray-400 dark:text-gray-400 transition-colors flex-shrink-0" />
+                <div className="flex items-center space-x-1 flex-shrink-0">
+                  <ChevronRight size={16} className="text-gray-300 group-hover:text-gray-500 dark:text-gray-400 transition-colors" />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setStudentToUnenroll(student);
+                    }}
+                    className="p-1.5 text-gray-300 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    title="Remove from class"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
 
               {/* Badges */}
@@ -268,6 +298,15 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
           <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400 font-medium">{students.length === 0 ? 'No students enrolled in this class.' : 'No students match your search.'}</p>
         </div>
       )}
+
+      <ConfirmDeleteModal
+        isOpen={!!studentToUnenroll}
+        onClose={() => setStudentToUnenroll(null)}
+        onConfirm={handleUnenrollStudent}
+        title="Remove from Class"
+        description={`Are you sure you want to unenroll ${studentToUnenroll?.first_name} ${studentToUnenroll?.last_name} from this class?`}
+        confirmText="Remove"
+      />
     </div>
   );
 }

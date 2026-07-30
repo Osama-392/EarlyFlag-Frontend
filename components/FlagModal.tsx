@@ -44,9 +44,9 @@ export default function FlagModal({
           <div className="w-3 h-3 rounded-full bg-emerald-900" />
         </div>
       ),
-      studentBg: 'bg-slate-50',
+      studentBg: 'bg-slate-50 dark:bg-[#1b1e2c]',
       activeCategoryBg: 'bg-emerald-500 text-white border-emerald-500',
-      selectedReasonBg: 'bg-emerald-100 text-emerald-900 border-emerald-500 ring-1 ring-emerald-500 font-semibold',
+      selectedReasonBg: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-100 border-emerald-500 ring-1 ring-inset ring-emerald-500 font-semibold',
       reasons: [
         'Leadership',
         'Academic growth',
@@ -63,9 +63,9 @@ export default function FlagModal({
           <div className="w-3 h-3 rounded-full bg-emerald-800" />
         </div>
       ),
-      studentBg: 'bg-slate-50',
+      studentBg: 'bg-slate-50 dark:bg-[#1b1e2c]',
       activeCategoryBg: 'bg-emerald-400 text-white border-emerald-400',
-      selectedReasonBg: 'bg-emerald-100 text-emerald-900 border-emerald-500 ring-1 ring-emerald-500 font-semibold',
+      selectedReasonBg: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-100 border-emerald-500 ring-1 ring-inset ring-emerald-500 font-semibold',
       reasons: [],
       categories: ['default'],
     },
@@ -76,9 +76,9 @@ export default function FlagModal({
           <AlertTriangle className="w-4 h-4 text-amber-900" fill="currentColor" />
         </div>
       ),
-      studentBg: 'bg-[#f4f7fb]', // Light grayish blue from image
-      activeCategoryBg: 'bg-[#ffca4b] text-amber-900 border-[#ffca4b]', // Yellow from image
-      selectedReasonBg: 'bg-amber-100 text-amber-900 border-amber-400 ring-1 ring-amber-400 font-semibold',
+      studentBg: 'bg-[#f4f7fb] dark:bg-[#1b1e2c]',
+      activeCategoryBg: 'bg-[#ffca4b] text-amber-900 border-[#ffca4b]',
+      selectedReasonBg: 'bg-amber-100 dark:bg-amber-900/30 text-amber-900 dark:text-amber-100 border-amber-400 ring-1 ring-inset ring-amber-400 font-semibold',
       reasons: {
         academic: [
           'Missing assignment',
@@ -103,9 +103,9 @@ export default function FlagModal({
           <AlertTriangle className="w-4 h-4 text-white" fill="currentColor" />
         </div>
       ),
-      studentBg: 'bg-slate-50',
+      studentBg: 'bg-slate-50 dark:bg-[#1b1e2c]',
       activeCategoryBg: 'bg-red-500 text-white border-red-500',
-      selectedReasonBg: 'bg-rose-100 text-rose-900 border-rose-500 ring-1 ring-rose-500 font-semibold',
+      selectedReasonBg: 'bg-rose-100 dark:bg-rose-900/30 text-rose-900 dark:text-rose-100 border-rose-500 ring-1 ring-inset ring-rose-500 font-semibold',
       reasons: {
         academic: ['Cheating'],
         behavioral: [
@@ -125,9 +125,9 @@ export default function FlagModal({
           <div className="w-3 h-3 rounded-full bg-gray-600" />
         </div>
       ),
-      studentBg: 'bg-slate-50',
+      studentBg: 'bg-slate-50 dark:bg-[#1b1e2c]',
       activeCategoryBg: 'bg-gray-500 text-white border-gray-500',
-      selectedReasonBg: 'bg-gray-200 text-gray-900 border-gray-400 ring-1 ring-gray-400 font-semibold',
+      selectedReasonBg: 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white border-gray-400 ring-1 ring-inset ring-gray-400 font-semibold',
       reasons: [],
       categories: [],
     },
@@ -186,12 +186,12 @@ export default function FlagModal({
 
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-[#151722] rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="border-b border-gray-200 dark:border-[#262a3d] px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             {config.icon}
-            <h2 className="text-xl font-medium text-slate-800">{config.title}</h2>
+            <h2 className="text-xl font-medium text-slate-800 dark:text-white">{config.title}</h2>
           </div>
           <button
             onClick={() => {
@@ -212,7 +212,7 @@ export default function FlagModal({
               {student.initial}
             </div>
             <div>
-              <p className="font-medium text-slate-800 text-lg">{student.name}</p>
+              <p className="font-medium text-slate-800 dark:text-white text-lg">{student.name}</p>
               <p className="text-sm text-slate-500">
                 Grade {student.grade} • Period {student.period}
               </p>
@@ -221,8 +221,8 @@ export default function FlagModal({
 
           {/* Weekly Status History */}
           {apiStudent?.recent_history && (
-            <div className="mb-6 bg-slate-50 border border-slate-100 rounded-xl p-4">
-              <p className="text-[13px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
+            <div className="mb-6 bg-slate-50 dark:bg-[#1b1e2c] border border-slate-100 dark:border-[#262a3d] rounded-xl p-4">
+              <p className="text-[13px] font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-3">
                 7-Day Flag History
               </p>
               <div className="flex justify-between items-center">
@@ -231,34 +231,34 @@ export default function FlagModal({
                   date.setDate(date.getDate() - (6 - i));
                   const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
                   const dateStr = localDate.toISOString().split('T')[0];
-                  
+
                   // Find signal on this date
                   const daySignal = apiStudent.recent_history?.find(s => s.signal_date === dateStr);
                   const status = daySignal?.signal_type || 'present';
 
                   // Determine colors based on status
-                  let statusBg = 'bg-slate-100 text-slate-450';
-                  let statusDot = 'bg-slate-300';
+                  let statusBg = 'bg-slate-100 dark:bg-slate-800 text-slate-450 dark:text-slate-400';
+                  let statusDot = 'bg-slate-300 dark:bg-slate-600';
                   let label = 'Present';
 
                   if (status === 'red') {
-                    statusBg = 'bg-rose-50 border border-rose-100 text-rose-700';
+                    statusBg = 'bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 text-rose-700 dark:text-rose-400';
                     statusDot = 'bg-rose-500';
                     label = 'Red';
                   } else if (status === 'yellow') {
-                    statusBg = 'bg-amber-50 border border-amber-100 text-amber-800';
+                    statusBg = 'bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 text-amber-800 dark:text-amber-400';
                     statusDot = 'bg-amber-400';
                     label = 'Yellow';
                   } else if (status === 'super_green') {
-                    statusBg = 'bg-emerald-50 border border-emerald-100 text-emerald-700';
+                    statusBg = 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-400';
                     statusDot = 'bg-emerald-600';
                     label = 'S. Green';
                   } else if (status === 'absent') {
-                    statusBg = 'bg-gray-100 border border-gray-200 text-gray-600';
+                    statusBg = 'bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400';
                     statusDot = 'bg-gray-500';
                     label = 'Absent';
                   } else if (status === 'present' || status === 'green') {
-                    statusBg = 'bg-emerald-50/50 border border-emerald-100/50 text-emerald-600';
+                    statusBg = 'bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100/50 dark:border-emerald-900/20 text-emerald-600 dark:text-emerald-500';
                     statusDot = 'bg-emerald-400';
                     label = 'Present';
                   }
@@ -267,12 +267,14 @@ export default function FlagModal({
                   const localNow = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000));
                   const isToday = dateStr === localNow.toISOString().split('T')[0];
 
+                  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
                   return (
                     <div key={dateStr} className="flex flex-col items-center gap-1.5">
                       <span className={`text-[10px] font-bold ${isToday ? 'text-blue-600' : 'text-slate-400'}`}>
                         {dayName}
                       </span>
-                      <div className={`w-8 h-8 rounded-lg ${statusBg} flex items-center justify-center relative group cursor-help`} title={`${dayName}: ${label}`}>
+                      <div className={`w-8 h-8 rounded-lg ${statusBg} flex items-center justify-center relative group cursor-help ${isWeekend ? 'opacity-40 grayscale' : ''}`} title={`${dayName}: ${label}`}>
                         <div className={`w-2.5 h-2.5 rounded-full ${statusDot}`} />
                         {/* Tooltip */}
                         <div className="absolute bottom-full mb-1 hidden group-hover:block bg-slate-800 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap z-10 shadow-md">
@@ -288,41 +290,43 @@ export default function FlagModal({
 
           {/* Reason Selection */}
           {typeof config.reasons === 'object' && 'academic' in config.reasons ? (
-            config.categories.map((cat, idx) => {
-              const catReasons = (config.reasons as any)[cat] || [];
-              if (catReasons.length === 0) return null;
-              return (
-                <div key={cat} className={`${idx > 0 ? 'mt-8 pt-6 border-t border-gray-100' : 'mb-6'}`}>
-                  <p className="text-[16px] font-bold text-[#1e293b] mb-4 capitalize" style={{ fontFamily: 'Sora, sans-serif' }}>{cat} Flag(s)</p>
-                  <div className="flex flex-wrap gap-2.5">
-                    {catReasons.map((reason: string) => (
-                      <button
-                        key={reason}
-                        onClick={() => toggleReason(reason, cat)}
-                        className={`px-4 py-2.5 rounded-full text-sm transition-all font-medium border shadow-sm hover:shadow ${selectedReasons.includes(reason)
-                            ? (config as any).selectedReasonBg || 'bg-[#f8fafc] text-[#0f172a] border-[#cbd5e1] ring-1 ring-[#cbd5e1]'
-                            : 'bg-white text-[#64748b] border-[#e2e8f0] hover:border-[#cbd5e1]'
-                          }`}
-                      >
-                        {reason}
-                      </button>
-                    ))}
+            <div className="mb-6 space-y-6">
+              {config.categories.map((cat, idx) => {
+                const catReasons = (config.reasons as any)[cat] || [];
+                if (catReasons.length === 0) return null;
+                return (
+                  <div key={cat} className={`${idx > 0 ? 'pt-6 border-t border-gray-100 dark:border-[#262a3d]' : ''}`}>
+                    <p className="text-[16px] font-bold text-[#1e293b] dark:text-white mb-4 capitalize" style={{ fontFamily: 'Sora, sans-serif' }}>{cat} Flag(s)</p>
+                    <div className="flex flex-wrap gap-2.5">
+                      {catReasons.map((reason: string) => (
+                        <button
+                          key={reason}
+                          onClick={() => toggleReason(reason, cat)}
+                          className={`px-4 py-2.5 rounded-full text-sm transition-all font-medium border shadow-sm hover:shadow ${selectedReasons.includes(reason)
+                            ? (config as any).selectedReasonBg || 'bg-[#f8fafc] dark:bg-slate-800 text-[#0f172a] dark:text-white border-[#cbd5e1] dark:border-slate-600 ring-1 ring-inset ring-[#cbd5e1] dark:ring-slate-600'
+                            : 'bg-white dark:bg-[#1b1e2c] text-[#64748b] dark:text-gray-400 border-[#e2e8f0] dark:border-slate-700 hover:border-[#cbd5e1] dark:hover:border-slate-500'
+                            }`}
+                        >
+                          {reason}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           ) : (
             Array.isArray(config.reasons) && config.reasons.length > 0 && (
               <div className="mb-6">
-                <p className="text-[15px] font-medium text-slate-700 mb-3">Select reason(s)</p>
+                <p className="text-[15px] font-medium text-slate-700 dark:text-gray-200 mb-3">Select reason(s)</p>
                 <div className="flex flex-wrap gap-2.5">
                   {config.reasons.map((reason: string) => (
                     <button
                       key={reason}
                       onClick={() => toggleReason(reason)}
                       className={`px-4 py-2 rounded-full text-sm transition-all font-medium border ${selectedReasons.includes(reason)
-                          ? (config as any).selectedReasonBg || 'bg-slate-700 text-white border-slate-700'
-                          : 'bg-white text-slate-500 border-gray-200 hover:border-gray-300'
+                        ? (config as any).selectedReasonBg || 'bg-slate-700 text-white border-slate-700'
+                        : 'bg-white dark:bg-[#1b1e2c] text-slate-500 dark:text-gray-400 border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-500'
                         }`}
                     >
                       {reason}
@@ -335,18 +339,18 @@ export default function FlagModal({
 
           {/* Warning Message */}
           {flagType === 'yellow' && (
-            <div className="border border-amber-200 bg-[#fffdf0] rounded-lg p-3 flex items-center space-x-2 mb-2">
-              <span className="text-amber-600 font-bold text-sm">!</span>
-              <p className="text-sm text-amber-700">
+            <div className="border border-amber-200 dark:border-amber-900/30 bg-[#fffdf0] dark:bg-amber-900/10 rounded-lg p-3 flex items-center space-x-2 mb-2">
+              <span className="text-amber-600 dark:text-amber-500 font-bold text-sm">!</span>
+              <p className="text-sm text-amber-700 dark:text-amber-500">
                 3 more flags → Red urgent
               </p>
             </div>
           )}
 
           {selectedReasons.length > 0 && flagType === 'red' && (
-            <div className="border border-red-200 bg-red-50 rounded-lg p-3 flex items-center space-x-2 mb-2">
-              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
-              <p className="text-sm text-red-700">
+            <div className="border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 rounded-lg p-3 flex items-center space-x-2 mb-2">
+              <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-500 flex-shrink-0" />
+              <p className="text-sm text-red-700 dark:text-red-500">
                 This will trigger an <span className="font-semibold">admin notification</span>
               </p>
             </div>
@@ -355,26 +359,26 @@ export default function FlagModal({
           {/* Optional Notes (Super Green, Yellow & Red) */}
           {(flagType === 'super-green' || flagType === 'yellow' || flagType === 'red') && (
             <div className="mt-4">
-              <label className="text-[15px] font-medium text-slate-700 mb-2 block">Notes <span className="text-slate-400 font-normal">(optional)</span></label>
+              <label className="text-[15px] font-medium text-slate-700 dark:text-gray-200 mb-2 block">Notes <span className="text-slate-400 font-normal">(optional)</span></label>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder={flagType === 'super-green' ? 'Add details about this recognition...' : 'Add context for this flag...'}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-transparent resize-none"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-[#1b1e2c] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-transparent resize-none"
               />
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-[#262a3d] flex items-center justify-between">
           <button
             onClick={() => {
               logger.buttonClick('Cancel Flag Modal', 'FlagModal');
               onClose();
             }}
-            className="px-4 py-2 text-slate-600 font-medium hover:text-slate-800 transition-colors"
+            className="px-4 py-2 text-slate-600 font-medium hover:text-slate-800 dark:text-white transition-colors"
           >
             Cancel
           </button>
@@ -382,8 +386,8 @@ export default function FlagModal({
             onClick={handleSubmit}
             disabled={hasReasons && selectedReasons.length === 0}
             className={`px-6 py-2 rounded-lg font-medium transition-colors ${(hasReasons && selectedReasons.length === 0)
-                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                : 'bg-slate-700 text-white hover:bg-slate-800'
+              ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+              : 'bg-slate-700 text-white hover:bg-slate-800'
               }`}
           >
             Submit Flag

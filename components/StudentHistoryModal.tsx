@@ -30,7 +30,7 @@ export default function StudentHistoryModal({
       case 'red':
         return 'bg-red-50 border-red-200 text-red-800';
       default:
-        return 'bg-gray-50 border-gray-200 text-gray-800';
+        return 'bg-gray-50 border-gray-200 text-gray-800 dark:text-white';
     }
   };
 
@@ -53,7 +53,7 @@ export default function StudentHistoryModal({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Signal History</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Signal History</h2>
             <p className="text-sm text-gray-600">{studentName}</p>
           </div>
           <button

@@ -37,7 +37,7 @@ export default function EditClassModal({
       <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Edit Class</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Class</h2>
           <button
             onClick={onClose}
             className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
