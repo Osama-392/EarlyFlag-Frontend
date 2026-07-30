@@ -7,7 +7,7 @@ import { useToast } from '@/components/Toast';
 import FlagModal from '@/components/FlagModal';
 import { useClasses } from '@/lib/useClasses';
 import { getClassStudents, logSignals, getAvailableSignalDates, getIncompleteQuickLogs, Student as ApiStudent, IncompleteLogSession } from '@/lib/studentService';
-import { cacheInvalidate } from '@/lib/dataCache';
+
 
 interface Student {
   id: string;
@@ -41,9 +41,10 @@ interface LogEntry {
 interface QuickLogPageProps {
   onCancel?: () => void;
   initialClassId?: string;
+  targetDate?: string;
 }
 
-export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageProps = {}) {
+export default function QuickLogPage({ onCancel, initialClassId, targetDate }: QuickLogPageProps = {}) {
   const { showToast } = useToast();
   const { classes, loading: classesLoading } = useClasses();
   const [activeClassId, setActiveClassId] = useState<string | null>(initialClassId || null);
@@ -53,8 +54,15 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string>(() => new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(targetDate || (() => new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0]));
   const [incompleteSessions, setIncompleteSessions] = useState<IncompleteLogSession[]>([]);
+
+  // If targetDate changes from props, update the state
+  useEffect(() => {
+    if (targetDate) {
+      setSelectedDate(targetDate);
+    }
+  }, [targetDate]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [logData, setLogData] = useState<Record<string, LogEntry>>({});
@@ -342,7 +350,7 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
         showToast(`${signalsToLog.length} signal${signalsToLog.length > 1 ? 's' : ''} saved successfully`, 'success');
         setSaveSuccess(true);
         // Invalidate cache so dashboard & classes refresh on next visit
-        cacheInvalidate();
+        // cache cleared (no-op — cache layer removed)
         // Notify other components (like Dashboard) to refresh their data
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new Event('dashboard-refresh'));
@@ -354,6 +362,11 @@ export default function QuickLogPage({ onCancel, initialClassId }: QuickLogPageP
         const errorMsg = err?.response?.data?.detail?.[0]?.msg || err?.response?.data?.detail || 'Failed to save signals. Please try again.';
         showToast(errorMsg, 'error');
       });
+
+    // Notify Dashboard to instantly hide this class/date optimistically
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('class-logged', { detail: { classId: activeClassId, date: targetDate } }));
+    }
 
     // Close immediately without waiting for the save to complete
     if (onCancel) {

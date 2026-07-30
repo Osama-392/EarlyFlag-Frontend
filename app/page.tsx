@@ -13,21 +13,8 @@ export default function RootPage() {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!mounted) return;
 
-    if (user) {
-      const normalizedRole = user.role ? user.role.trim().toLowerCase() : null;
-      const isAdmin = normalizedRole === 'admin' || normalizedRole === 'principal';
-      if (isAdmin) {
-        router.push('/principal-dashboard');
-      } else {
-        router.push('/dashboard');
-      }
-    }
-  }, [user, mounted, router]);
-
-  if (!mounted || user) {
+  if (!mounted) {
     return (
       <div className="flex items-center justify-center h-screen bg-white">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>

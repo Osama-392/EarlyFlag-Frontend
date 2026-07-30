@@ -98,10 +98,10 @@ export default function AddClassModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4 overflow-visible relative">
+      <div className="bg-white dark:bg-[#151722] rounded-lg shadow-lg max-w-md w-full mx-4 overflow-visible relative">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Add a Class</h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-[#262a3d]">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add a Class</h2>
           <button
             onClick={onClose}
             className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
@@ -113,7 +113,7 @@ export default function AddClassModal({
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Class Name *
             </label>
             <input
@@ -123,13 +123,13 @@ export default function AddClassModal({
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full px-3 py-2 border dark:bg-[#1b1e2c] dark:text-white border-gray-300 dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
               placeholder="e.g., AP Calculus BC"
             />
           </div>
 
           <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Subject *
             </label>
             <button
@@ -138,8 +138,8 @@ export default function AddClassModal({
                 setIsSubjectOpen(!isSubjectOpen);
                 setIsGradeOpen(false);
               }}
-              className={`w-full px-3 py-2 border rounded-lg flex items-center justify-between text-sm transition-all bg-white text-left ${
-                isSubjectOpen ? 'border-teal-500 ring-2 ring-teal-100' : 'border-gray-300 hover:border-gray-400'
+              className={`w-full px-3 py-2 border dark:bg-[#1b1e2c] dark:text-white rounded-lg flex items-center justify-between text-sm transition-all bg-white dark:bg-[#1b1e2c] text-left ${
+                isSubjectOpen ? 'border-teal-500 ring-2 ring-teal-100' : 'border-gray-300 dark:border-[#262a3d] hover:border-gray-400 dark:hover:border-gray-500'
               }`}
             >
               {(() => {
@@ -152,12 +152,12 @@ export default function AddClassModal({
                       <div className={`w-5 h-5 rounded ${selectedObj.bgColor} flex items-center justify-center text-white`}>
                         {selectedObj.icon}
                       </div>
-                      <span className="text-gray-900 font-medium">{selectedObj.name}</span>
+                      <span className="text-gray-900 dark:text-white font-medium">{selectedObj.name}</span>
                     </div>
                   );
                 }
                 if (formData.subject) {
-                  return <span className="text-gray-900 font-medium">{formData.subject}</span>;
+                  return <span className="text-gray-900 dark:text-white font-medium">{formData.subject}</span>;
                 }
                 return <span className="text-gray-400">Select a subject</span>;
               })()}
@@ -170,7 +170,7 @@ export default function AddClassModal({
                   className="fixed inset-0 z-40" 
                   onClick={() => setIsSubjectOpen(false)} 
                 />
-                <div className="absolute left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-[260px] overflow-y-auto p-2 divide-y divide-gray-100">
+                <div className="absolute left-0 right-0 mt-1.5 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] rounded-xl shadow-xl z-50 max-h-[260px] overflow-y-auto p-2 divide-y divide-gray-100 dark:divide-[#262a3d]">
                   {SUBJECT_GROUPS.map((group) => (
                     <div key={group.group} className="py-2 first:pt-1 last:pb-1">
                       <div className="px-3 pb-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
@@ -188,7 +188,7 @@ export default function AddClassModal({
                                 setIsSubjectOpen(false);
                               }}
                               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors text-left text-sm ${
-                                isSelected ? 'bg-teal-50 text-teal-900 font-semibold' : 'hover:bg-gray-50 text-gray-700 font-medium'
+                                isSelected ? 'bg-teal-50 dark:bg-teal-900/30 text-teal-900 dark:text-teal-400 font-semibold' : 'hover:bg-gray-50 dark:hover:bg-[#1b1e2c] text-gray-700 dark:text-gray-300 dark:text-gray-300 font-medium'
                               }`}
                             >
                               <div className="flex items-center gap-3">
@@ -210,7 +210,7 @@ export default function AddClassModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Period *
             </label>
             <input
@@ -222,13 +222,13 @@ export default function AddClassModal({
               onChange={(e) =>
                 setFormData({ ...formData, period: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full px-3 py-2 border dark:bg-[#1b1e2c] dark:text-white border-gray-300 dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
               placeholder="1-8"
             />
           </div>
 
           <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Grade Level *
             </label>
             <button
@@ -237,14 +237,14 @@ export default function AddClassModal({
                 setIsGradeOpen(!isGradeOpen);
                 setIsSubjectOpen(false);
               }}
-              className={`w-full px-3 py-2 border rounded-lg flex items-center justify-between text-sm transition-all bg-white text-left ${
-                isGradeOpen ? 'border-orange-500 ring-2 ring-orange-100' : 'border-gray-300 hover:border-gray-400'
+              className={`w-full px-3 py-2 border dark:bg-[#1b1e2c] dark:text-white rounded-lg flex items-center justify-between text-sm transition-all bg-white dark:bg-[#1b1e2c] text-left ${
+                isGradeOpen ? 'border-orange-500 ring-2 ring-orange-100' : 'border-gray-300 dark:border-[#262a3d] hover:border-gray-400 dark:hover:border-gray-500'
               }`}
             >
               {(() => {
                 const selectedGrade = GRADE_OPTIONS.find(g => g.value === formData.gradeLevel);
                 if (selectedGrade) {
-                  return <span className="text-gray-900 font-medium">{selectedGrade.label}</span>;
+                  return <span className="text-gray-900 dark:text-white font-medium">{selectedGrade.label}</span>;
                 }
                 return <span className="text-gray-400">Select grade level</span>;
               })()}
@@ -257,7 +257,7 @@ export default function AddClassModal({
                   className="fixed inset-0 z-40" 
                   onClick={() => setIsGradeOpen(false)} 
                 />
-                <div className="absolute left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-[200px] overflow-y-auto p-1.5 space-y-0.5">
+                <div className="absolute left-0 right-0 mt-1.5 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] rounded-xl shadow-xl z-50 max-h-[200px] overflow-y-auto p-1.5 space-y-0.5">
                   {GRADE_OPTIONS.map((grade) => {
                     const isSelected = formData.gradeLevel === grade.value;
                     return (
@@ -269,7 +269,7 @@ export default function AddClassModal({
                           setIsGradeOpen(false);
                         }}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors text-left text-sm ${
-                          isSelected ? 'bg-orange-50 text-orange-900 font-semibold' : 'hover:bg-gray-50 text-gray-700 font-medium'
+                          isSelected ? 'bg-orange-50 text-orange-900 font-semibold' : 'hover:bg-gray-50 dark:hover:bg-[#1b1e2c] text-gray-700 dark:text-gray-300 dark:text-gray-300 font-medium'
                         }`}
                       >
                         <span>{grade.label}</span>
@@ -284,10 +284,10 @@ export default function AddClassModal({
 
           {/* Teaching Days */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               What days do you teach this class? <span className="text-red-500">*</span>
             </label>
-            <div className="w-full px-4 py-3 border border-gray-300 rounded-lg flex items-center justify-between bg-white shadow-sm">
+            <div className="w-full px-4 py-3 border border-gray-300 dark:border-[#262a3d] rounded-lg flex items-center justify-between bg-white shadow-sm">
               {DAYS_OF_WEEK.map((day) => {
                 const isChecked = formData.teachingDays.includes(day.id);
                 return (
@@ -306,9 +306,9 @@ export default function AddClassModal({
                             : [...prev.teachingDays, day.id],
                         }));
                       }}
-                      className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                      className="w-4 h-4 rounded border-gray-300 dark:border-[#262a3d] text-teal-600 focus:ring-teal-500 cursor-pointer"
                     />
-                    <span className="text-sm font-medium text-gray-700">{day.label}</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{day.label}</span>
                   </label>
                 );
               })}
@@ -316,11 +316,11 @@ export default function AddClassModal({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
+          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-[#262a3d]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium"
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] rounded-lg transition-colors font-medium"
             >
               Cancel
             </button>

@@ -5,18 +5,20 @@ import { ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
 import ClassCard from '@/components/ClassCard';
 import ClassSetupModal from '@/components/ClassSetupModal';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import { useClasses } from '@/lib/useClasses';
-import { Class, CreateClassRequest } from '@/lib/classService';
+import { Class, CreateClassRequest, deleteClassTeacher } from '@/lib/classService';
 
 interface GradedClasses {
   [key: string]: Class[];
 }
 
 export default function ClassesPage() {
-  const { classes: apiClasses, loading, error, addClass } = useClasses();
+  const { classes: apiClasses, loading, error, addClass, setClasses: setApiClasses } = useClasses();
   const [classes, setClasses] = useState<GradedClasses>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  const [classToDelete, setClassToDelete] = useState<Class | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
 
   // Transform API classes to grouped format
@@ -86,6 +88,18 @@ export default function ClassesPage() {
     }
   };
 
+  const handleDeleteClass = async () => {
+    if (!classToDelete) return;
+    
+    try {
+      await deleteClassTeacher(classToDelete.id);
+      setApiClasses((prev) => prev.filter(c => c.id !== classToDelete.id));
+      setClassToDelete(null);
+    } catch (err: any) {
+      console.error('Failed to delete class:', err);
+    }
+  };
+
   const sortedGrades = Object.keys(classes).sort((a, b) => {
     const aNum = parseInt(a);
     const bNum = parseInt(b);
@@ -102,15 +116,15 @@ export default function ClassesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-[1600px] mx-auto space-y-6 pb-12">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link
             href="/"
-            className="inline-flex items-center text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm"
           >
-            <ArrowLeft className="w-4 h-4 mr-1" />
+            <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
           </Link>
         </div>
@@ -149,6 +163,7 @@ export default function ClassesPage() {
                     key={cls.id}
                     classData={cls}
                     onEdit={handleEditClass}
+                    onDelete={setClassToDelete}
                   />
                 ))}
               </div>
@@ -173,6 +188,15 @@ export default function ClassesPage() {
         onSave={handleSaveClass}
         isEdit={!!selectedClass}
         error={modalError}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={!!classToDelete}
+        onClose={() => setClassToDelete(null)}
+        onConfirm={handleDeleteClass}
+        title="Delete Class"
+        description={`Are you sure you want to delete ${classToDelete?.name}? This action will remove the class and unenroll all students in it. It cannot be undone.`}
+        confirmText="Delete Class"
       />
     </div>
   );

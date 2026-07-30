@@ -1,62 +1,35 @@
-# Changelog
+# Frontend Changelog (July 24 - July 30, 2026)
 
-All notable changes to the Frontend project are documented in this file.
+This changelog covers the major frontend work, refactoring, and feature additions completed over the last week.
 
-## [2026-06-23]
+## 🚀 Major Features & Workflows
 
-### Added
-- **Global Dark Mode**: Implemented comprehensive dark mode (Night Mode) support across the entire Teacher and Principal/Admin dashboards and all sub-pages (Classes, Reports, Student Profiles, Analytics, etc.).
-- **Weekly Flag Lookback History**: Integrated a weekly status visual in the Quick Log / student flag modal showing historic daily statuses (super green, green, yellow, red, absent) for the active week.
-- **Department Overview Risk Metric**: Redesigned the Department Overview display to compute and visualize a weighted Risk Score utilizing red, yellow, and super green counts, complete with progress bar indicators.
-- **Today (1d) Range Integration**: Enabled `1d` date range selection for reports and dashboards on the frontend.
-- **Today's Class Summary Banner**: Added a summary dashboard card/bar at the top of the Quick Log page showing real-time totals for each signal status and a visual logging completion percentage bar.
+### 1. Administration Dashboard & School Overview
+- **School Overview Engine:** Built the `SchoolOverviewPage.tsx` to handle school-wide analytical filtering. Added quick-filters for High Risk, Medium Risk, Super Green, and Absent students.
+- **Performance Optimization:** Completely overhauled the School Overview rendering engine using React's `useTransition` to prevent UI freezing during massive table re-renders, and added subtle opacity loading states to give immediate visual feedback during network fetches.
+- **Admin Referrals:** Created `AdminReferralsList.tsx` to track and manage student referrals seamlessly within the principal dashboard.
 
-### Changed
-- **Dashboard Styling**: Updated the Teacher and Principal Sidebars with a sleek dark header design, responsive logo placement, and bold orange active-state highlighting.
-- **Principal Dashboard Layout**: Repositioned the Recommendations block below the Department Overview and restyled it as "School Insights" with contextual icons and updated typography to match the sleek dark theme.
-- **Report Generator Modal**: Forced a strict light-mode theme for the Teacher Report Generator popup to ensure input fields and text remain readable regardless of the user's global dark mode settings.
-- **Service Schema Mapping**: Updated `lib/adminDashboardService.ts` to include `super_green_count` for subject and department schemas.
+### 2. Parent Communication & Email System
+- **Dynamic Email Modal:** Created `ParentEmailTemplateModal.tsx` to streamline parent communications for teachers and admins.
+- **Admin Specific Templates:** Added highly dynamic `admin_concern` and `admin_commendation` templates to `emailTemplates.ts`.
+- **Zero-Latency Data Injection:** Refactored the email generation pipeline so that a student's recent flag history is pre-fetched and instantly populated into the email templates without any loading spinners or delays.
 
-## [2026-06-19]
+### 3. Student Profiles & UI Polish
+- **Admin Student Profile:** Implemented `AdminStudentProfile.tsx` for deep-dive administrative views into student timelines and behavior.
+- **Readability & Styling:** Improved typography across the application, swapped out dark serif fonts for clean sans-serif tracking, and added proper auto-capitalization for student names.
+- **Clean UI Initiative:** scrubbed all internal system UUIDs (e.g., `student-6d77...`) from the UI across the `PrincipalReportsPage`, `PrincipalClassRoster`, and Student Profiles. The UI now relies entirely on clean `Grade` and Name displays.
+- **Navigation:** Refined navigation headers and replaced generic arrows with styled "Back" buttons for a more app-like feel.
 
-### Added
-- **Department Overview**: Added a side-by-side "Department Overview" panel next to the Admin Dashboard Heatmap, pulling real-time aggregate data and trend arrows (Vs Last Week) directly from the backend.
-- **Teacher Dashboard 7-Day Context**: Integrated a 7-day signal lookback visual directly within the `QuickLogPage` UI to provide teachers with immediate context on recent student flags before submitting a new one.
+### 4. Reporting & Exports
+- **Principal Reports Hub:** Built out the `PrincipalReportsPage.tsx`, aggregating Super Green Recognition lists, Student Reports, and Teacher Reports into a single analytical hub.
 
-### Changed
-- **Admin Dashboard Layout**: Redesigned the Classroom Heat Map from a grade-level grouped list into an interactive, responsive grid of cards featuring dynamic Subject filtering tabs ("Math", "English", etc.) derived directly from backend metadata.
+## 🧹 Refactoring & Technical Debt
 
-## [2026-06-18]
+- **Component Architecture Shift:** Executed a massive cleanup of obsolete, redundant, or placeholder pages to simplify the routing structure. 
+  - *Removed:* `AnalyticsPage.tsx`, `RecognitionPage.tsx`, `RecentActivity.tsx`, `StudentProfilePage.tsx`, `FlagsPage.tsx`, `ModalsDemo.tsx`, and various fragmented stat card components.
+- **Consolidated Modals:** Centralized critical actions into reusable modals like `ConfirmDeleteModal.tsx` and `SendAdminModal.tsx`.
+- **Theme & Colors:** Moved color tokens and logic into `categoryColors.ts` for unified styling.
 
-### Added
-- **Admin Student Reports**: Admins can now generate and view complete, school-wide student reports via the "Student Reports" tab.
-- **"Today" Date Filter**: Added a new "Today" (1d) range option to the Admin Student, Teacher, and Grade Reports, allowing easy single-day filtering.
-
-### Changed
-- **Admin Class Roster UI**: Completely redesigned the `PrincipalClassRoster` UI into a polished, responsive 3-column card grid with status-colored top borders, color-coded avatar rings, inline badges, and signal dots.
-- **Dynamic Status Badges**: Fixed an issue where the report "Status Active" badge was hardcoded to red; it now adapts dynamically to Red, Yellow, or Super Green based on the student's actual flag data.
-- **Signal Count Colors**: Updated the color logic across the platform for better clarity:
-  - "Present" signals now display as light green (`bg-emerald-400`).
-  - "Super Green" signals now display as dark green (`bg-emerald-600`).
-- **Principal Reports Page**: Removed the "Counselor Escalation Log" and set "Super Green Export" as the default tab. Removed the "Orange" text from the classroom heatmap legend. Fixed TypeScript compilation errors by cleaning up all dead code, unused imports, and state variables related to the removed referrals log.
-
-## [2026-06-12]
-
-### Added
-- **End-of-Day QuickLog Reminder**: After 2 PM (school timezone), unlogged classes float to the top of the dashboard with an urgent sunset-gradient banner. Each class card is clickable and opens the QuickLog flow pre-selected to that class.
-- **Deep-link QuickLog to Specific Class**: `QuickLogPage` and `QuickLogModal` now accept an `initialClassId` prop to launch directly into logging for a specific class.
-
-### Changed
-- **Class Logging Status Sort**: Unlogged classes now sort to the top of the "Today's Class Logging Status" list at all times, with orange highlighting during end-of-day hours.
-- **Class Logging Clickable**: Unlogged class rows are now clickable, launching the QuickLog modal for that class.
-
-## [2026-06-11]
-
-### Added
-- **3-Day Window & Signal Backlogging**: Added support to choose past dates (up to 3 days) to backfill, view, or correct classroom quick logs.
-- **Multiple Concurrent Flags**: Integrated support for multiple flags per student per day (e.g., both Academic and Behavioral flags simultaneously).
-- **Edit Quick Log Mode**: Updated the Quick Log interface (`components/QuickLogPage.tsx`) to retrieve, display, and edit previously saved/submitted signals.
-
-### Changed
-- **Flag and Edit Modals**: Refactored `components/FlagModal.tsx` and `components/EditSignalModal.tsx` to handle multi-flag selections and editing states.
-- **API Client Mapping**: Updated frontend API clients (`lib/studentService.ts` and `lib/dashboardService.ts`) to expect flat arrays rather than nested wrapper objects for incomplete quick logs (`getIncompleteQuickLogs`) and unfinished morning brief alerts (`getUnfinishedAlerts`), matching the backend response structures.
+## 🛠 Active Branches & Status
+- **Current Branch:** `feat/admin_tchr_search`
+- All frontend changes are currently uncommitted locally. Ready for staging and commit.

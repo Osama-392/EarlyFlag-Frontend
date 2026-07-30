@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getTeacherClasses, createClass, Class, CreateClassRequest } from '@/lib/classService';
 import { getTeacherDashboard } from '@/lib/dashboardService';
-import { withCache, CACHE_KEYS } from '@/lib/dataCache';
 
 export const useClasses = () => {
   const [classes, setClasses] = useState<Class[]>([]);
@@ -15,31 +14,26 @@ export const useClasses = () => {
         setLoading(true);
         setError(null);
         
-        const finalClasses = await withCache<Class[]>(
-          CACHE_KEYS.TEACHER_CLASSES,
-          async () => {
-            // Fetch classes and dashboard concurrently. 
-            // By using getTeacherDashboard(), we hook into the promise cache, avoiding 429 errors.
-            const [classesData, dashboardData] = await Promise.all([
-              getTeacherClasses(),
-              getTeacherDashboard().catch(() => null)
-            ]);
+        // Fetch classes first so the UI loads instantly
+        const classesData = await getTeacherClasses();
+        setClasses(classesData);
+        setLoading(false); // Stop loading state as soon as classes are ready!
 
-            // Merge student_count_active from dashboard if available
-            if (dashboardData && dashboardData.classes) {
-              return classesData.map(cls => {
-                const dashClass = dashboardData.classes.find((c: any) => c.class_id === cls.id);
-                return {
-                  ...cls,
-                  studentCount: dashClass?.student_count_active || 0
-                };
-              });
-            }
-            return classesData;
+        // Fetch dashboard data in the background to get student_count_active
+        getTeacherDashboard().then(dashboardData => {
+          if (dashboardData && dashboardData.classes) {
+            setClasses(prevClasses => prevClasses.map(cls => {
+              const dashClass = dashboardData.classes.find((c: any) => c.class_id === cls.id);
+              return {
+                ...cls,
+                studentCount: dashClass?.student_count_active || cls.studentCount || 0
+              };
+            }));
           }
-        );
-        
-        setClasses(finalClasses);
+        }).catch(err => {
+          console.warn('Failed to load dashboard data for student counts in background', err);
+        });
+
       } catch (err: any) {
         let message = 'Failed to load classes';
         

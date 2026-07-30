@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { createStudent, createEnrollment } from '@/lib/studentService';
-import { cacheInvalidate } from '@/lib/dataCache';
+
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -111,7 +111,7 @@ export default function AddStudentModal({
       await onAddSuccess(newStudent);
       
       // Invalidate cache so dashboard reflects new student counts
-      cacheInvalidate();
+      // cache cleared (no-op — cache layer removed)
 
       // Reset form
       setFormData({
@@ -154,13 +154,13 @@ export default function AddStudentModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 my-8">
+      <div className="bg-white dark:bg-[#151722] rounded-lg shadow-lg max-w-2xl w-full mx-4 my-8">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Add New Student</h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-[#262a3d]">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Add New Student</h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1 hover:bg-gray-100 dark:bg-[#262a3d] rounded-lg transition-colors"
           >
             <X className="w-6 h-6 text-gray-400" />
           </button>
@@ -171,7 +171,7 @@ export default function AddStudentModal({
           {/* Student ID & Names Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-1">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
                 Student ID <span className="text-red-500">*</span>
               </label>
               <input
@@ -180,12 +180,12 @@ export default function AddStudentModal({
                 value={formData.student_id}
                 onChange={handleChange}
                 placeholder="e.g., STU001"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
                 disabled={loading}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-1">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
                 First Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -194,12 +194,12 @@ export default function AddStudentModal({
                 value={formData.first_name}
                 onChange={handleChange}
                 placeholder="First name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
                 disabled={loading}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-1">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
                 Last Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -208,7 +208,7 @@ export default function AddStudentModal({
                 value={formData.last_name}
                 onChange={handleChange}
                 placeholder="Last name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
                 disabled={loading}
               />
             </div>
@@ -217,7 +217,7 @@ export default function AddStudentModal({
           {/* Grade & Middle Name Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-1">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
                 Grade Level <span className="text-red-500">*</span>
               </label>
               {classGradeLevel ? (
@@ -226,16 +226,16 @@ export default function AddStudentModal({
                     type="text"
                     value={`Grade ${classGradeLevel}`}
                     disabled
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-600 text-sm cursor-not-allowed"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#262a3d] rounded-lg bg-gray-100 dark:bg-[#262a3d] text-gray-600 dark:text-gray-400 text-sm cursor-not-allowed"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Locked to match the class grade</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Locked to match the class grade</p>
                 </>
               ) : (
                 <select
                   name="grade_level"
                   value={formData.grade_level}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
                   disabled={loading}
                 >
                   <option value="">Select grade...</option>
@@ -248,7 +248,7 @@ export default function AddStudentModal({
               )}
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-1">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
                 Middle Name (Optional)
               </label>
               <input
@@ -257,12 +257,12 @@ export default function AddStudentModal({
                 value={formData.middle_name}
                 onChange={handleChange}
                 placeholder="Middle name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
                 disabled={loading}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-1">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
                 Date of Birth (Optional)
               </label>
               <input
@@ -270,7 +270,7 @@ export default function AddStudentModal({
                 name="date_of_birth"
                 value={formData.date_of_birth}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
                 disabled={loading}
               />
             </div>
@@ -279,7 +279,7 @@ export default function AddStudentModal({
           {/* Contact Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-1">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
                 Parent Email (Optional)
               </label>
               <input
@@ -288,12 +288,12 @@ export default function AddStudentModal({
                 value={formData.parent_email}
                 onChange={handleChange}
                 placeholder="parent@example.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
                 disabled={loading}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-1">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
                 Parent Phone (Optional)
               </label>
               <input
@@ -302,7 +302,7 @@ export default function AddStudentModal({
                 value={formData.parent_phone}
                 onChange={handleChange}
                 placeholder="(555) 123-4567"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
                 disabled={loading}
               />
             </div>
@@ -311,7 +311,7 @@ export default function AddStudentModal({
           {/* Secondary Parent & Gender */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-1">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
                 Secondary Parent Email (Optional)
               </label>
               <input
@@ -320,19 +320,19 @@ export default function AddStudentModal({
                 value={formData.secondary_parent_email}
                 onChange={handleChange}
                 placeholder="parent2@example.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
                 disabled={loading}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-1">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
                 Gender (Optional)
               </label>
               <select
                 name="gender"
                 value={formData.gender}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
                 disabled={loading}
               >
                 <option value="">Select gender...</option>
@@ -345,7 +345,7 @@ export default function AddStudentModal({
 
           {/* Address */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-1">
+            <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
               Address (Optional)
             </label>
             <input
@@ -354,7 +354,7 @@ export default function AddStudentModal({
               value={formData.address}
               onChange={handleChange}
               placeholder="123 Main St, City, State"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
               disabled={loading}
             />
           </div>
@@ -370,7 +370,7 @@ export default function AddStudentModal({
                 disabled={loading}
                 className="w-4 h-4 rounded"
               />
-              <span className="text-sm text-gray-700">IEP Status</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">IEP Status</span>
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -381,7 +381,7 @@ export default function AddStudentModal({
                 disabled={loading}
                 className="w-4 h-4 rounded"
               />
-              <span className="text-sm text-gray-700">ELL Status</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">ELL Status</span>
             </label>
           </div>
 
@@ -394,11 +394,11 @@ export default function AddStudentModal({
         </form>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 p-6 flex justify-end gap-3">
+        <div className="border-t border-gray-200 dark:border-[#262a3d] p-6 flex justify-end gap-3">
           <button
             onClick={onClose}
             disabled={loading}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors font-medium disabled:opacity-50"
+            className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1b1e2c] rounded-lg transition-colors font-medium disabled:opacity-50"
           >
             Cancel
           </button>

@@ -55,7 +55,7 @@ export default function PrincipalSignupForm() {
         <div className="flex justify-center">
           <CheckCircle size={48} className="text-green-600" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-800">Registration Submitted!</h3>
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Registration Submitted!</h3>
         <p className="text-gray-600">
           Your principal account request has been submitted and is pending approval. Our administrators will review your credentials and contact you shortly. You'll receive an email when your account is approved.
         </p>

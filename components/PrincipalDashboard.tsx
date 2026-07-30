@@ -17,6 +17,7 @@ import {
 import { getPendingTeachers } from '@/lib/adminService';
 import { useAuth } from '@/app/providers';
 import GoodMorningBanner from '@/components/GoodMorningBanner';
+import AdminReferralsList from '@/components/AdminReferralsList';
 
 // ─── Predefined Subjects (from Create Class dropdown) ─────────────
 const PREDEFINED_SUBJECTS = [
@@ -149,20 +150,20 @@ export default function PrincipalDashboard() {
   const filteredTiles = activeTab === 'All Subjects'
     ? allTiles
     : allTiles.filter(t => {
-        if (!t.subject) return false;
-        if (t.subject === activeTab) return true;
-        const subLower = t.subject.toLowerCase().trim();
-        const tabLower = activeTab.toLowerCase().trim();
-        if (tabLower === 'language arts' && (subLower.includes('english') || subLower.includes('reading') || subLower.includes('lit') || subLower.includes('lang') || subLower.includes('writing'))) return true;
-        if (tabLower === 'social studies' && (subLower.includes('social') || subLower.includes('history') || subLower.includes('human') || subLower.includes('geog') || subLower.includes('civic') || subLower.includes('general'))) return true;
-        if (tabLower === 'pe' && (subLower.includes('pe') || subLower.includes('physical') || subLower.includes('gym') || subLower.includes('health') || subLower.includes('sport'))) return true;
-        if (tabLower === 'technology' && (subLower.includes('tech') || subLower.includes('comp') || subLower.includes('code') || subLower.includes('robot'))) return true;
-        if (tabLower === 'religion' && (subLower.includes('relig') || subLower.includes('theo') || subLower.includes('bib') || subLower.includes('faith'))) return true;
-        if (tabLower === 'spanish' && (subLower.includes('span') || subLower.includes('lang') || subLower.includes('french') || subLower.includes('latin') || subLower.includes('foreign'))) return true;
-        if (tabLower === 'math' && (subLower.includes('math') || subLower.includes('alg') || subLower.includes('calc') || subLower.includes('geom'))) return true;
-        if (tabLower === 'science' && (subLower.includes('scien') || subLower.includes('bio') || subLower.includes('chem') || subLower.includes('phys') && !subLower.includes('pe'))) return true;
-        return subLower === tabLower;
-      });
+      if (!t.subject) return false;
+      if (t.subject === activeTab) return true;
+      const subLower = t.subject.toLowerCase().trim();
+      const tabLower = activeTab.toLowerCase().trim();
+      if (tabLower === 'language arts' && (subLower.includes('english') || subLower.includes('reading') || subLower.includes('lit') || subLower.includes('lang') || subLower.includes('writing'))) return true;
+      if (tabLower === 'social studies' && (subLower.includes('social') || subLower.includes('history') || subLower.includes('human') || subLower.includes('geog') || subLower.includes('civic') || subLower.includes('general'))) return true;
+      if (tabLower === 'pe' && (subLower.includes('pe') || subLower.includes('physical') || subLower.includes('gym') || subLower.includes('health') || subLower.includes('sport'))) return true;
+      if (tabLower === 'technology' && (subLower.includes('tech') || subLower.includes('comp') || subLower.includes('code') || subLower.includes('robot'))) return true;
+      if (tabLower === 'religion' && (subLower.includes('relig') || subLower.includes('theo') || subLower.includes('bib') || subLower.includes('faith'))) return true;
+      if (tabLower === 'spanish' && (subLower.includes('span') || subLower.includes('lang') || subLower.includes('french') || subLower.includes('latin') || subLower.includes('foreign'))) return true;
+      if (tabLower === 'math' && (subLower.includes('math') || subLower.includes('alg') || subLower.includes('calc') || subLower.includes('geom'))) return true;
+      if (tabLower === 'science' && (subLower.includes('scien') || subLower.includes('bio') || subLower.includes('chem') || subLower.includes('phys') && !subLower.includes('pe'))) return true;
+      return subLower === tabLower;
+    });
 
   const displayedTiles = showAllClasses ? filteredTiles : filteredTiles.slice(0, 9);
 
@@ -207,7 +208,7 @@ export default function PrincipalDashboard() {
       `}</style>
 
       {/* Good Morning Banner */}
-      <GoodMorningBanner 
+      <GoodMorningBanner
         name={user?.first_name || 'Admin'}
         metric1={<>You have <span className="text-orange-600 dark:text-orange-500 font-bold">{dashboard?.urgent_alerts?.length || 0}</span> urgent alerts needing attention</>}
         metric2={<><span className="text-emerald-600 dark:text-emerald-500 font-bold">{dashboard?.kpis?.super_green_total || 0}</span> students showing exceptional growth school-wide</>}
@@ -330,6 +331,9 @@ export default function PrincipalDashboard() {
         </div>
       )}
 
+      {/* Admin Referrals List */}
+      <AdminReferralsList />
+
       {/* ── School Heat Map & Department Overview ───────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
         <div className="lg:col-span-7">
@@ -356,8 +360,8 @@ export default function PrincipalDashboard() {
                     key={tab}
                     onClick={() => setActiveTab(tab)}
                     className={`whitespace-nowrap pb-3 text-sm font-semibold transition-colors border-b-2 ${activeTab === tab
-                        ? 'border-orange-500 text-orange-600'
-                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white dark:text-white'
+                      ? 'border-orange-500 text-orange-600'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white dark:text-white'
                       }`}
                   >
                     {tab}
@@ -694,7 +698,7 @@ export default function PrincipalDashboard() {
               const rank = index + 1;
               let rankColor = 'bg-[#262a3d] text-gray-400';
               if (rank === 1) rankColor = 'bg-yellow-400 text-yellow-900';
-              if (rank === 2) rankColor = 'bg-gray-300 text-gray-800';
+              if (rank === 2) rankColor = 'bg-gray-300 text-gray-800 dark:text-white';
               if (rank === 3) rankColor = 'bg-[#f4a460] text-orange-950';
 
               return (

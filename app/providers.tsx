@@ -22,6 +22,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, school_id: string, firstName?: string, lastName?: string) => Promise<void>;
   logout: () => void;
+  updateUser: (data: Partial<User>) => void;
   clearError: () => void;
 }
 
@@ -155,6 +156,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
   };
 
+  const updateUser = (data: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updatedUser = { ...prev, ...data };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return updatedUser;
+    });
+  };
+
   const clearError = () => {
     setError(null);
   };
@@ -168,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     signup,
     logout,
+    updateUser,
     clearError,
   };
 

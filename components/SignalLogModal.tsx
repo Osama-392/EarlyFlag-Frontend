@@ -97,7 +97,7 @@ export default function SignalLogModal({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Log Signal</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Log Signal</h2>
             <p className="text-sm text-gray-600">{studentName}</p>
           </div>
           <button
@@ -112,7 +112,7 @@ export default function SignalLogModal({
         <div className="p-6 space-y-4">
           {/* Signal Type Selection */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
+            <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
               Signal Type <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -143,7 +143,7 @@ export default function SignalLogModal({
           {/* Category - for Yellow and Red */}
           {(selectedSignal === 'yellow' || selectedSignal === 'red') && (
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
                 Category <span className="text-red-500">*</span>
               </label>
               <select
@@ -165,7 +165,7 @@ export default function SignalLogModal({
           {/* Reason Code - for Green */}
           {selectedSignal === 'green' && (
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
                 Reason <span className="text-red-500">*</span>
               </label>
               <select
@@ -186,7 +186,7 @@ export default function SignalLogModal({
 
           {/* Note */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
+            <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
               Note {selectedSignal === 'red' ? <span className="text-red-500">*</span> : '(Optional)'}
             </label>
             <textarea

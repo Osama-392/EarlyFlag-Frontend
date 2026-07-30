@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import QuickLogModal from '@/components/QuickLogModal';
 import { logger } from '@/lib/logger';
-import { getIncompleteQuickLogs, getClassStudents } from '@/lib/studentService';
+import { getIncompleteQuickLogs, getTeacherSearch } from '@/lib/studentService';
 import { getTeacherClasses } from '@/lib/classService';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/app/providers';
@@ -26,8 +26,9 @@ export default function Header() {
   const [searchClasses, setSearchClasses] = useState<any[]>([]);
   const [searchStudents, setSearchStudents] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  
+  const [quickLogTargetDate, setQuickLogTargetDate] = useState<string | undefined>(undefined);
   
   const userInitials = user ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() : 'U';
   const userName = user?.first_name || 'Teacher';
@@ -47,31 +48,25 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const loadSearchData = async () => {
-    if (dataLoaded || searchLoading) return;
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery.trim().length >= 1) {
+        performSearch(searchQuery);
+      } else {
+        setSearchClasses([]);
+        setSearchStudents([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  const performSearch = async (query: string) => {
     try {
       setSearchLoading(true);
-      const classesData = await getTeacherClasses();
-      setSearchClasses(classesData || []);
-      
-      const allStudentsPromises = (classesData || []).map(async (cls) => {
-        try {
-          const st = await getClassStudents(cls.id);
-          return (st || []).map(s => ({ ...s, classId: cls.id, className: cls.name }));
-        } catch (e) {
-          return [];
-        }
-      });
-      const studentsArrays = await Promise.all(allStudentsPromises);
-      const combinedStudents = studentsArrays.flat();
-      
-      // Deduplicate by student id + class id
-      const uniqueStudentsMap = new Map();
-      combinedStudents.forEach(s => {
-        uniqueStudentsMap.set(`${s.classId}-${s.id}`, s);
-      });
-      setSearchStudents(Array.from(uniqueStudentsMap.values()));
-      setDataLoaded(true);
+      const res = await getTeacherSearch(query);
+      setSearchClasses(res.classes || []);
+      setSearchStudents(res.students || []);
     } catch (err) {
       console.error('Failed to load search data:', err);
     } finally {
@@ -94,27 +89,22 @@ export default function Header() {
   // Listen for 'open-quicklog-for-class' event from Dashboard EOD reminder
   useEffect(() => {
     const handleOpenForClass = (e: Event) => {
-      const classId = (e as CustomEvent<string>).detail;
-      setQuickLogClassId(classId || undefined);
+      const payload = (e as CustomEvent).detail;
+      if (typeof payload === 'string') {
+        setQuickLogClassId(payload || undefined);
+        setQuickLogTargetDate(undefined);
+      } else if (payload && typeof payload === 'object') {
+        setQuickLogClassId(payload.classId || undefined);
+        setQuickLogTargetDate(payload.date || undefined);
+      }
       setIsQuickLogOpen(true);
     };
     window.addEventListener('open-quicklog-for-class', handleOpenForClass);
     return () => window.removeEventListener('open-quicklog-for-class', handleOpenForClass);
   }, []);
 
-  const qLower = searchQuery.toLowerCase().trim();
-  const filteredClasses = qLower ? searchClasses.filter(c =>
-    c.name?.toLowerCase().includes(qLower) ||
-    c.subject?.toLowerCase().includes(qLower) ||
-    c.grade_level?.toString() === qLower
-  ).slice(0, 5) : [];
-
-  const filteredStudents = qLower ? searchStudents.filter(s =>
-    s.first_name?.toLowerCase().includes(qLower) ||
-    s.last_name?.toLowerCase().includes(qLower) ||
-    `${s.first_name} ${s.last_name}`.toLowerCase().includes(qLower) ||
-    s.student_id?.toLowerCase().includes(qLower)
-  ).slice(0, 8) : [];
+  const filteredClasses = searchClasses.slice(0, 5);
+  const filteredStudents = searchStudents.slice(0, 8);
 
   return (
     <>
@@ -128,14 +118,10 @@ export default function Header() {
                 type="text"
                 placeholder="Search classes or students..."
                 value={searchQuery}
-                onFocus={() => {
-                  setIsSearchOpen(true);
-                  loadSearchData();
-                }}
+                onFocus={() => setIsSearchOpen(true)}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setIsSearchOpen(true);
-                  if (!dataLoaded) loadSearchData();
                 }}
                 className="w-full pl-10 pr-8 py-2 text-sm border-none rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 bg-[#1b1e2c] text-white transition-colors placeholder-gray-500"
               />
@@ -151,7 +137,7 @@ export default function Header() {
               {/* Dropdown Menu */}
               {isSearchOpen && searchQuery.trim().length >= 1 && (
                 <div className="absolute left-0 right-0 top-11 bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-2xl z-50 max-h-96 overflow-y-auto p-2">
-                  {searchLoading && !dataLoaded ? (
+                  {searchLoading ? (
                     <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">Loading search results...</div>
                   ) : filteredClasses.length === 0 && filteredStudents.length === 0 ? (
                     <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">No classes or students found matching &quot;{searchQuery}&quot;</div>
@@ -166,7 +152,7 @@ export default function Header() {
                               <button
                                 key={cls.id}
                                 onClick={() => {
-                                  router.push(`/students/${cls.id}`);
+                                  router.push(`/classes/${cls.id}`);
                                   setIsSearchOpen(false);
                                   setSearchQuery('');
                                 }}
@@ -197,9 +183,9 @@ export default function Header() {
                           <div className="mt-1 space-y-1">
                             {filteredStudents.map((s) => (
                               <button
-                                key={`${s.classId}-${s.id}`}
+                                key={`${s.class_id}-${s.id}`}
                                 onClick={() => {
-                                  router.push(`/students/${s.classId}/${s.id}`);
+                                  router.push(`/classes/${s.class_id}/${s.id}`);
                                   setIsSearchOpen(false);
                                   setSearchQuery('');
                                 }}
@@ -214,7 +200,7 @@ export default function Header() {
                                       {s.first_name} {s.last_name}
                                     </div>
                                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                                      {s.className} {s.grade_level ? `· Grade ${s.grade_level}` : ''}
+                                      {s.class_name} {s.grade_level ? `· Grade ${s.grade_level}` : ''}
                                     </div>
                                   </div>
                                 </div>
@@ -255,18 +241,6 @@ export default function Header() {
               <span>{hasIncompleteLogs ? 'Resume Log' : 'Quick Log'}</span>
               {hasIncompleteLogs ? <Play className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             </button>
-
-            {/* User Profile */}
-            <div className="flex items-center gap-3 pl-4 border-l border-[#262a3d] cursor-pointer hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded-full bg-[#cbd5e1] text-slate-800 flex items-center justify-center font-bold text-sm">
-                {userInitials}
-              </div>
-              <div className="flex items-center text-sm text-gray-300">
-                <span className="font-medium mr-1">{userName}</span>
-                <ChevronDown className="w-4 h-4 text-gray-500" />
-              </div>
-            </div>
-
           </div>
         </div>
       </header>
@@ -277,8 +251,10 @@ export default function Header() {
           onClose={() => {
             setIsQuickLogOpen(false);
             setQuickLogClassId(undefined);
+            setQuickLogTargetDate(undefined);
           }}
           initialClassId={quickLogClassId}
+          targetDate={quickLogTargetDate}
         />
       )}
     </>

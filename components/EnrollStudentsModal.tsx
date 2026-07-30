@@ -104,7 +104,7 @@ export default function EnrollStudentsModal({
               <UserPlus size={20} className="text-blue-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Enroll Student</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Enroll Student</h2>
               <p className="text-xs text-gray-500 mt-0.5">Add an existing student to this class</p>
             </div>
           </div>

@@ -61,6 +61,7 @@ export interface SignalPayload {
 
 export interface BatchSignalPayload {
   session_id?: string;
+  signal_date?: string;
   signals: SignalPayload[];
 }
 
@@ -187,7 +188,7 @@ export const createEnrollment = async (studentId: string, classId: string): Prom
 };
 
 // Send a counselor referral
-export const sendCounselorReferral = async (payload: { student_id: string; subject: string; message: string; severity?: string }): Promise<any> => {
+export const sendCounselorReferral = async (payload: { student_id: string; referral_type: string; note: string; priority?: string }): Promise<any> => {
   try {
     const response = await api.post('/api/v1/teacher/referrals', payload);
     return response.data;
@@ -218,4 +219,32 @@ export const notifyParent = async (payload: { student_id: string; message: strin
     throw error;
   }
 };
+export const getTeacherRecognitions = async (): Promise<any[]> => {
+  try {
+    const response = await api.get('/api/v1/teacher/recognitions');
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get teacher recognitions:', error);
+    return [];
+  }
+};
 
+export const updateStudentProfile = async (studentId: string, data: any): Promise<any> => {
+  try {
+    const response = await api.patch(`/api/v1/teacher/students/${studentId}`, data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Failed to update student profile:', error?.response?.data);
+    throw error;
+  }
+};
+
+export const getTeacherSearch = async (query: string) => {
+  try {
+    const response = await api.get('/api/v1/teacher/search', { params: { q: query } });
+    return response.data;
+  } catch (error: any) {
+    console.error('Search failed:', error);
+    return { classes: [], students: [] };
+  }
+};

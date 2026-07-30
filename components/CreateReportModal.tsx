@@ -46,7 +46,7 @@ export default function CreateReportModal({
   const [endDate, setEndDate] = useState(formatDate(today));
   const [subject, setSubject] = useState(defaultSubject);
   const [includeTeachersNotes, setIncludeTeachersNotes] = useState(true);
-  const [includeAIRecommendations, setIncludeAIRecommendations] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,7 +59,7 @@ export default function CreateReportModal({
         end_date: endDate,
         subject,
         include_teachers_notes: includeTeachersNotes,
-        include_ai_recommendations: includeAIRecommendations,
+        include_ai_recommendations: false,
       };
       
       const generator = customGenerateFunction || generateStudentReport;
@@ -79,10 +79,10 @@ export default function CreateReportModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm" style={{ colorScheme: 'light' }}>
-      <div className="bg-white text-gray-900 rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className="bg-white dark:bg-[#151722] text-gray-900 dark:text-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#262a3d]">
           <div className="flex items-center space-x-3">
             {/* Student Avatar */}
             <div
@@ -93,7 +93,7 @@ export default function CreateReportModal({
 
             {/* Student Info */}
             <div>
-              <h3 className="font-semibold text-gray-900 text-sm">{student.name}</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{student.name}</h3>
               <div className="flex items-center space-x-1 mt-0.5">
                 {(student.redCount ?? 0) > 0 && (
                   <span className="inline-flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full">
@@ -120,7 +120,7 @@ export default function CreateReportModal({
                 logger.modalClose('CreateReportModal');
                 onClose();
               }}
-              className="p-1 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 dark:bg-[#262a3d] rounded-lg transition-colors disabled:opacity-50"
             >
               <X className="w-5 h-5 text-gray-400" />
             </button>
@@ -141,7 +141,7 @@ export default function CreateReportModal({
         <form onSubmit={(e) => { e.preventDefault(); handleGenerateReport(); }} className="p-6 space-y-6">
           {/* Timeline Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-3">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">
               Select a timeline for the Report
             </label>
             {/* Preset Range Buttons */}
@@ -151,7 +151,7 @@ export default function CreateReportModal({
                 onClick={() => { setStartDate(formatDate(thirtyDaysAgo)); setEndDate(formatDate(today)); }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                   startDate === formatDate(thirtyDaysAgo) && endDate === formatDate(today)
-                    ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-[#262a3d] text-gray-600 dark:text-gray-400 hover:bg-gray-200'
                 }`}
               >
                 Last 30 Days
@@ -161,7 +161,7 @@ export default function CreateReportModal({
                 onClick={() => { setStartDate(formatDate(ninetyDaysAgo)); setEndDate(formatDate(today)); }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                   startDate === formatDate(ninetyDaysAgo) && endDate === formatDate(today)
-                    ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-[#262a3d] text-gray-600 dark:text-gray-400 hover:bg-gray-200'
                 }`}
               >
                 Last 90 Days
@@ -170,26 +170,24 @@ export default function CreateReportModal({
             {/* Custom Date Range */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">From</label>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">From</label>
                 <input
                   type="date"
                   value={startDate}
                   max={endDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white text-gray-900 color-scheme-light"
-                  style={{ colorScheme: 'light' }}
+                  className="w-full px-3 py-2 border dark:bg-[#1b1e2c] dark:text-white border-gray-300 dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white dark:bg-[#1b1e2c] text-gray-900 dark:text-white"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">To</label>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">To</label>
                 <input
                   type="date"
                   value={endDate}
                   min={startDate}
                   max={formatDate(today)}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white text-gray-900 color-scheme-light"
-                  style={{ colorScheme: 'light' }}
+                  className="w-full px-3 py-2 border dark:bg-[#1b1e2c] dark:text-white border-gray-300 dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white dark:bg-[#1b1e2c] text-gray-900 dark:text-white"
                 />
               </div>
             </div>
@@ -198,7 +196,7 @@ export default function CreateReportModal({
 
           {/* Subject Selection */}
           <div>
-            <label htmlFor="subject" className="block text-sm font-medium text-gray-600 mb-2">
+            <label htmlFor="subject" className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
               Subject
             </label>
             <select
@@ -208,7 +206,7 @@ export default function CreateReportModal({
                 logger.formChange('subject', e.target.value, 'CreateReportModal');
                 setSubject(e.target.value);
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white text-gray-900"
+              className="w-full px-3 py-2 border dark:bg-[#1b1e2c] dark:text-white border-gray-300 dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white text-gray-900 dark:text-white"
             >
               {(gradeSubjects?.length ? gradeSubjects : [defaultSubject]).map((subj, idx) => (
                 <option key={idx} value={subj}>{subj}</option>
@@ -229,22 +227,10 @@ export default function CreateReportModal({
                 }}
                 className="w-5 h-5 border-2 border-blue-500 rounded accent-blue-600 cursor-pointer"
               />
-              <span className="text-sm font-medium text-gray-900">Include Teachers Notes</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">Include Teachers Notes</span>
             </label>
 
-            {/* Include AI Recommendations */}
-            <label className="flex items-center space-x-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={includeAIRecommendations}
-                onChange={(e) => {
-                  logger.formChange('includeAIRecommendations', e.target.checked, 'CreateReportModal');
-                  setIncludeAIRecommendations(e.target.checked);
-                }}
-                className="w-5 h-5 border-2 border-gray-300 rounded accent-blue-600 cursor-pointer"
-              />
-              <span className="text-sm font-medium text-gray-400">Include AI Recommendations</span>
-            </label>
+
           </div>
 
           {/* Create Report Button */}

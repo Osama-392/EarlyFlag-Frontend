@@ -1,11 +1,15 @@
 'use client';
 
-import { ArrowLeft, Mail, MessageSquare, Edit, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Mail, MessageSquare, Edit, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useParams, usePathname } from 'next/navigation';
-import { getStudentHistory } from '@/lib/studentService';
+import { getStudentHistory, updateStudentProfile } from '@/lib/studentService';
+import { getCategoryStyle } from '@/lib/categoryColors';
 import EditStudentProfileModal from '@/components/EditStudentProfileModal';
+import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
+import SendAdminModal from '@/components/SendAdminModal';
+import { useAuth } from '@/app/providers';
 
 export default function StudentProfile() {
   const params = useParams();
@@ -17,6 +21,10 @@ export default function StudentProfile() {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailCategoryState, setEmailCategoryState] = useState<'red' | 'yellow' | 'super_green' | 'absent' | null>(null);
+  const [isSendAdminModalOpen, setIsSendAdminModalOpen] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     const loadStudent = async () => {
@@ -52,9 +60,9 @@ export default function StudentProfile() {
   if (error) {
     return (
       <div className="space-y-6">
-        <Link
-          href={pathname.startsWith('/reports') ? '/reports' : `/students/${classId}`}
-          className="inline-flex items-center text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors"
+        <Link 
+          href={pathname.startsWith('/reports') ? '/reports' : `/classes/${classId}`}
+          className="inline-flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
           {pathname.startsWith('/reports') ? 'Back to Reports' : 'Back to Roster'}
@@ -76,22 +84,34 @@ export default function StudentProfile() {
   if (hasRed) statusText = 'Red';
   else if (hasYellow) statusText = 'Yellow';
 
-  // Last 7 days
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const recent7Days = signals.filter((s: any) => new Date(s.created_at) >= sevenDaysAgo);
+  const emailCategory = statusText === 'Red' ? 'red' as const
+    : statusText === 'Yellow' ? 'yellow' as const
+    : statusText === 'Super Green' ? 'super_green' as const
+    : null;
 
-  const academicFlags = recent7Days.filter((s: any) => s.category?.toLowerCase() === 'academic');
-  const behavioralFlags = recent7Days.filter((s: any) => s.category?.toLowerCase() === 'behavioral');
-  
-  const total7Days = academicFlags.length + behavioralFlags.length || 1; // avoid div by 0
-  const academicPercent = Math.round((academicFlags.length / total7Days) * 100);
-  const behavioralPercent = Math.round((behavioralFlags.length / total7Days) * 100);
+  const hasAbsent = signals.some((s: any) => s.signal_type === 'absent');
+
+  const teacherFullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Your Teacher';
+  const studentFullName = [history?.first_name, history?.last_name].filter(Boolean).join(' ') || 'Student';
 
   // Last 30 days
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const recentSignals = signals.filter((s: any) => new Date(s.created_at) >= thirtyDaysAgo);
+
+  // Last 7 days
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const recent7Days = signals.filter((s: any) => new Date(s.created_at) >= sevenDaysAgo);
+
+  const redFlags = recent7Days.filter((s: any) => s.signal_type === 'red');
+  const yellowFlags = recent7Days.filter((s: any) => s.signal_type === 'yellow');
+  const greenFlags = recent7Days.filter((s: any) => s.signal_type === 'green' || s.signal_type === 'super_green');
+
+  const totalSummaryFlags = redFlags.length + yellowFlags.length + greenFlags.length || 1;
+  const redPercent = Math.round((redFlags.length / totalSummaryFlags) * 100);
+  const yellowPercent = Math.round((yellowFlags.length / totalSummaryFlags) * 100);
+  const greenPercent = Math.round((greenFlags.length / totalSummaryFlags) * 100);
 
   // Notes
   const notes = signals.filter((s: any) => s.note && s.note.trim() !== '');
@@ -101,7 +121,7 @@ export default function StudentProfile() {
       {/* Back Button */}
       <div>
         <Link
-          href={pathname.startsWith('/reports') ? '/reports' : `/students/${classId}`}
+          href={pathname.startsWith('/reports') ? '/reports' : `/classes/${classId}`}
           className="inline-flex items-center text-sm text-blue-500 bg-white dark:bg-[#151722] border border-blue-100 px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors shadow-sm font-medium"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -127,7 +147,7 @@ export default function StudentProfile() {
               {history?.first_name} {history?.last_name}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {history?.grade_level ? `${history.grade_level}th Grade` : 'Unknown Grade'} | ID: {studentId.substring(0, 8)}
+              {history?.grade_level ? `${history.grade_level}th Grade` : 'Unknown Grade'}
             </p>
           </div>
         </div>
@@ -164,43 +184,56 @@ export default function StudentProfile() {
           </div>
 
           <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm p-6 space-y-4">
-            {/* Academic Flags */}
-            <div className="bg-slate-50 dark:bg-[#1b1e2c] rounded-xl p-5 relative border border-slate-100 dark:border-[#262a3d]">
-              <span className="absolute top-4 right-4 text-[10px] font-bold bg-white dark:bg-[#151722] text-gray-500 dark:text-gray-400 px-2 py-1 rounded-full border border-gray-200 dark:border-[#262a3d] shadow-sm">+8%</span>
-              <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center text-slate-400 mb-3 shadow-sm">
-                <span className="font-bold text-sm text-blue-500 dark:text-blue-400">P</span>
+            {/* Red Flags */}
+            <div className="bg-red-50 dark:bg-[#1b1e2c] rounded-xl p-4 relative border border-red-100 dark:border-[#262a3d]">
+              <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-2 shadow-sm">
+                <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
               </div>
-              <div className="text-4xl font-bold text-blue-500 dark:text-blue-400 mb-1">{academicFlags.length}</div>
-              <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Academic Flags (7 Days)</h3>
-              <p className="text-xs text-gray-400 mt-1">Light concerns tracked</p>
+              <div className="text-3xl font-bold text-red-600 dark:text-red-400 mb-1">{redFlags.length}</div>
+              <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Red Flags (7 Days)</h3>
+              <p className="text-xs text-red-400/80 mt-1">Urgent interventions</p>
             </div>
 
-            {/* Behavioral Flags */}
-            <div className="bg-purple-50 dark:bg-[#1b1e2c] rounded-xl p-5 relative border border-purple-100 dark:border-[#262a3d]">
-              <span className="absolute top-4 right-4 text-[10px] font-bold bg-white dark:bg-[#151722] text-gray-500 dark:text-gray-400 px-2 py-1 rounded-full border border-gray-200 dark:border-[#262a3d] shadow-sm">-22%</span>
-              <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-3 shadow-sm">
-                <AlertCircle className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            {/* Yellow Flags */}
+            <div className="bg-amber-50 dark:bg-[#1b1e2c] rounded-xl p-4 relative border border-amber-100 dark:border-[#262a3d]">
+              <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-2 shadow-sm">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
               </div>
-              <div className="text-4xl font-bold text-purple-600 dark:text-purple-400 mb-1">{behavioralFlags.length}</div>
-              <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Behavioral flags (7 Days)</h3>
-              <p className="text-xs text-purple-400/80 mt-1">Urgent interventions</p>
+              <div className="text-3xl font-bold text-amber-600 dark:text-amber-400 mb-1">{yellowFlags.length}</div>
+              <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Yellow Flags (7 Days)</h3>
+              <p className="text-xs text-amber-500/80 mt-1">Moderate concerns</p>
+            </div>
+
+            {/* Green Flags */}
+            <div className="bg-emerald-50 dark:bg-[#1b1e2c] rounded-xl p-4 relative border border-emerald-100 dark:border-[#262a3d]">
+              <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-2 shadow-sm">
+                <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">{greenFlags.length}</div>
+              <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Green Flags (7 Days)</h3>
+              <p className="text-xs text-emerald-500/80 mt-1">Positive recognitions</p>
             </div>
 
             {/* Bar Chart Summary */}
-            <div className="pt-4">
+            <div className="pt-2">
               <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 font-semibold mb-2">
-                <span>Academic</span>
-                <span>Behavioral</span>
+                <span>Red</span>
+                <span>Green</span>
               </div>
               <div className="flex h-2.5 rounded-full overflow-hidden bg-gray-100 dark:bg-[#1b1e2c]">
-                <div style={{ width: `${academicPercent}%` }} className="bg-blue-400 relative">
-                  {academicFlags.length > 0 && (
-                    <span className="absolute -top-6 right-0 text-[10px] font-bold bg-blue-100 text-blue-600 px-1.5 rounded-full">{academicFlags.length}</span>
+                <div style={{ width: `${redPercent}%` }} className="bg-red-400 relative">
+                  {redFlags.length > 0 && (
+                    <span className="absolute -top-6 right-0 text-[10px] font-bold bg-red-100 text-red-600 px-1.5 rounded-full">{redFlags.length}</span>
                   )}
                 </div>
-                <div style={{ width: `${behavioralPercent}%` }} className="bg-purple-500 relative">
-                  {behavioralFlags.length > 0 && (
-                    <span className="absolute -top-6 right-0 text-[10px] font-bold bg-purple-100 text-purple-600 px-1.5 rounded-full">{behavioralFlags.length}</span>
+                <div style={{ width: `${yellowPercent}%` }} className="bg-amber-400 relative">
+                  {yellowFlags.length > 0 && (
+                    <span className="absolute -top-6 right-0 text-[10px] font-bold bg-amber-100 text-amber-600 px-1.5 rounded-full">{yellowFlags.length}</span>
+                  )}
+                </div>
+                <div style={{ width: `${greenPercent}%` }} className="bg-emerald-400 relative">
+                  {greenFlags.length > 0 && (
+                    <span className="absolute -top-6 right-0 text-[10px] font-bold bg-emerald-100 text-emerald-600 px-1.5 rounded-full">{greenFlags.length}</span>
                   )}
                 </div>
               </div>
@@ -224,17 +257,33 @@ export default function StudentProfile() {
             {recentSignals.length > 0 ? (
               <div className="space-y-5">
                 {recentSignals.map((signal: any, idx: number) => {
-                  const isAcademic = signal.category?.toLowerCase() === 'academic';
                   const dateString = new Date(signal.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                   
+                  let lineColor = 'bg-gray-400';
+                  let pillClass = 'bg-gray-50 text-gray-600 border-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
+                  
+                  if (signal.signal_type === 'red') {
+                    lineColor = 'bg-red-400';
+                    pillClass = 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50';
+                  } else if (signal.signal_type === 'yellow') {
+                    lineColor = 'bg-amber-400';
+                    pillClass = 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50';
+                  } else if (signal.signal_type === 'green' || signal.signal_type === 'super_green') {
+                    lineColor = 'bg-emerald-400';
+                    pillClass = 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50';
+                  } else if (signal.signal_type === 'absent') {
+                    lineColor = 'bg-blue-400';
+                    pillClass = 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50';
+                  }
+
                   return (
                     <div key={idx} className="flex items-center space-x-4 group">
                       <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 w-12 shrink-0">{dateString}</span>
                       
                       {/* Status Line */}
-                      <div className={`w-3 h-1 rounded-full ${isAcademic ? 'bg-blue-400' : 'bg-purple-500'}`}></div>
+                      <div className={`w-3 h-1 rounded-full ${lineColor}`}></div>
                       
-                      <div className={`px-3 py-1.5 rounded-lg text-xs font-bold ${isAcademic ? 'bg-slate-50 text-slate-600 border border-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700' : 'bg-purple-50 text-purple-600 border border-purple-100 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-900/50'}`}>
+                      <div className={`px-3 py-1.5 rounded-lg text-xs font-bold ${pillClass} border`}>
                         {signal.category || 'General'}
                       </div>
                       
@@ -282,14 +331,46 @@ export default function StudentProfile() {
 
       {/* Action Buttons (Footer area) */}
       <div className="flex items-center justify-end space-x-3 pt-6 pb-6">
-        <button className="inline-flex items-center space-x-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-bold shadow-sm">
-          <Mail className="w-4 h-4" />
-          <span>Email Counselor</span>
+        <button
+          onClick={() => setIsSendAdminModalOpen(true)}
+          className="inline-flex items-center space-x-2 px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-bold shadow-sm"
+        >
+          <AlertCircle className="w-4 h-4" />
+          <span>Send to Admin</span>
         </button>
-        <button className="inline-flex items-center space-x-2 px-6 py-2.5 bg-gray-50 dark:bg-[#1b1e2c] border border-gray-200 dark:border-[#262a3d] text-slate-700 dark:text-slate-300 rounded-lg hover:bg-gray-100 dark:hover:bg-[#262a3d] transition-colors text-sm font-bold shadow-sm">
-          <MessageSquare className="w-4 h-4" />
-          <span>Leave Note</span>
-        </button>
+
+        {emailCategory && (
+          <button
+            onClick={() => {
+              setEmailCategoryState(emailCategory);
+              setIsEmailModalOpen(true);
+            }}
+            className={`inline-flex items-center space-x-2 px-6 py-2.5 rounded-lg transition-colors text-sm font-bold shadow-sm text-white ${
+              emailCategory === 'red' ? 'bg-red-600 hover:bg-red-700'
+              : emailCategory === 'yellow' ? 'bg-amber-500 hover:bg-amber-600'
+              : 'bg-emerald-600 hover:bg-emerald-700'
+            }`}
+            title="Email Parent (Performance)"
+          >
+            <Mail className="w-4 h-4" />
+            <span>Email Parent</span>
+          </button>
+        )}
+
+        {hasAbsent && (
+          <button
+            onClick={() => {
+              setEmailCategoryState('absent');
+              setIsEmailModalOpen(true);
+            }}
+            className="inline-flex items-center space-x-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-bold shadow-sm"
+            title="Email Parent (Absence)"
+          >
+            <Mail className="w-4 h-4" />
+            <span>Absence Notice</span>
+          </button>
+        )}
+
         <button 
           onClick={() => setIsEditModalOpen(true)}
           className="inline-flex items-center space-x-2 px-6 py-2.5 bg-gray-50 dark:bg-[#1b1e2c] border border-gray-200 dark:border-[#262a3d] text-slate-700 dark:text-slate-300 rounded-lg hover:bg-gray-100 dark:hover:bg-[#262a3d] transition-colors text-sm font-bold shadow-sm"
@@ -308,9 +389,47 @@ export default function StudentProfile() {
           grade: history?.grade_level || 9,
           studentId: studentId
         }}
-        onSave={(data) => {
-          console.log("Saving student profile:", data);
+        onSave={async (data) => {
+          try {
+            const payload = {
+              first_name: data.firstName,
+              last_name: data.lastName,
+              grade_level: data.grade,
+              gender: data.gender,
+              date_of_birth: data.dateOfBirth ? data.dateOfBirth : null
+            };
+            await updateStudentProfile(studentId, payload);
+            
+            // update local state
+            setHistory((prev: any) => ({
+              ...prev,
+              first_name: data.firstName,
+              last_name: data.lastName,
+              grade_level: data.grade,
+              gender: data.gender,
+              date_of_birth: data.dateOfBirth
+            }));
+          } catch(err) {
+            console.error("Failed to update student", err);
+          }
         }}
+      />
+
+      {(emailCategoryState || emailCategory) && (
+        <ParentEmailTemplateModal
+          isOpen={isEmailModalOpen}
+          onClose={() => setIsEmailModalOpen(false)}
+          studentName={studentFullName}
+          teacherName={teacherFullName}
+          flagCategory={emailCategoryState || emailCategory!}
+        />
+      )}
+
+      <SendAdminModal
+        isOpen={isSendAdminModalOpen}
+        onClose={() => setIsSendAdminModalOpen(false)}
+        studentId={studentId}
+        studentName={studentFullName}
       />
     </div>
   );

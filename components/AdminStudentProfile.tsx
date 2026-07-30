@@ -4,9 +4,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, AlertCircle, AlertTriangle, Shield, BookOpen, Clock,
-  FileText, ChevronRight, RefreshCw, Activity, Calendar,
+  FileText, ChevronRight, RefreshCw, Activity, Calendar, UserMinus, Mail
 } from 'lucide-react';
-import { getAdminStudentProfile, AdminStudentProfileBlock, SignalCountsByType } from '@/lib/adminDashboardService';
+import { getAdminStudentProfile, AdminStudentProfileBlock, SignalCountsByType, deactivateStudentAdmin } from '@/lib/adminDashboardService';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
+import { useToast } from '@/components/Toast';
+import { useAuth } from '@/app/providers';
+import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
 
 const severityStyles: Record<string, string> = {
   critical: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50',
@@ -47,6 +51,16 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
   const [profile, setProfile] = useState<AdminStudentProfileBlock | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
+  const { showToast } = useToast();
+  const { user } = useAuth();
+  const adminFullName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Admin' : 'Admin';
+  
+  const [emailModalData, setEmailModalData] = useState<{
+    isOpen: boolean;
+    student: any;
+    category: 'super_green' | 'red' | 'yellow' | 'absent' | 'admin_concern' | 'admin_commendation';
+  } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -82,6 +96,16 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
     );
   }
 
+  const handleDeactivateStudent = async () => {
+    try {
+      await deactivateStudentAdmin(studentId);
+      showToast('Student deactivated successfully.', 'success');
+      router.back();
+    } catch (err: any) {
+      showToast(err?.response?.data?.detail || 'Failed to deactivate student.', 'error');
+    }
+  };
+
   const { student } = profile;
   const maxDayCount = Math.max(1, ...profile.timeline_30d.map(d => d.counts.yellow + d.counts.red + d.counts.absent));
 
@@ -90,20 +114,46 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Sora:wght@400;500;600;700&display=swap');`}</style>
 
       {/* Back + Header */}
-      <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 dark:bg-[#1b1e2c] rounded-lg transition"><ArrowLeft size={20} /></button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Playfair Display' }}>
-            {student.first_name} {student.last_name}
-          </h1>
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <button 
+            onClick={() => router.back()} 
+            className="mt-1 flex items-center justify-center p-2 text-gray-500 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 dark:bg-[#1b1e2c] dark:text-gray-400 dark:hover:text-white dark:hover:bg-[#262a3d] rounded-lg transition-colors border border-transparent dark:border-[#262a3d]"
+            title="Go Back"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight capitalize">
+              {student.first_name} {student.last_name}
+            </h1>
           <div className="flex items-center gap-3 mt-1 text-sm text-gray-600 dark:text-gray-400">
             <span>Grade {student.grade_level}</span>
-            <span>·</span>
-            <span>{student.external_student_id}</span>
             {student.iep_status && <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold flex items-center gap-1"><Shield size={10} />IEP</span>}
             {student.ell_status && <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold flex items-center gap-1"><BookOpen size={10} />ELL</span>}
             {student.parent_email_on_file && <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold">📧 Parent email</span>}
           </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 pt-1 md:pt-0">
+        <button
+            onClick={() => setEmailModalData({
+              isOpen: true,
+              student,
+              category: (profile.counts_30d.red + profile.counts_30d.yellow) > 0 ? 'admin_concern' : 'admin_commendation'
+            })}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-semibold transition-colors border border-blue-200 dark:border-blue-900/50"
+          >
+            <Mail size={16} />
+            Email Parent
+          </button>
+          <button
+            onClick={() => setIsDeactivateModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-semibold transition-colors border border-red-200 dark:border-red-900/50"
+          >
+            <UserMinus size={16} />
+            Deactivate Student
+          </button>
         </div>
       </div>
 
@@ -142,31 +192,70 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
         )}
       </div>
 
-      {/* 30-Day Timeline */}
-      {profile.timeline_30d.length > 0 && (
-        <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] p-5 shadow-sm">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">30-Day Signal Timeline</h3>
-          <div className="flex items-end gap-1 h-32">
-            {profile.timeline_30d.map((day, i) => {
-              const total = day.counts.yellow + day.counts.red + day.counts.absent;
-              const h = total > 0 ? Math.max(8, (total / maxDayCount) * 100) : 4;
+
+      {/* Flag History */}
+      {profile.flag_log && profile.flag_log.length > 0 && (
+        <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden mb-6">
+          <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex items-center gap-2">
+            <Activity size={16} className="text-teal-500" />
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white">Flag History</h3>
+          </div>
+          <div className="divide-y divide-gray-100 dark:divide-[#262a3d] max-h-96 overflow-y-auto">
+            {profile.flag_log.map((flag: any, i: number) => {
+              let rawDate = new Date(flag.signal_date + 'T00:00:00');
+              let shortDate = flag.signal_date;
+              let dayOfWeek = '';
+              try {
+                shortDate = rawDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                dayOfWeek = rawDate.toLocaleDateString('en-US', { weekday: 'short' });
+              } catch (e) {}
+
+              const sType = flag.signal_type ? flag.signal_type.toUpperCase() : '';
+              const typeLabel = flag.signal_type ? flag.signal_type.charAt(0).toUpperCase() + flag.signal_type.slice(1).toLowerCase() : '';
+              
+              let catLabel = '';
+              if (flag.category) {
+                if (flag.category.toLowerCase() === 'super_green') catLabel = 'Super Green';
+                else catLabel = flag.category.charAt(0).toUpperCase() + flag.category.slice(1).toLowerCase();
+              }
+              const displayType = catLabel && sType !== 'SUPER_GREEN' ? `${typeLabel} - ${catLabel}` : (sType === 'SUPER_GREEN' ? 'Super Green' : typeLabel);
+
               return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1 group" title={`${day.day}: Y${day.counts.yellow} R${day.counts.red} A${day.counts.absent}`}>
-                  <div className="w-full flex flex-col justify-end" style={{ height: '100px' }}>
-                    {day.counts.red > 0 && <div className="bg-red-400 rounded-t-sm w-full" style={{ height: `${(day.counts.red / maxDayCount) * 100}%`, minHeight: '3px' }} />}
-                    {day.counts.yellow > 0 && <div className="bg-yellow-400 w-full" style={{ height: `${(day.counts.yellow / maxDayCount) * 100}%`, minHeight: '3px' }} />}
-                    {day.counts.absent > 0 && <div className="bg-gray-300 rounded-b-sm w-full" style={{ height: `${(day.counts.absent / maxDayCount) * 100}%`, minHeight: '3px' }} />}
-                    {total === 0 && <div className="bg-green-200 rounded-sm w-full" style={{ height: '3px' }} />}
+                <div key={i} className="flex items-start gap-4 p-4 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors">
+                  <div className="flex flex-col text-left shrink-0 w-14 pt-0.5">
+                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{shortDate}</span>
+                    <span className="text-xs font-semibold text-gray-400">{dayOfWeek}</span>
                   </div>
-                  {i % 5 === 0 && <span className="text-[9px] text-gray-400">{new Date(day.day).getDate()}</span>}
+                  
+                  <div className="flex-1 flex flex-col gap-1 pr-4">
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-white leading-tight">
+                      {flag.title || 'Flag Logged'}
+                    </h3>
+                    {flag.description && flag.description.toLowerCase() !== (flag.title || '').toLowerCase() && (
+                      <p className="text-[13px] text-gray-500 dark:text-gray-400 leading-snug">
+                        {flag.description}
+                      </p>
+                    )}
+                    <div className="text-[11px] font-semibold text-gray-400 mt-1">
+                      {flag.class_name} • {flag.teacher_name}
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 pt-0.5">
+                    <div className={`px-2.5 py-1 rounded-full text-[11px] font-bold border flex items-center gap-1.5 ${
+                      sType === 'RED' 
+                        ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30'
+                        : sType === 'YELLOW'
+                        ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30'
+                        : 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30'
+                    }`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${sType === 'RED' ? 'bg-red-500' : sType === 'YELLOW' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                      {displayType}
+                    </div>
+                  </div>
                 </div>
               );
             })}
-          </div>
-          <div className="flex gap-4 justify-center mt-3 text-xs text-gray-500 dark:text-gray-400">
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-red-400 rounded-sm" />Red</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-yellow-400 rounded-sm" />Yellow</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-gray-300 rounded-sm" />Absent</span>
           </div>
         </div>
       )}
@@ -225,27 +314,24 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
         </div>
       </div>
 
-      {/* Recent Notes */}
-      {profile.recent_notes.length > 0 && (
-        <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex items-center gap-2">
-            <Activity size={16} className="text-teal-500" />
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white">Recent Notes</h3>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {profile.recent_notes.map((note, i) => (
-              <div key={i} className="p-4 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
-                <div className="flex items-center gap-2 mb-1">
-                  <Calendar size={12} className="text-gray-400" />
-                  <span className="text-xs text-gray-500 dark:text-gray-400">{formatDate(note.signal_date)}</span>
-                  <span className="text-xs text-gray-400">·</span>
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{note.class_name}</span>
-                </div>
-                <p className="text-sm text-gray-800 dark:text-gray-200">{note.excerpt}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+      <ConfirmDeleteModal
+        isOpen={isDeactivateModalOpen}
+        onClose={() => setIsDeactivateModalOpen(false)}
+        onConfirm={handleDeactivateStudent}
+        title="Deactivate Student"
+        description={`Are you sure you want to deactivate ${student.first_name} ${student.last_name}? This will perform a global soft delete, making the student inactive across the entire school.`}
+        confirmText="Deactivate"
+      />
+
+      {emailModalData && (
+        <ParentEmailTemplateModal
+          isOpen={emailModalData.isOpen}
+          onClose={() => setEmailModalData(null)}
+          studentName={`${emailModalData.student.first_name} ${emailModalData.student.last_name}`}
+          teacherName={adminFullName}
+          flagCategory={emailModalData.category}
+          recentFlags={emailModalData.student.flag_log}
+        />
       )}
     </div>
   );

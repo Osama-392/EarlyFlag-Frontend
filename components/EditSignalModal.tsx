@@ -110,7 +110,7 @@ export default function EditSignalModal({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50">
           <div>
-            <h2 className="text-xl font-bold text-slate-800">Edit Signal</h2>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Edit Signal</h2>
             <p className="text-sm text-slate-500 mt-1">{studentName}</p>
           </div>
           <button

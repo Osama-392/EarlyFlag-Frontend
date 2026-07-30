@@ -1,5 +1,4 @@
 import api from './api';
-import { cacheGet, cacheSet, CACHE_KEYS, withCache } from './dataCache';
 
 // ─── Dashboard Types ───────────────────────────────────────────────
 
@@ -21,6 +20,7 @@ export interface ClassLoggingStatusRow {
   class_name: string;
   logged_today: boolean;
   student_count_active: number;
+  unlogged_dates?: string[];
 }
 
 export interface UnfinishedLogRow {
@@ -111,20 +111,14 @@ export interface TeacherDashboardResponse {
 
 // ─── API Call ──────────────────────────────────────────────────────
 
-export const getTeacherDashboard = async (forceRefresh = false): Promise<TeacherDashboardResponse> => {
-  return withCache(
-    CACHE_KEYS.TEACHER_DASHBOARD,
-    async () => {
-      try {
-        const response = await api.get('/api/v1/teacher/dashboard');
-        return response.data;
-      } catch (error: any) {
-        console.error('Failed to fetch teacher dashboard:', error?.response?.status, error?.response?.data);
-        throw error;
-      }
-    },
-    forceRefresh
-  );
+export const getTeacherDashboard = async (_forceRefresh = false): Promise<TeacherDashboardResponse> => {
+  try {
+    const response = await api.get('/api/v1/teacher/dashboard');
+    return response.data;
+  } catch (error: any) {
+    console.error('Failed to fetch teacher dashboard:', error?.response?.status, error?.response?.data);
+    throw error;
+  }
 };
 
 export const getUnfinishedAlerts = async (): Promise<UnfinishedLogRow[]> => {
