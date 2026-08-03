@@ -23,9 +23,14 @@ export default function EmailCounselorModal({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !message.trim()) return;
+
+    if (message.trim().length < 20) {
+      setError('Message must be at least 20 characters long.');
+      return;
+    }
 
     setLoading(true);
     setError('');
@@ -33,8 +38,8 @@ export default function EmailCounselorModal({
     try {
       await sendCounselorReferral({
         student_id: studentId,
-        referral_type: subject,
-        note: message,
+        referral_type: 'manual_yellow',
+        note: `Subject: ${subject}\n\n${message}`,
       });
 
       setSuccess(true);

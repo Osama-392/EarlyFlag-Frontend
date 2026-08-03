@@ -228,7 +228,7 @@ export default function ReportView({
                 {statusText === 'Yellow' && <span className="px-2.5 py-0.5 bg-amber-400 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Yellow</span>}
                 {statusText === 'Super Green' && <span className="px-2.5 py-0.5 bg-emerald-500 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Super Green</span>}
               </div>
-              <h1 className="text-3xl font-bold text-slate-800 dark:text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
+              <h1 className="text-3xl font-bold text-slate-800 dark:text-white font-playfair">
                 {student.name}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">

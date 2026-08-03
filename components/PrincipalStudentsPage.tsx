@@ -78,7 +78,6 @@ export default function PrincipalStudentsPage() {
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-8 pb-12">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Sora:wght@400;500;600;700&display=swap');
       `}</style>
 
       {/* Breadcrumb / Top Bar */}
@@ -93,7 +92,7 @@ export default function PrincipalStudentsPage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white dark:text-white mb-2" style={{ fontFamily: 'Sora' }}>Classes</h1>
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white dark:text-white mb-2 font-sora">Classes</h1>
         <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 text-base">View all classes across the school</p>
       </div>
 
@@ -101,7 +100,7 @@ export default function PrincipalStudentsPage() {
       {sortedBuckets.map((bucket) => (
         <div key={bucket.grade_level} className="mb-10">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white" style={{ fontFamily: 'Sora' }}>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white font-sora">
               Grade {bucket.grade_level}
             </h2>
             <span className="text-sm font-medium text-gray-400 bg-gray-50 dark:bg-[#1b1e2c] dark:bg-[#1b1e2c] px-3 py-1 rounded-full border border-gray-100 dark:border-[#262a3d] dark:border-[#262a3d]">

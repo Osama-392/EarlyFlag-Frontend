@@ -7,7 +7,7 @@ import { Bell, Check, Clipboard, Clock } from 'lucide-react';
 
 type TabType = 'all' | 'red_flag' | 'manual' | 'resolved';
 
-export default function AdminReferralsList() {
+export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '30d' }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [referrals, setReferrals] = useState<AdminReferral[]>([]);
@@ -15,13 +15,25 @@ export default function AdminReferralsList() {
 
   useEffect(() => {
     fetchReferrals();
-  }, [activeTab]);
+  }, [activeTab, range]);
 
   const fetchReferrals = async () => {
     setLoading(true);
     try {
       // Build filters based on active tab
       const params: any = { limit: 50 };
+      
+      if (range && range !== 'all') {
+        const days = parseInt(range.replace('d', ''), 10);
+        if (!isNaN(days)) {
+          const fromDate = new Date();
+          // If days is 1 (today), we subtract 0 days. Otherwise subtract days - 1.
+          fromDate.setDate(fromDate.getDate() - (days === 1 ? 0 : days - 1));
+          params.from = fromDate.toISOString().split('T')[0];
+        }
+      } else if (range === 'all') {
+        params.from = '2000-01-01'; // Very old date to fetch all data
+      }
       
       const res = await getAdminReferrals(params);
       
@@ -100,7 +112,7 @@ export default function AdminReferralsList() {
           </div>
           <div className="bg-red-50 dark:bg-red-950/30 px-3 py-1.5 rounded-full flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
-            <span className="text-xs font-bold text-red-600 dark:text-red-400">active referrals</span>
+            <span className="text-xs font-bold text-red-600 dark:text-red-400">Active Referrals</span>
           </div>
         </div>
 
@@ -126,7 +138,7 @@ export default function AdminReferralsList() {
       </div>
 
       {/* List */}
-      <div className="divide-y divide-gray-100 dark:divide-[#262a3d]">
+      <div className="divide-y divide-gray-100 dark:divide-[#262a3d] max-h-[450px] overflow-y-auto">
         {loading ? (
           <div className="p-8 text-center text-sm text-gray-400 font-medium">Loading referrals...</div>
         ) : referrals.length === 0 ? (

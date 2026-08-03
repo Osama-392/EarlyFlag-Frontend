@@ -9,6 +9,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sora: ['Sora', 'sans-serif'],
+        playfair: ['Playfair Display', 'serif'],
+      },
       colors: {
         primary: {
           50: '#f0fdfa',

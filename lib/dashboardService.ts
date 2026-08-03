@@ -103,6 +103,7 @@ export interface TeacherDashboardResponse {
   yellow_watch_list: YellowWatchListRow[];
   red_urgent: RedUrgentRow[];
   super_green_highlights: SuperGreenHighlightRow[];
+  absent_students?: any[];
   monday_brief: MondayBriefBlock;
   recommendations: string[];
   generated_at: string;

@@ -86,13 +86,12 @@ export default function SchoolOverviewPage() {
 
   return (
     <div className="space-y-8 pb-10">
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Sora:wght@400;500;600;700&display=swap');`}</style>
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Playfair Display' }}>School Overview</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white font-playfair">School Overview</h1>
             <p className="text-sm text-gray-500 mt-1">Students requiring attention — ranked by risk across all classes</p>
           </div>
         </div>

@@ -19,8 +19,9 @@ interface AuthContextType {
   error: string | null;
   isAuthenticated: boolean;
   isPending: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, school_id: string, firstName?: string, lastName?: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ requires2fa: boolean; temporaryToken?: string } | void>;
+  signup: (email: string, password: string, schoolId: string, firstName?: string, lastName?: string, phoneNumber?: string) => Promise<void>;
+  verify2FA: (code: string, temporaryToken: string) => Promise<void>;
   logout: () => void;
   updateUser: (data: Partial<User>) => void;
   clearError: () => void;
@@ -69,6 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
       });
 
+      if (response.data.requires_2fa) {
+        return { requires2fa: true, temporaryToken: response.data.temp_token };
+      }
+
       const { access_token, refresh_token, user: userData } = response.data;
 
       localStorage.setItem('access_token', access_token);
@@ -99,7 +104,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (email: string, password: string, schoolId: string, firstName?: string, lastName?: string) => {
+  const verify2FA = async (code: string, temporaryToken: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await api.post('/api/v1/auth/verify-2fa', {
+        code,
+        temp_token: temporaryToken,
+      });
+
+      const { access_token, refresh_token, user: userData } = response.data;
+
+      localStorage.setItem('access_token', access_token);
+      localStorage.setItem('refresh_token', refresh_token);
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      setUser(userData);
+      setIsPending(userData.approval_status === 'pending');
+    } catch (err: any) {
+      let message = 'Verification failed. Please try again.';
+      if (err.response?.data?.detail) {
+        const detail = err.response.data.detail;
+        if (Array.isArray(detail)) {
+          message = detail.map((e: any) => e.msg || String(e)).join(', ');
+        } else if (typeof detail === 'string') {
+          message = detail;
+        }
+      } else if (err.message && typeof err.message === 'string') {
+        message = err.message;
+      }
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signup = async (email: string, password: string, schoolId: string, firstName?: string, lastName?: string, phoneNumber?: string) => {
     setLoading(true);
     setError(null);
 
@@ -110,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         school_id: schoolId,
         first_name: firstName || '',
         last_name: lastName || '',
+        phone_number: phoneNumber || '',
       });
 
       const userData = response.data?.user;
@@ -177,6 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isPending,
     login,
     signup,
+    verify2FA,
     logout,
     updateUser,
     clearError,

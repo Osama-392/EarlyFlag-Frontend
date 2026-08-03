@@ -7,7 +7,7 @@ interface GoodMorningBannerProps {
   name: string;
   metric1: React.ReactNode;
   metric2: React.ReactNode;
-  metric3: React.ReactNode;
+  metric3?: React.ReactNode;
   recommendation?: string;
 }
 
@@ -24,7 +24,7 @@ export default function GoodMorningBanner({
     // Only show once per day
     const today = new Date().toLocaleDateString();
     const dismissedDate = localStorage.getItem('goodMorningBannerDismissed');
-    
+
     if (dismissedDate !== today) {
       setIsVisible(true);
     }
@@ -41,7 +41,7 @@ export default function GoodMorningBanner({
   return (
     <div className="relative overflow-hidden bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm mb-6 p-4 md:px-6 md:py-5 animate-fade-in group">
       {/* Dismiss Button */}
-      <button 
+      <button
         onClick={handleDismiss}
         className="absolute top-4 right-4 z-20 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
         aria-label="Dismiss banner"
@@ -68,7 +68,7 @@ export default function GoodMorningBanner({
             fill="url(#grad2)"
             opacity="0.5"
           />
-          
+
           {/* Dotted path leading to flag */}
           <path
             d="M300,200 Q450,160 550,120 T650,40"
@@ -81,7 +81,7 @@ export default function GoodMorningBanner({
 
           {/* Flagpole */}
           <line x1="650" y1="40" x2="650" y2="80" stroke="#1f2937" strokeWidth="4" />
-          
+
           {/* Flag pennant */}
           <path d="M650,40 L690,50 L650,60 Z" fill="#ea580c" />
 
@@ -105,10 +105,16 @@ export default function GoodMorningBanner({
         </h2>
         <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
           {metric1},<br />
-          {metric2},<br />
-          and {metric3}.
+          {metric3 ? (
+            <>
+              {metric2},<br />
+              and {metric3}.
+            </>
+          ) : (
+            <>and {metric2}.</>
+          )}
         </p>
-        
+
         {recommendation && (
           <div className="mt-3 flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 bg-orange-50/50 dark:bg-orange-900/10 p-2.5 rounded-lg border border-orange-100 dark:border-orange-900/30">
             <Sparkles size={16} className="text-orange-500 shrink-0" />

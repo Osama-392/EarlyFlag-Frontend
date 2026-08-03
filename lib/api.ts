@@ -1,32 +1,7 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-const api: AxiosInstance = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Attach JWT token to requests
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Determine the correct login route based on stored user data and current URL
 function getLoginRoute(): string {
-  // First, check stored user data
-  const userStr = localStorage.getItem('user');
+  const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
   if (userStr) {
     try {
       const user = JSON.parse(userStr);
@@ -35,114 +10,149 @@ function getLoginRoute(): string {
       }
     } catch (e) { }
   }
-
-  // Fallback: check the current URL path to determine context
-  // If we're on a principal page, redirect to principal login
   if (typeof window !== 'undefined') {
-    const path = window.location.pathname;
-    if (path.startsWith('/principal')) {
-      return '/principal-auth';
-    }
+    if (window.location.pathname.startsWith('/principal')) return '/principal-auth';
   }
-
   return '/auth';
 }
 
-// Handle token refresh and errors
-api.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
-    // Normalize Pydantic validation error arrays or objects in response detail to strings
-    // to prevent React child rendering crashes ({type, loc, msg, input, ctx})
-    if (error.response?.data && typeof error.response.data === 'object') {
-      const detail = (error.response.data as any).detail;
-      if (Array.isArray(detail)) {
-        (error.response.data as any).detail = detail.map((e: any) => {
-          if (typeof e === 'object' && e !== null && e.msg) {
-            const loc = Array.isArray(e.loc) && e.loc.length > 0 ? `${e.loc[e.loc.length - 1]}: ` : '';
-            return `${loc}${e.msg}`;
-          }
-          return typeof e === 'string' ? e : JSON.stringify(e);
-        }).join(', ');
-      } else if (detail !== null && typeof detail === 'object') {
-        (error.response.data as any).detail = detail.msg || detail.message || JSON.stringify(detail);
-      }
-    }
+function handle401() {
+  const loginRoute = getLoginRoute();
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    window.location.href = loginRoute;
+  }
+}
 
-    const originalRequest = error.config as any;
+async function handleResponse(response: Response, isAuthRoute: boolean) {
+  if (response.ok) {
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
+    return { data };
+  }
 
-    // Don't intercept auth endpoints (login, signup, refresh) —
-    // let the calling code handle those errors directly
-    const requestUrl = originalRequest?.url || '';
-    if (
-      requestUrl.includes('/auth/login') ||
-      requestUrl.includes('/auth/signup') ||
-      requestUrl.includes('/auth/refresh')
-    ) {
-      return Promise.reject(error);
-    }
+  const text = await response.text();
+  let errorData: any = {};
+  try {
+    errorData = text ? JSON.parse(text) : {};
+  } catch (e) {
+    errorData = { detail: text };
+  }
 
-    // Handle 401 (Unauthorized) - try to refresh token
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        const refreshToken = localStorage.getItem('refresh_token');
-        if (!refreshToken) {
-          // No refresh token, redirect to login
-          const loginRoute = getLoginRoute();
-
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('user');
-          if (typeof window !== 'undefined') {
-            window.location.href = loginRoute;
-          }
-          return Promise.reject(error);
+  // Flatten pydantic errors
+  if (errorData && typeof errorData === 'object') {
+    const detail = errorData.detail;
+    if (Array.isArray(detail)) {
+      errorData.detail = detail.map((e: any) => {
+        if (typeof e === 'object' && e !== null && e.msg) {
+          const loc = Array.isArray(e.loc) && e.loc.length > 0 ? `${e.loc[e.loc.length - 1]}: ` : '';
+          return `${loc}${e.msg}`;
         }
+        return typeof e === 'string' ? e : JSON.stringify(e);
+      }).join(', ');
+    } else if (detail !== null && typeof detail === 'object') {
+      errorData.detail = detail.msg || detail.message || JSON.stringify(detail);
+    }
+  }
 
-        const response = await axios.post(
-          `${API_URL}/api/v1/auth/refresh`,
-          { refresh_token: refreshToken },
-          { headers: { 'Content-Type': 'application/json' } }
-        );
+  const errorObj = {
+    response: {
+      status: response.status,
+      data: errorData
+    }
+  };
 
-        const { access_token, refresh_token } = response.data;
+  if (isAuthRoute) {
+    throw errorObj;
+  }
+
+  if (response.status === 403 && typeof errorData.detail === 'string' && errorData.detail.includes('pending')) {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      window.location.href = '/auth/pending-approval';
+    }
+    throw errorObj;
+  }
+
+  throw errorObj;
+}
+
+async function fetchWithRetry(url: string, options: RequestInit = {}): Promise<any> {
+  const isAuthRoute = url.includes('/auth/login') || url.includes('/auth/signup') || url.includes('/auth/refresh');
+  
+  let token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const headers = new Headers(options.headers || {});
+  
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  let response = await fetch(url, { ...options, headers });
+
+  if (response.status === 401 && !isAuthRoute) {
+    const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
+    if (!refreshToken) {
+      handle401();
+      throw { response: { status: 401, data: { detail: 'Unauthorized' } } };
+    }
+
+    try {
+      const refreshRes = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken })
+      });
+
+      if (!refreshRes.ok) {
+        handle401();
+        throw { response: { status: 401, data: { detail: 'Session expired' } } };
+      }
+
+      const { access_token, refresh_token } = await refreshRes.json();
+      if (typeof window !== 'undefined') {
         localStorage.setItem('access_token', access_token);
         localStorage.setItem('refresh_token', refresh_token);
-
-        // Retry original request with new token
-        originalRequest.headers.Authorization = `Bearer ${access_token}`;
-        return api(originalRequest);
-      } catch (refreshError) {
-        // Refresh failed, redirect to login
-        const loginRoute = getLoginRoute();
-
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
-        if (typeof window !== 'undefined') {
-          window.location.href = loginRoute;
-        }
-        return Promise.reject(refreshError);
       }
-    }
 
-    // Handle 403 (Forbidden) - pending approval
-    if (error.response?.status === 403) {
-      const message = (error.response.data as any)?.detail || 'Access denied';
-      if (message.includes('pending')) {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        if (typeof window !== 'undefined') {
-          window.location.href = '/auth/pending-approval';
-        }
-        return Promise.reject(error);
-      }
+      // Retry with new token
+      headers.set('Authorization', `Bearer ${access_token}`);
+      response = await fetch(url, { ...options, headers });
+    } catch (refreshErr) {
+      handle401();
+      throw refreshErr;
     }
-
-    return Promise.reject(error);
   }
-);
+
+  return handleResponse(response, isAuthRoute);
+}
+
+function buildUrl(endpoint: string, config?: { params?: Record<string, any> }) {
+  let url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
+  if (config?.params) {
+    const urlObj = new URL(url);
+    Object.entries(config.params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        urlObj.searchParams.append(key, String(value));
+      }
+    });
+    url = urlObj.toString();
+  }
+  return url;
+}
+
+const api = {
+  get: <T = any>(url: string, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'GET' }),
+  post: <T = any>(url: string, data?: any, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'POST', body: data ? JSON.stringify(data) : undefined }),
+  put: <T = any>(url: string, data?: any, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'PUT', body: data ? JSON.stringify(data) : undefined }),
+  patch: <T = any>(url: string, data?: any, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'PATCH', body: data ? JSON.stringify(data) : undefined }),
+  delete: <T = any>(url: string, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'DELETE' }),
+  postForm: <T = any>(url: string, data: FormData, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'POST', body: data }),
+};
 
 export default api;
