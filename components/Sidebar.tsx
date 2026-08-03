@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Home, Users, BarChart3, FileText, Award, LogOut, User, Settings, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/app/providers';
 import { useRouter, usePathname } from 'next/navigation';
@@ -42,12 +43,12 @@ export default function Sidebar() {
     <aside className="w-64 bg-white dark:bg-[#151722] border-r border-[#262a3d] flex flex-col transition-colors">
       {/* Logo */}
       <div className="h-[73px] px-8 bg-[#151722] border-b border-[#262a3d] flex items-center shrink-0">
-        <button
-          onClick={() => handleNavigation('/')}
+        <Link
+          href="/dashboard"
           className="flex items-center hover:opacity-80 transition-opacity w-full"
         >
           <span className="text-[17px] font-bold tracking-[0.2em] text-white">EARLY <span className="text-[#f97316]">FLAG</span></span>
-        </button>
+        </Link>
       </div>
 
       {/* Navigation */}

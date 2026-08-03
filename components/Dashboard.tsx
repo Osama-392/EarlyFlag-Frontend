@@ -24,7 +24,10 @@ import {
   TrendingDown,
   TrendingUp,
   User,
-  Users
+  Users,
+  Trophy,
+  Sparkles,
+  Award
 } from 'lucide-react';
 import { useProtectedRoute } from '@/lib/useProtectedRoute';
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -40,7 +43,9 @@ import {
   RedUrgentRow,
   UnfinishedLogRow,
   getUnfinishedAlerts,
-  dismissUnfinishedAlert
+  dismissUnfinishedAlert,
+  getTeacherRecognitions,
+  StudentRecognitionRow
 } from '@/lib/dashboardService';
 
 const formatRelativeTime = (dateStr?: string): string => {
@@ -88,6 +93,7 @@ export default function Dashboard() {
   const [emailModalStudent, setEmailModalStudent] = useState<RedUrgentRow | null>(null);
   const [notifyModalStudent, setNotifyModalStudent] = useState<RedUrgentRow | null>(null);
   const [unfinishedAlerts, setUnfinishedAlerts] = useState<UnfinishedLogRow[]>([]);
+  const [recognitions, setRecognitions] = useState<StudentRecognitionRow[]>([]);
   const [templateModalData, setTemplateModalData] = useState<{
     studentName: string;
     flagCategory: 'red' | 'yellow' | 'super_green' | 'absent';
@@ -106,14 +112,16 @@ export default function Dashboard() {
       // If 'silent', we don't set any loading state to keep the UI uninterrupted
       setError(null);
 
-      const [data, alerts, statsData] = await Promise.all([
+      const [data, alerts, statsData, recsData] = await Promise.all([
         getTeacherDashboard(),
         getUnfinishedAlerts(),
-        getMultiWindowStats()
+        getMultiWindowStats(),
+        getTeacherRecognitions(100)
       ]);
       setDashboardData(data);
       setUnfinishedAlerts(alerts);
       setStats(statsData);
+      setRecognitions(recsData);
     } catch (err: any) {
       console.error('Dashboard load error:', err);
       const detail = err?.response?.data?.detail;
@@ -211,9 +219,9 @@ export default function Dashboard() {
       sortedGrouped[date] = grouped[date];
     });
 
-    // Show reminder after 2 PM school time, only if there are unlogged classes
+    // Always show reminder
     return {
-      isEndOfDay: hour >= 14 && total > 0,
+      isEndOfDay: total > 0,
       unloggedSessionsGrouped: sortedGrouped,
       totalUnlogged: total,
       currentHour: hour,
@@ -287,6 +295,7 @@ export default function Dashboard() {
     yellow_watch_list,
     red_urgent,
     super_green_highlights,
+    absent_students,
     classes,
     recommendations
   } = dashboardData;
@@ -439,7 +448,6 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 w-full max-w-[1600px] mx-auto pb-12">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Sora:wght@400;500;600;700&display=swap');
       `}</style>
       
       {refreshing && (
@@ -484,7 +492,7 @@ export default function Dashboard() {
                 <Clock size={22} className="text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white" style={{ fontFamily: 'Sora' }}>
+                <h2 className="text-xl font-bold text-white font-sora">
                   End-of-Day Reminder
                 </h2>
                 <p className="text-orange-100 text-sm">
@@ -582,67 +590,53 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 xl:gap-8">
-        {statCards.map((stat, idx) => (
-          <div key={idx} className={`${stat.bgColor} rounded-xl border border-gray-100 dark:border-transparent p-6 shadow-sm transition-colors`}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">{stat.label}</p>
-                <p className="text-4xl font-bold text-gray-900 dark:text-white mt-2" style={{ fontFamily: 'Sora' }}>{stat.value}</p>
-              </div>
-              <span className="text-2xl">{stat.icon}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Stats Cards Removed */}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Yellow Watch List */}
-          <div className="bg-white dark:bg-[#1a1d27] rounded-xl border border-gray-200 dark:border-[#2e3240] overflow-hidden shadow-sm transition-colors">
-            <div className="p-5 border-b border-gray-100 dark:border-[#2e3240] flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center space-x-2" style={{ fontFamily: 'Sora' }}>
+        {/* Yellow Watch List */}
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-[#1a1d27] rounded-xl border border-gray-200 dark:border-[#2e3240] overflow-hidden shadow-sm transition-colors flex flex-col h-[450px]">
+            <div className="p-5 border-b border-gray-100 dark:border-[#2e3240] flex items-center justify-between shrink-0">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center space-x-2 font-sora">
                 <span>🟡</span><span>Yellow Watch List</span>
               </h3>
               <span className="text-xs font-bold text-amber-700 dark:text-amber-500 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-full">{yellow_watch_list.length}</span>
             </div>
             {yellow_watch_list.length > 0 ? (
-              <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto overflow-y-auto custom-scrollbar flex-1">
+                <table className="w-full text-xs">
                   <thead className="bg-gray-50/50 dark:bg-[#151722]/50">
                     <tr>
-                      <th className="px-5 py-3 text-left font-semibold text-gray-600 dark:text-gray-400">Student</th>
-                      <th className="px-5 py-3 text-left font-semibold text-gray-600 dark:text-gray-400">Grade</th>
-                      <th className="px-5 py-3 text-left font-semibold text-gray-600 dark:text-gray-400">Acd / Beh</th>
-                      <th className="px-5 py-3 text-left font-semibold text-gray-600 dark:text-gray-400">Total</th>
-                      <th className="px-5 py-3 text-left font-semibold text-gray-600 dark:text-gray-400">Status</th>
-                      <th className="px-5 py-3 text-right font-semibold text-gray-600 dark:text-gray-400"></th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Student</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Grade</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Acd / Beh</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Total</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Status</th>
+                      <th className="px-3 py-2 text-right font-semibold text-gray-600 dark:text-gray-400"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {yellow_watch_list.map((row) => (
                       <tr key={row.student_id} className="border-b border-gray-100 dark:border-[#2e3240] hover:bg-gray-50 dark:hover:bg-[#202330] transition">
-                        <td className="px-5 py-3 font-medium text-gray-900 dark:text-white">{row.first_name} {row.last_name}</td>
-                        <td className="px-5 py-3 text-gray-500 dark:text-gray-400">Gr {row.grade_level}</td>
-                        <td className="px-5 py-3">
+                        <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">{row.first_name} {row.last_name}</td>
+                        <td className="px-3 py-2 text-gray-500 dark:text-gray-400">Gr {row.grade_level}</td>
+                        <td className="px-3 py-2">
                           <span className="text-blue-600 dark:text-blue-400 font-semibold">{row.yellow_academic_count}</span>
                           <span className="text-gray-300 dark:text-gray-600 mx-1">/</span>
                           <span className="text-purple-600 dark:text-purple-400 font-semibold">{row.yellow_behavioral_count}</span>
                         </td>
-                        <td className="px-5 py-3 font-bold text-amber-600 dark:text-amber-500">{row.yellow_total}</td>
-                        <td className="px-5 py-3">
+                        <td className="px-3 py-2 font-bold text-amber-600 dark:text-amber-500">{row.yellow_total}</td>
+                        <td className="px-3 py-2">
                           {row.unresolved_alert_max_severity ? (
-                            <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs rounded font-medium">{row.unresolved_alert_max_severity.toUpperCase()}</span>
+                            <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[10px] rounded font-medium">{row.unresolved_alert_max_severity.toUpperCase()}</span>
                           ) : (
-                            <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs rounded font-medium">WATCH</span>
+                            <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[10px] rounded font-medium">WATCH</span>
                           )}
                         </td>
-                        <td className="px-5 py-3 text-right">
+                        <td className="px-3 py-2 text-right">
                           <button
                             onClick={() => setTemplateModalData({ studentName: `${row.first_name} ${row.last_name}`, flagCategory: 'yellow', reason: row.unresolved_alert_max_severity ? `frequent ${row.unresolved_alert_max_severity} level alerts` : undefined })}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1b1e2c] hover:bg-[#262a3d] text-white text-xs font-semibold rounded-full transition-colors"
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-[#1b1e2c] hover:bg-[#262a3d] text-white text-[10px] font-semibold rounded-full transition-colors"
                           >
                             <Mail className="w-3.5 h-3.5" />
                             Email
@@ -657,82 +651,33 @@ export default function Dashboard() {
               <div className="p-8 text-center text-gray-500 dark:text-gray-400">No students on the yellow watch list right now.</div>
             )}
           </div>
-
-          {/* Class Logging Status */}
-          <div className={`bg-white dark:bg-[#1a1d27] rounded-xl border ${isEndOfDay ? 'border-orange-200 dark:border-orange-900/50' : 'border-gray-200 dark:border-[#2e3240]'} overflow-hidden shadow-sm transition-colors`}>
-            <div className={`p-5 border-b ${isEndOfDay ? 'border-orange-100 dark:border-orange-900/30' : 'border-gray-100 dark:border-[#2e3240]'} flex items-center justify-between`}>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Sora' }}>Today&apos;s Class Logging Status</h3>
-              {isEndOfDay && (
-                <span className="text-xs font-bold text-orange-700 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-2.5 py-1 rounded-full flex items-center gap-1">
-                  <Clock size={12} />
-                  {totalUnlogged} remaining
-                </span>
-              )}
-            </div>
-            {classes.length > 0 ? (
-              <div className="divide-y divide-gray-100 dark:divide-[#2e3240] max-h-[300px] overflow-y-auto">
-                {[...classes]
-                  .sort((a, b) => {
-                    // Float unlogged classes to the top
-                    if (!a.logged_today && b.logged_today) return -1;
-                    if (a.logged_today && !b.logged_today) return 1;
-                    return 0;
-                  })
-                  .map(c => (
-                  <div
-                    key={c.class_id}
-                    onClick={!c.logged_today ? () => handleQuickLogForClass(c.class_id) : undefined}
-                    className={`p-4 flex items-center justify-between transition-colors ${
-                      !c.logged_today
-                        ? `cursor-pointer ${isEndOfDay ? 'bg-orange-50/50 dark:bg-orange-900/10 hover:bg-orange-50 dark:hover:bg-orange-900/20' : 'hover:bg-blue-50 dark:hover:bg-[#202330]'}`
-                        : 'hover:bg-gray-50 dark:hover:bg-[#202330]'
-                    }`}
-                  >
-                    <div>
-                      <p className={`font-semibold ${!c.logged_today && isEndOfDay ? 'text-orange-900 dark:text-orange-400' : 'text-gray-900 dark:text-white'}`}>{c.class_name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{c.student_count_active} active students</p>
-                    </div>
-                    {c.logged_today ? (
-                      <div className="flex items-center text-green-600 dark:text-green-500 text-sm font-semibold gap-1"><CheckCircle2 size={16}/> Logged</div>
-                    ) : (
-                      <div className={`flex items-center text-sm font-medium gap-1 ${isEndOfDay ? 'text-orange-600 dark:text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}>
-                        <AlertCircle size={16}/>
-                        <span>{isEndOfDay ? 'Log Now →' : 'Not Logged'}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-8 text-center text-gray-500 dark:text-gray-400">No classes assigned.</div>
-            )}
-          </div>
         </div>
+        {/* Yellow Watch List Ends */}
 
+        {/* Red Urgent */}
         <div className="space-y-6">
-          {/* Red Urgent */}
-          <div className="bg-white dark:bg-[#1a1d27] rounded-xl border border-red-200 dark:border-red-900/50 shadow-sm overflow-hidden transition-colors">
-            <div className="bg-red-50 dark:bg-red-900/20 p-5 border-b border-red-100 dark:border-red-900/50 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-red-900 dark:text-red-400" style={{ fontFamily: 'Sora' }}>🔴 Red Urgent</h3>
+          <div className="bg-white dark:bg-[#1a1d27] rounded-xl border border-red-200 dark:border-red-900/50 shadow-sm overflow-hidden transition-colors flex flex-col h-[450px]">
+            <div className="bg-red-50 dark:bg-red-900/20 p-5 border-b border-red-100 dark:border-red-900/50 flex items-center justify-between shrink-0">
+              <h3 className="text-lg font-bold text-red-900 dark:text-red-400 font-sora">🔴 Red Urgent</h3>
               <span className="text-xs font-bold text-red-700 dark:text-red-300 bg-red-200 dark:bg-red-900/50 px-2 py-1 rounded-full">{red_urgent.length}</span>
             </div>
-            <div className="p-5">
+            <div className="p-3 overflow-y-auto custom-scrollbar flex-1">
               {red_urgent.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {red_urgent.map((item) => (
-                    <div key={item.alert_id} className="bg-white dark:bg-[#151722] rounded-lg p-4 border border-red-100 dark:border-red-900/30 shadow-sm">
-                      <div className="flex items-start justify-between mb-2">
+                    <div key={item.alert_id} className="bg-white dark:bg-[#151722] rounded-lg p-3 border border-red-100 dark:border-red-900/30 shadow-sm">
+                      <div className="flex items-start justify-between mb-1.5">
                         <div>
-                          <p className="font-bold text-gray-900 dark:text-white">{item.student.first_name} {item.student.last_name}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Gr {item.student.grade_level}</p>
+                          <p className="font-bold text-gray-900 dark:text-white text-sm">{item.student.first_name} {item.student.last_name}</p>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400">Gr {item.student.grade_level}</p>
                         </div>
-                        <span className="text-[10px] font-bold text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded uppercase tracking-wider">{item.severity}</span>
+                        <span className="text-[9px] font-bold text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded uppercase tracking-wider">{item.severity}</span>
                       </div>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 bg-red-50 dark:bg-red-900/10 p-2 rounded border dark:border-red-900/20">{item.rule_description}</p>
+                      <p className="text-xs text-gray-700 dark:text-gray-300 mb-2 bg-red-50 dark:bg-red-900/10 p-1.5 rounded border dark:border-red-900/20 leading-tight">{item.rule_description}</p>
                       <div className="flex justify-end">
                         <button
                           onClick={() => setTemplateModalData({ studentName: `${item.student.first_name} ${item.student.last_name}`, flagCategory: 'red', reason: item.rule_description })}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1b1e2c] hover:bg-[#262a3d] text-white text-xs font-semibold rounded-full transition-colors"
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-[#1b1e2c] hover:bg-[#262a3d] text-white text-[10px] font-semibold rounded-full transition-colors"
                         >
                           <Mail className="w-3.5 h-3.5" />
                           Email
@@ -746,29 +691,31 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+        </div>
 
-          {/* Super Green */}
-          <div className="bg-green-50 dark:bg-green-900/10 rounded-xl border border-green-200 dark:border-green-900/30 shadow-sm overflow-hidden transition-colors flex flex-col max-h-[400px]">
+        {/* Super Green */}
+        <div className="space-y-6">
+          <div className="bg-green-50 dark:bg-green-900/10 rounded-xl border border-green-200 dark:border-green-900/30 shadow-sm overflow-hidden transition-colors flex flex-col h-[450px]">
             <div className="p-5 border-b border-green-200/50 dark:border-green-900/30 flex justify-between items-center shrink-0">
-              <h3 className="text-lg font-bold text-green-900 dark:text-green-500" style={{ fontFamily: 'Sora' }}>⭐ Super Green</h3>
+              <h3 className="text-lg font-bold text-green-900 dark:text-green-500 font-sora">⭐ Super Green</h3>
               <span className="text-xs font-bold text-green-800 dark:text-green-400 bg-green-200 dark:bg-green-900/50 px-2 py-1 rounded-full">{super_green_highlights.length}</span>
             </div>
-            <div className="p-5 overflow-y-auto custom-scrollbar">
+            <div className="p-3 overflow-y-auto custom-scrollbar flex-1">
               {super_green_highlights.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {super_green_highlights.map((item) => (
-                    <div key={item.signal_id} className="bg-white dark:bg-[#151722] rounded-lg p-3 border border-green-100 dark:border-green-900/30 shadow-sm">
-                      <p className="font-bold text-gray-900 dark:text-white text-sm">{item.first_name} {item.last_name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{item.reason_description || 'Positive Behavior'} • {new Date(item.signal_date).toLocaleDateString()}</p>
-                      <div className="flex justify-between items-center mt-2">
+                    <div key={item.signal_id} className="bg-white dark:bg-[#151722] rounded-lg p-2.5 border border-green-100 dark:border-green-900/30 shadow-sm">
+                      <p className="font-bold text-gray-900 dark:text-white text-xs">{item.first_name} {item.last_name}</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-1 leading-tight">{item.reason_description || 'Positive Behavior'} • {new Date(item.signal_date).toLocaleDateString()}</p>
+                      <div className="flex justify-between items-center mt-1.5">
                         {item.parent_email_on_file ? (
-                          <span className="text-[10px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded font-bold">Email Sent to Parent</span>
+                          <span className="text-[9px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded font-bold">Email Sent</span>
                         ) : (
-                          <span className="text-[10px] bg-gray-100 dark:bg-[#202330] text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded font-bold">No Email on File</span>
+                          <span className="text-[9px] bg-gray-100 dark:bg-[#202330] text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded font-bold">No Email</span>
                         )}
                         <button
                           onClick={() => setTemplateModalData({ studentName: `${item.first_name} ${item.last_name}`, flagCategory: 'super_green', reason: item.reason_description ?? undefined })}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1b1e2c] hover:bg-[#262a3d] text-white text-xs font-semibold rounded-full transition-colors"
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-[#1b1e2c] hover:bg-[#262a3d] text-white text-[10px] font-semibold rounded-full transition-colors"
                         >
                           <Mail className="w-3.5 h-3.5" />
                           Email
@@ -783,61 +730,69 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Recommendations */}
-          {recommendations.length > 0 && (
-            <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] border-l-orange-500 border-l-[3px] shadow-sm overflow-hidden transition-colors">
-              <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex justify-between items-center">
-                <h3 className="font-bold text-gray-900 dark:text-white tracking-wide">Recommendations</h3>
-                <ChevronRight size={16} className="text-gray-400 dark:text-gray-500" />
-              </div>
-              <div className="flex flex-col">
-                {recommendations.map((rec, i) => {
-                  let title = rec;
-                  let subtitle = '';
-                  if (rec.includes(' — ')) {
-                    const parts = rec.split(' — ');
-                    title = parts[0];
-                    subtitle = parts.slice(1).join(' — ');
-                  } else if (rec.includes(' - ')) {
-                    const parts = rec.split(' - ');
-                    title = parts[0];
-                    subtitle = parts.slice(1).join(' - ');
-                  }
-
-                  let Icon = User;
-                  let iconColor = 'text-orange-500';
-                  const tl = title.toLowerCase() + subtitle.toLowerCase();
-                  if (tl.includes('green') || tl.includes('recogniz') || tl.includes('positive')) {
-                    Icon = Star;
-                    iconColor = 'text-green-500';
-                  } else if (tl.includes('class') || tl.includes('log') || tl.includes('absent')) {
-                    Icon = ClipboardList;
-                    iconColor = 'text-orange-500';
-                  } else if (tl.includes('alert') || tl.includes('red') || tl.includes('urgent')) {
-                    Icon = AlertCircle;
-                    iconColor = 'text-red-500';
-                  }
-
-                  return (
-                    <div key={i} className={`flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors cursor-pointer ${i !== recommendations.length - 1 ? 'border-b border-gray-200 dark:border-[#262a3d]' : ''}`}>
-                      <Icon size={20} className={iconColor} />
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900 dark:text-white text-sm">{title}</p>
-                        {subtitle && <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">{subtitle}</p>}
-                      </div>
-                      <ChevronRight size={16} className="text-gray-400 dark:text-gray-500" />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
+          {/* Recommendations Removed */}
         </div>
       </div>
 
-      
-      {/* ===================== ANALYTICS SECTION ===================== */}
+      {/* ─── Absent Students This Week ─────────────────────────────── */}
+      <div className="mt-6 bg-white dark:bg-[#1a1d27] rounded-xl border border-gray-200 dark:border-[#2e3240] shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-gray-100 dark:border-[#2e3240] flex items-center justify-between bg-slate-50 dark:bg-[#151722]">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center space-x-2 font-sora">
+            <Calendar className="w-4 h-4 text-gray-500" />
+            <span>Absent Students This Week</span>
+          </h3>
+          {dashboardData.absent_students && (
+            <span className="text-xs font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
+              {dashboardData.absent_students.length} absences logged
+            </span>
+          )}
+        </div>
+        <div className="p-4">
+          {dashboardData.absent_students && dashboardData.absent_students.length > 0 ? (
+            <div className="flex flex-wrap gap-4">
+              {dashboardData.absent_students.map((student: any) => (
+                <div key={student.student_id} className="flex-1 min-w-[200px] flex items-center justify-between p-3 border border-gray-100 dark:border-gray-800 rounded-lg">
+                  <div>
+                    <p className="font-bold text-sm flex items-center gap-1.5 text-gray-900 dark:text-white">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>
+                      {student.first_name} {student.last_name}
+                    </p>
+                    <p className="text-xs text-gray-500 ml-3">{student.class_name}</p>
+                    <div className="mt-2 ml-3">
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded ${student.consecutive_absences >= 3 ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'}`}>
+                        {student.consecutive_absences} {student.consecutive_absences === 1 ? 'day' : 'days'}
+                      </span>
+                    </div>
+                  </div>
+                  {student.consecutive_absences >= 3 ? (
+                    <button
+                      onClick={() => setTemplateModalData({
+                        studentName: `${student.first_name} ${student.last_name}`,
+                        flagCategory: 'absent',
+                        reason: `${student.consecutive_absences} consecutive absences`
+                      })}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1b1e2c] hover:bg-[#262a3d] text-white text-xs font-semibold rounded-full transition-colors"
+                    >
+                      <Mail className="w-3.5 h-3.5" />
+                      Email
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-gray-400 font-medium">No email yet</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-sm text-gray-500">
+              No students have been marked absent this week.
+            </div>
+          )}
+        </div>
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 border-t border-yellow-100 dark:border-yellow-900/30 text-xs text-yellow-800 dark:text-yellow-500 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <p>Email button appears automatically when a student reaches 3 consecutive absences in your class this week.</p>
+        </div>
+      </div>
       <div className="mt-16 pt-8 border-t border-gray-200 dark:border-[#262a3d] space-y-6 sm:space-y-8">
 {/* ─── Signal Health Summary (top of page) ────────────────── */}
       {current.total_signals > 0 && (
@@ -1133,82 +1088,48 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ─── Bottom Grid: Watch list + Class Status ─────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Yellow Watch List Summary */}
-        <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden">
+      {/* ─── Recent Recognition Highlights ────────────────────────────── */}
+      <div className="mt-6">
+        <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden flex flex-col">
           <div className="p-5 border-b border-gray-100 dark:border-[#262a3d] flex items-center justify-between">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white font-sora">🟡 Yellow Watch List</h3>
-            <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-full">{yellow_watch_list.length}</span>
+            <h3 className="text-base font-bold text-gray-900 dark:text-white font-sora flex items-center gap-2">
+              <Sparkles className="text-emerald-500 w-5 h-5" /> Recent Recognition Highlights
+            </h3>
           </div>
-          {yellow_watch_list.length > 0 ? (
-            <div className="divide-y divide-gray-100 dark:divide-[#262a3d] max-h-[300px] overflow-y-auto">
-              {yellow_watch_list.map(row => (
-                <div key={row.student_id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">{row.first_name} {row.last_name}</p>
-                    <p className="text-xs text-gray-400">Gr {row.grade_level} — Acd: {row.yellow_academic_count} / Beh: {row.yellow_behavioral_count}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-amber-600 font-sora">{row.yellow_total}</span>
-                    {row.unresolved_alert_max_severity && (
-                      <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-[10px] rounded font-bold uppercase">{row.unresolved_alert_max_severity}</span>
-                    )}
-                    <button
-                      onClick={() => setTemplateModalData({ studentName: `${row.first_name} ${row.last_name}`, flagCategory: 'yellow', reason: row.unresolved_alert_max_severity ? `frequent ${row.unresolved_alert_max_severity} level alerts` : undefined })}
-                      className="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1b1e2c] hover:bg-[#262a3d] text-white text-[10px] font-semibold rounded-full transition-colors"
-                    >
-                      <Mail className="w-3 h-3" />
-                      Email
-                    </button>
-                  </div>
+          
+          <div className="p-5 flex-1 max-h-[300px] overflow-y-auto">
+            {recognitions.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-12 h-12 bg-gray-50 dark:bg-[#1a1c29] rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-gray-200 dark:border-gray-800">
+                  <Award size={24} className="text-emerald-500 opacity-60" />
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-8 text-center text-gray-400">
-              <span className="text-3xl mb-2 block">🎉</span>
-              <p className="text-sm">No students on the watch list!</p>
-            </div>
-          )}
-        </div>
-
-        {/* Class Logging Completion */}
-        <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-gray-100 dark:border-[#262a3d] flex items-center justify-between">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white font-sora">📋 Today&apos;s Logging Status</h3>
-            <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-              loggedToday === totalClasses
-                ? 'text-green-700 bg-green-100'
-                : 'text-amber-700 bg-amber-100'
-            }`}>{loggedToday}/{totalClasses}</span>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1 font-sora">No recognitions found</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Award Super Green signals to your students to see them celebrated here.</p>
+              </div>
+            ) : (
+              <div className="space-y-4 relative before:absolute before:inset-0 before:ml-3 before:-translate-x-px before:h-full before:w-0.5 before:bg-emerald-200 dark:before:bg-emerald-900/50">
+                {recognitions.slice(0, 5).map((rec, idx) => (
+                  <div key={idx} className="relative flex items-start pl-8">
+                    <div className="absolute left-3 -translate-x-1/2 mt-1.5 w-3 h-3 rounded-full bg-emerald-500 border-[2.5px] border-white dark:border-[#151722] z-10"></div>
+                    <div className="w-full">
+                      <div className="flex items-center gap-1.5 mb-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-500 uppercase tracking-wide">
+                        <Calendar size={10} strokeWidth={2.5} />
+                        {new Date(rec.signal_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                      <div className="bg-white dark:bg-[#1a1c29] p-3 rounded-lg border border-gray-100 dark:border-[#2a2e42] shadow-sm">
+                        <p className="font-bold text-gray-900 dark:text-white text-sm mb-0.5 font-sora">
+                          {rec.student_first_name} {rec.student_last_name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {rec.class_name} {rec.reason_code ? `• ${rec.reason_code}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          {classes.length > 0 ? (
-            <div className="divide-y divide-gray-100 dark:divide-[#262a3d] max-h-[300px] overflow-y-auto">
-              {classes.map(c => (
-                <div key={c.class_id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">{c.class_name}</p>
-                    <p className="text-xs text-gray-400">{c.student_count_active} students</p>
-                  </div>
-                  {c.logged_today ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                      ✓ Logged
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-400 bg-gray-50 dark:bg-[#1b1e2c] px-2 py-1 rounded-full">
-                      Pending
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-8 text-center text-gray-400">
-              <p className="text-sm">No classes assigned yet.</p>
-            </div>
-          )}
         </div>
       </div>
       </div>

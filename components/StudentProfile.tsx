@@ -118,8 +118,8 @@ export default function StudentProfile() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12" style={{ fontFamily: 'Inter, sans-serif' }}>
-      {/* Back Button */}
-      <div>
+      {/* Top Bar: Back Button and Actions */}
+      <div className="flex items-center justify-between">
         <Link
           href={pathname.startsWith('/reports') ? '/reports' : `/classes/${classId}`}
           className="inline-flex items-center text-sm text-blue-500 bg-white dark:bg-[#151722] border border-blue-100 px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors shadow-sm font-medium"
@@ -127,6 +127,56 @@ export default function StudentProfile() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           {pathname.startsWith('/reports') ? 'Back to Reports' : 'Back to Students Roster'}
         </Link>
+        
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setIsSendAdminModalOpen(true)}
+            className="inline-flex items-center space-x-2 px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-bold shadow-sm"
+          >
+            <AlertCircle className="w-4 h-4" />
+            <span>Send to Admin</span>
+          </button>
+
+          {emailCategory && (
+            <button
+              onClick={() => {
+                setEmailCategoryState(emailCategory);
+                setIsEmailModalOpen(true);
+              }}
+              className={`inline-flex items-center space-x-2 px-5 py-2 rounded-lg transition-colors text-sm font-bold shadow-sm text-white ${
+                emailCategory === 'red' ? 'bg-red-600 hover:bg-red-700'
+                : emailCategory === 'yellow' ? 'bg-amber-500 hover:bg-amber-600'
+                : 'bg-emerald-600 hover:bg-emerald-700'
+              }`}
+              title="Email Parent (Performance)"
+            >
+              <Mail className="w-4 h-4" />
+              <span>Email Parent</span>
+            </button>
+          )}
+
+          {hasAbsent && (
+            <button
+              onClick={() => {
+                setEmailCategoryState('absent');
+                setIsEmailModalOpen(true);
+              }}
+              className="inline-flex items-center space-x-2 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-bold shadow-sm"
+              title="Email Parent (Absence)"
+            >
+              <Mail className="w-4 h-4" />
+              <span>Absence Notice</span>
+            </button>
+          )}
+
+          <button 
+            onClick={() => setIsEditModalOpen(true)}
+            className="inline-flex items-center space-x-2 px-5 py-2 bg-gray-50 dark:bg-[#1b1e2c] border border-gray-200 dark:border-[#262a3d] text-slate-700 dark:text-slate-300 rounded-lg hover:bg-gray-100 dark:hover:bg-[#262a3d] transition-colors text-sm font-bold shadow-sm"
+          >
+            <Edit className="w-4 h-4" />
+            <span>Edit Profile</span>
+          </button>
+        </div>
       </div>
 
       {/* Profile Header Card */}
@@ -143,7 +193,7 @@ export default function StudentProfile() {
               {statusText === 'Yellow' && <span className="px-2.5 py-0.5 bg-amber-400 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Yellow</span>}
               {statusText === 'Super Green' && <span className="px-2.5 py-0.5 bg-emerald-500 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Super Green</span>}
             </div>
-            <h1 className="text-3xl font-bold text-slate-800 dark:text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
+            <h1 className="text-3xl font-bold text-slate-800 dark:text-white font-playfair">
               {history?.first_name} {history?.last_name}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -287,8 +337,13 @@ export default function StudentProfile() {
                         {signal.category || 'General'}
                       </div>
                       
-                      <div className="flex-1 px-4 py-1.5 bg-gray-50 dark:bg-[#1b1e2c] rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 border border-gray-100 dark:border-[#262a3d] truncate">
-                        {signal.reason_description || signal.note || 'No reason provided'}
+                      <div className="flex-1 px-4 py-1.5 bg-gray-50 dark:bg-[#1b1e2c] rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 border border-gray-100 dark:border-[#262a3d] truncate flex justify-between items-center gap-2">
+                        <span className="truncate">{signal.reason_description || signal.note || 'No reason provided'}</span>
+                        {signal.class_name && (
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium shrink-0 bg-white dark:bg-[#262a3d] px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700">
+                            {signal.class_name}
+                          </span>
+                        )}
                       </div>
                     </div>
                   );
@@ -329,56 +384,7 @@ export default function StudentProfile() {
         </div>
       </div>
 
-      {/* Action Buttons (Footer area) */}
-      <div className="flex items-center justify-end space-x-3 pt-6 pb-6">
-        <button
-          onClick={() => setIsSendAdminModalOpen(true)}
-          className="inline-flex items-center space-x-2 px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-bold shadow-sm"
-        >
-          <AlertCircle className="w-4 h-4" />
-          <span>Send to Admin</span>
-        </button>
 
-        {emailCategory && (
-          <button
-            onClick={() => {
-              setEmailCategoryState(emailCategory);
-              setIsEmailModalOpen(true);
-            }}
-            className={`inline-flex items-center space-x-2 px-6 py-2.5 rounded-lg transition-colors text-sm font-bold shadow-sm text-white ${
-              emailCategory === 'red' ? 'bg-red-600 hover:bg-red-700'
-              : emailCategory === 'yellow' ? 'bg-amber-500 hover:bg-amber-600'
-              : 'bg-emerald-600 hover:bg-emerald-700'
-            }`}
-            title="Email Parent (Performance)"
-          >
-            <Mail className="w-4 h-4" />
-            <span>Email Parent</span>
-          </button>
-        )}
-
-        {hasAbsent && (
-          <button
-            onClick={() => {
-              setEmailCategoryState('absent');
-              setIsEmailModalOpen(true);
-            }}
-            className="inline-flex items-center space-x-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-bold shadow-sm"
-            title="Email Parent (Absence)"
-          >
-            <Mail className="w-4 h-4" />
-            <span>Absence Notice</span>
-          </button>
-        )}
-
-        <button 
-          onClick={() => setIsEditModalOpen(true)}
-          className="inline-flex items-center space-x-2 px-6 py-2.5 bg-gray-50 dark:bg-[#1b1e2c] border border-gray-200 dark:border-[#262a3d] text-slate-700 dark:text-slate-300 rounded-lg hover:bg-gray-100 dark:hover:bg-[#262a3d] transition-colors text-sm font-bold shadow-sm"
-        >
-          <Edit className="w-4 h-4" />
-          <span>Edit Profile</span>
-        </button>
-      </div>
 
       <EditStudentProfileModal 
         isOpen={isEditModalOpen} 

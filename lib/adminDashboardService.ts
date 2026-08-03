@@ -1,4 +1,5 @@
 import api from './api';
+import { RedUrgentRow, YellowWatchListRow, AbsentStudentRow } from './dashboardService';
 
 // ═══════════════════════════════════════════════════════════════════
 // M8 Admin Dashboard — Types & API Service
@@ -170,6 +171,9 @@ export interface AdminDashboardResponse {
   teacher_leaderboard: TeacherLeaderboardRow[];
   generated_at: string;
   school_timezone: string;
+  red_urgent: RedUrgentRow[];
+  yellow_watch_list: YellowWatchListRow[];
+  absent_students: AbsentStudentRow[];
 }
 
 // ─── 2. Heatmap ───────────────────────────────────────────────────

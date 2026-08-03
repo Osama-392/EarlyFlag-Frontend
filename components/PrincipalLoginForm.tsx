@@ -63,7 +63,7 @@ export default function PrincipalLoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>
+        <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1.5 font-sora">
           Email Address
         </label>
         <div className="relative">
@@ -83,7 +83,7 @@ export default function PrincipalLoginForm() {
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>
+        <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1.5 font-sora">
           Password
         </label>
         <div className="relative">
@@ -126,7 +126,7 @@ export default function PrincipalLoginForm() {
         {loading ? 'Signing in...' : 'Sign In'} <ArrowRight size={18} strokeWidth={2.5} />
       </button>
 
-      <div className="text-center text-sm text-gray-600 mt-6" style={{ fontFamily: 'Sora, sans-serif' }}>
+      <div className="text-center text-sm text-gray-600 mt-6 font-sora">
         Don't have an account?{' '}
         <Link href="/principal-signup" className="text-[#f95d12] hover:text-[#ea580c] font-bold hover:underline transition-colors">
           Sign up
