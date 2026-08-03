@@ -76,7 +76,7 @@ export default function PrincipalLoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
-            className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f95d12] focus:border-transparent outline-none transition text-sm text-gray-800 dark:text-white placeholder-gray-400"
+            className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f95d12] focus:border-transparent outline-none transition text-sm text-gray-900 placeholder-gray-400"
             disabled={loading}
           />
         </div>
@@ -96,7 +96,7 @@ export default function PrincipalLoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter your password"
-            className="w-full pl-10 pr-12 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f95d12] focus:border-transparent outline-none transition text-sm text-gray-800 dark:text-white placeholder-gray-400"
+            className="w-full pl-10 pr-12 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f95d12] focus:border-transparent outline-none transition text-sm text-gray-900 placeholder-gray-400"
             disabled={loading}
           />
           <button
