@@ -152,7 +152,7 @@ export default function StudentRoster() {
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800 dark:text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white font-playfair">
             {classInfo ? classInfo.name : 'Student Roster'}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">

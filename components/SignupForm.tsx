@@ -6,10 +6,14 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AlertCircle, Eye, EyeOff, CheckCircle } from 'lucide-react';
 
+import { COUNTRY_CODES } from '@/lib/countryCodes';
+
 export default function SignupForm() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [countryCode, setCountryCode] = useState('+1');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [schoolId, setSchoolId] = useState('');
@@ -25,7 +29,7 @@ export default function SignupForm() {
     setLocalError('');
 
     // Validation
-    if (!firstName || !lastName || !email || !password || !confirmPassword || !schoolId) {
+    if (!firstName || !lastName || !email || !phoneNumber || !password || !confirmPassword || !schoolId) {
       setLocalError('Please fill in all fields');
       return;
     }
@@ -41,7 +45,8 @@ export default function SignupForm() {
     }
 
     try {
-      await signup(email, password, schoolId, firstName, lastName);
+      const fullPhoneNumber = `${countryCode} ${phoneNumber.trim()}`;
+      await signup(email, password, schoolId, firstName, lastName, fullPhoneNumber);
       setSignupSuccess(true);
     } catch (err: any) {
       // Error is already set in context
@@ -59,7 +64,7 @@ export default function SignupForm() {
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Signup Successful!</h3>
         <p className="text-gray-600">
           Your account has been created and is pending approval. Your school administrator will
-          review your request soon. You'll receive an email when your account is approved.
+          review your request soon. You&apos;ll receive an email when your account is approved.
         </p>
         <Link
           href="/auth"
@@ -117,6 +122,35 @@ export default function SignupForm() {
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
           disabled={loading}
         />
+      </div>
+
+      <div>
+        <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
+          Phone Number
+        </label>
+        <div className="flex gap-2">
+          <select
+            value={countryCode}
+            onChange={(e) => setCountryCode(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-white text-gray-900 text-sm flex-shrink-0 w-[35%] min-w-[130px] max-w-[180px]"
+            disabled={loading}
+          >
+            {COUNTRY_CODES.map((item) => (
+              <option key={`${item.country}-${item.code}`} value={item.code} className="text-gray-900">
+                {item.country} ({item.code})
+              </option>
+            ))}
+          </select>
+          <input
+            id="phoneNumber"
+            type="tel"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            placeholder="Phone number"
+            className="flex-1 min-w-0 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-white text-gray-900"
+            disabled={loading}
+          />
+        </div>
       </div>
 
       <div>

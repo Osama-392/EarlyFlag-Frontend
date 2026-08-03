@@ -23,7 +23,7 @@ export const EMAIL_TEMPLATES: Record<string, EmailTemplate> = {
     label: 'Red — Urgent Concern',
     body: `Dear Parent/Guardian,
 
-I am writing to inform you of a serious matter involving your son/daughter, {{STUDENT_NAME}} , that occurred in my class on {{DATE}}.
+I am writing to inform you of a serious matter involving your child, {{STUDENT_NAME}} , that occurred in my class on {{DATE}}.
 
 During our session, {{STUDENT_NAME}} was involved in {{REASON}}. Due to the nature of this incident, this matter has been escalated and school administration has been notified.
 
@@ -42,7 +42,7 @@ Respectfully,
     label: 'Yellow — Moderate Concern',
     body: `Dear Parent/Guardian,
 
-I hope this message finds you well. I am reaching out regarding your son/daughter, {{STUDENT_NAME}}, who has been flagged in my class today, {{DATE}}.
+I hope this message finds you well. I am reaching out regarding your child, {{STUDENT_NAME}}, who has been flagged in my class today, {{DATE}}.
 
 During our session, {{STUDENT_NAME}} demonstrated {{REASON}}. While this is not yet a critical concern, I want to ensure we address this together early so it does not develop into a larger issue.
 
@@ -59,7 +59,7 @@ Warm regards,
     label: 'Super Green — Positive Recognition',
     body: `Dear Parent/Guardian,
 
-I am delighted to share some wonderful news with you about your son/daughter, {{STUDENT_NAME}}!
+I am delighted to share some wonderful news with you about your child, {{STUDENT_NAME}}!
 
 During our class on {{DATE}}, {{STUDENT_NAME}} demonstrated {{REASON}}. It was truly a pleasure to witness, and I wanted to make sure you heard about it right away.
 
@@ -75,7 +75,7 @@ With appreciation and warm regards,
   absent: {
     label: 'Absence Notice',
     body: `Dear Parent/Guardian,
-I hope you are doing well. I am writing to bring to your attention that your son/daughter, {{STUDENT_NAME}}, has been absent {{REASON}} as of {{DATE}}.
+I hope you are doing well. I am writing to bring to your attention that your child, {{STUDENT_NAME}}, has been absent {{REASON}} as of {{DATE}}.
 Regular attendance is essential to your child's academic progress, and I want to make sure {{STUDENT_NAME}} does not fall behind. Missing consecutive classes can make it difficult to keep up with the curriculum and may impact their grades.
 If {{STUDENT_NAME}} requires any additional support, I am happy to arrange after-hours tutoring or provide supplemental materials to help them catch up. Please do not hesitate to reach out so we can work together to ensure {{STUDENT_NAME}} maintains the highest standard of achievement.
 

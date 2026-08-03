@@ -296,7 +296,7 @@ export default function FlagModal({
                 if (catReasons.length === 0) return null;
                 return (
                   <div key={cat} className={`${idx > 0 ? 'pt-6 border-t border-gray-100 dark:border-[#262a3d]' : ''}`}>
-                    <p className="text-[16px] font-bold text-[#1e293b] dark:text-white mb-4 capitalize" style={{ fontFamily: 'Sora, sans-serif' }}>{cat} Flag(s)</p>
+                    <p className="text-[16px] font-bold text-[#1e293b] dark:text-white mb-4 capitalize font-sora">{cat} Flag(s)</p>
                     <div className="flex flex-wrap gap-2.5">
                       {catReasons.map((reason: string) => (
                         <button
@@ -356,16 +356,17 @@ export default function FlagModal({
             </div>
           )}
 
-          {/* Optional Notes (Super Green, Yellow & Red) */}
+          {/* Mandatory Notes (Super Green, Yellow & Red) */}
           {(flagType === 'super-green' || flagType === 'yellow' || flagType === 'red') && (
             <div className="mt-4">
-              <label className="text-[15px] font-medium text-slate-700 dark:text-gray-200 mb-2 block">Notes <span className="text-slate-400 font-normal">(optional)</span></label>
+              <label className="text-[15px] font-medium text-slate-700 dark:text-gray-200 mb-2 block">Notes <span className="text-red-500">*</span></label>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder={flagType === 'super-green' ? 'Add details about this recognition...' : 'Add context for this flag...'}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-[#1b1e2c] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-transparent resize-none"
+                required
               />
             </div>
           )}
@@ -384,8 +385,11 @@ export default function FlagModal({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={hasReasons && selectedReasons.length === 0}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${(hasReasons && selectedReasons.length === 0)
+            disabled={
+              (hasReasons && selectedReasons.length === 0) ||
+              ((flagType === 'super-green' || flagType === 'yellow' || flagType === 'red') && !note.trim())
+            }
+            className={`px-6 py-2 rounded-lg font-medium transition-colors ${((hasReasons && selectedReasons.length === 0) || ((flagType === 'super-green' || flagType === 'yellow' || flagType === 'red') && !note.trim()))
               ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
               : 'bg-slate-700 text-white hover:bg-slate-800'
               }`}

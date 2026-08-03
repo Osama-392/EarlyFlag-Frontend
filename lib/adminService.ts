@@ -62,6 +62,8 @@ export const getAdminReferrals = async (
     priority?: string[];
     limit?: number;
     offset?: number;
+    from?: string;
+    to?: string;
   }
 ): Promise<EscalationLogResponse> => {
   const searchParams = new URLSearchParams();
@@ -75,6 +77,8 @@ export const getAdminReferrals = async (
     }
     if (params.limit) searchParams.append('limit', params.limit.toString());
     if (params.offset) searchParams.append('offset', params.offset.toString());
+    if (params.from) searchParams.append('from', params.from);
+    if (params.to) searchParams.append('to', params.to);
   }
 
   const res = await api.get(`/api/v1/admin/referrals?${searchParams.toString()}`);

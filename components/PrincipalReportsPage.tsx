@@ -425,10 +425,9 @@ export default function PrincipalReportsPage() {
           .no-print { display: none !important; }
         }
       `}</style>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Sora:wght@400;500;600;700&display=swap');`}</style>
 
       <div className="space-y-2">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white dark:text-white" style={{ fontFamily: 'Playfair Display' }}>Reports</h1>
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white dark:text-white font-playfair">Reports</h1>
         <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400">Recognition exports and admin analytics</p>
       </div>
 

@@ -111,7 +111,6 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
 
   return (
     <div className="space-y-6">
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Sora:wght@400;500;600;700&display=swap');`}</style>
 
       {/* Back + Header */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -321,6 +320,7 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
         title="Deactivate Student"
         description={`Are you sure you want to deactivate ${student.first_name} ${student.last_name}? This will perform a global soft delete, making the student inactive across the entire school.`}
         confirmText="Deactivate"
+        requireConfirmationText={`${student.first_name} ${student.last_name}`}
       />
 
       {emailModalData && (
@@ -330,7 +330,7 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
           studentName={`${emailModalData.student.first_name} ${emailModalData.student.last_name}`}
           teacherName={adminFullName}
           flagCategory={emailModalData.category}
-          recentFlags={emailModalData.student.flag_log}
+          recentFlags={profile?.flag_log}
         />
       )}
     </div>

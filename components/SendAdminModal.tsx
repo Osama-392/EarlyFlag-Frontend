@@ -26,33 +26,31 @@ export default function SendAdminModal({
 
   if (!isOpen) return null;
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!reason.trim()) {
       setError('Please provide a reason before submitting.');
       return;
     }
 
-    try {
-      setIsSubmitting(true);
-      setError(null);
-      
-      await sendCounselorReferral({
-        student_id: studentId,
-        referral_type: 'manual_admin',
-        note: reason,
-        priority: 'normal'
-      });
-      
-      logger.formSubmit('SendAdminModal', { studentId, hasReason: true });
-      showToast('Successfully sent to admin', 'success');
-      setReason('');
-      onClose();
-    } catch (err: any) {
+    setIsSubmitting(true);
+    setError(null);
+    
+    // Fire and forget for instant UI response
+    sendCounselorReferral({
+      student_id: studentId,
+      referral_type: 'manual_admin',
+      note: reason,
+      priority: 'normal'
+    }).catch(err => {
       console.error(err);
-      setError(err?.response?.data?.detail?.[0]?.msg || 'Failed to send to admin. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+      showToast('Failed to send to admin. Please try again.', 'error');
+    });
+    
+    logger.formSubmit('SendAdminModal', { studentId, hasReason: true });
+    showToast('Successfully sent to admin', 'success');
+    setReason('');
+    setIsSubmitting(false);
+    onClose();
   };
 
   return (

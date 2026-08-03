@@ -98,7 +98,7 @@ const getDepartmentBadge = (name: string) => {
 
 export default function PrincipalDashboard() {
   const router = useRouter();
-  const [range, setRange] = useState<'1d' | '7d' | '30d'>('1d');
+  const range = 'all' as any;
   const [activeTab, setActiveTab] = useState<string>('All Subjects');
   const [showAllClasses, setShowAllClasses] = useState(false);
   const [dashboard, setDashboard] = useState<AdminDashboardResponse | null>(null);
@@ -120,7 +120,7 @@ export default function PrincipalDashboard() {
       setError(null);
       const [dashData, heatData, pendingData] = await Promise.all([
         getAdminDashboard(range),
-        getAdminHeatmap(range),
+        getAdminHeatmap('1d'),
         getPendingTeachers().catch(() => []),
       ]);
       setDashboard(dashData);
@@ -212,7 +212,6 @@ export default function PrincipalDashboard() {
         name={user?.first_name || 'Admin'}
         metric1={<>You have <span className="text-orange-600 dark:text-orange-500 font-bold">{dashboard?.urgent_alerts?.length || 0}</span> urgent alerts needing attention</>}
         metric2={<><span className="text-emerald-600 dark:text-emerald-500 font-bold">{dashboard?.kpis?.super_green_total || 0}</span> students showing exceptional growth school-wide</>}
-        metric3={<><span className="text-orange-600 dark:text-orange-500 font-bold">{dashboard?.pending_teacher_flags?.length || 0}</span> teacher observation flag{dashboard?.pending_teacher_flags?.length !== 1 ? 's' : ''} to review</>}
         recommendation={dashboard?.recommendations?.[0]}
       />
 
@@ -253,22 +252,14 @@ export default function PrincipalDashboard() {
       {/* Header + Controls */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Playfair Display' }}>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white font-sora">
             School Dashboard
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
-            {dashboard?.school?.name || 'School Overview'} — {range === '1d' ? 'Today' : range === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+            {dashboard?.school?.name || 'School Overview'} — All Time
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex bg-gray-100 dark:bg-[#1b1e2c] rounded-lg p-1">
-            {(['1d', '7d', '30d'] as const).map(r => (
-              <button key={r} onClick={() => setRange(r)}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${range === r ? 'bg-white dark:bg-[#151722] text-teal-700 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white dark:text-white'}`}>
-                {r === '1d' ? 'Today' : r === '7d' ? '7 Days' : '30 Days'}
-              </button>
-            ))}
-          </div>
           <button onClick={() => fetchData(true)} disabled={refreshing}
             className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:bg-[#1b1e2c] rounded-lg transition disabled:opacity-50">
             <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
@@ -308,35 +299,138 @@ export default function PrincipalDashboard() {
         </div>
       )}
 
-      {/* ── KPI Stats Cards ─────────────────────────────────────── */}
-      {kpis && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Yellow Flags', value: kpis.yellow_total, icon: Zap, color: 'yellow', border: 'border-yellow-200' },
-            { label: 'Red Flags', value: kpis.red_total, icon: AlertTriangle, color: 'red', border: 'border-red-200' },
-            { label: 'Super Green', value: kpis.super_green_total, icon: Sparkles, color: 'emerald', border: 'border-emerald-200' },
-            { label: 'Absent', value: kpis.absent_total, icon: Clock, color: 'gray', border: 'border-gray-200 dark:border-[#262a3d]' },
-          ].map((card, i) => {
-            const Icon = card.icon;
-            return (
-              <div key={i} className={`fade-up bg-white dark:bg-[#151722] rounded-xl border ${card.border} p-4 shadow-sm hover:shadow-md transition-shadow`}>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-gray-600 dark:text-gray-400 text-xs font-semibold uppercase tracking-wide">{card.label}</p>
-                  <Icon size={18} className={`text-${card.color}-400`} />
-                </div>
-                <p className={`text-2xl font-bold text-${card.color}-600`}>{card.value}</p>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {/* KPI Stats Cards removed per request */}
 
       {/* Admin Referrals List */}
       <AdminReferralsList />
 
+      {/* ── Action Lists (Yellow Watch List, Red Urgent, Absent) ── */}
+      {dashboard && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Yellow Watch List */}
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-[#1a1d27] rounded-xl border border-gray-200 dark:border-[#2e3240] overflow-hidden shadow-sm transition-colors flex flex-col h-[450px]">
+              <div className="p-5 border-b border-gray-100 dark:border-[#2e3240] flex items-center justify-between shrink-0">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center space-x-2 font-sora">
+                  <span>🟡</span><span>Yellow Watch List</span>
+                </h3>
+                <span className="text-xs font-bold text-amber-700 dark:text-amber-500 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-full">{dashboard.yellow_watch_list?.length || 0}</span>
+              </div>
+              {dashboard.yellow_watch_list && dashboard.yellow_watch_list.length > 0 ? (
+                <div className="overflow-x-auto overflow-y-auto custom-scrollbar flex-1">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-50/50 dark:bg-[#151722]/50">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Student</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Grade</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Acd / Beh</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Total</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dashboard.yellow_watch_list.map((row) => (
+                        <tr key={row.student_id} className="border-b border-gray-100 dark:border-[#2e3240] hover:bg-gray-50 dark:hover:bg-[#202330] transition">
+                          <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">{row.first_name} {row.last_name}</td>
+                          <td className="px-3 py-2 text-gray-500 dark:text-gray-400">Gr {row.grade_level}</td>
+                          <td className="px-3 py-2">
+                            <span className="text-blue-600 dark:text-blue-400 font-semibold">{row.yellow_academic_count}</span>
+                            <span className="text-gray-300 dark:text-gray-600 mx-1">/</span>
+                            <span className="text-purple-600 dark:text-purple-400 font-semibold">{row.yellow_behavioral_count}</span>
+                          </td>
+                          <td className="px-3 py-2 font-bold text-amber-600 dark:text-amber-500">{row.yellow_total}</td>
+                          <td className="px-3 py-2">
+                            {row.unresolved_alert_max_severity ? (
+                              <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[10px] rounded font-medium">{row.unresolved_alert_max_severity.toUpperCase()}</span>
+                            ) : (
+                              <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[10px] rounded font-medium">WATCH</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="p-8 text-center text-gray-500 dark:text-gray-400">No students on the yellow watch list right now.</div>
+              )}
+            </div>
+          </div>
+          {/* Yellow Watch List Ends */}
+
+          {/* Red Urgent */}
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-[#1a1d27] rounded-xl border border-red-200 dark:border-red-900/50 shadow-sm overflow-hidden transition-colors flex flex-col h-[450px]">
+              <div className="bg-red-50 dark:bg-red-900/20 p-5 border-b border-red-100 dark:border-red-900/50 flex items-center justify-between shrink-0">
+                <h3 className="text-lg font-bold text-red-900 dark:text-red-400 font-sora">🔴 Red Urgent</h3>
+                <span className="text-xs font-bold text-red-700 dark:text-red-300 bg-red-200 dark:bg-red-900/50 px-2 py-1 rounded-full">{dashboard.red_urgent?.length || 0}</span>
+              </div>
+              <div className="p-3 overflow-y-auto custom-scrollbar flex-1">
+                {dashboard.red_urgent && dashboard.red_urgent.length > 0 ? (
+                  <div className="space-y-2">
+                    {dashboard.red_urgent.map((item) => (
+                      <div key={item.alert_id} className="bg-white dark:bg-[#151722] rounded-lg p-3 border border-red-100 dark:border-red-900/30 shadow-sm">
+                        <div className="flex items-start justify-between mb-1.5">
+                          <div>
+                            <p className="font-bold text-gray-900 dark:text-white text-sm">{item.student.first_name} {item.student.last_name}</p>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400">Gr {item.student.grade_level}</p>
+                          </div>
+                          <span className="text-[9px] font-bold text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded uppercase tracking-wider">{item.severity}</span>
+                        </div>
+                        <p className="text-xs text-gray-700 dark:text-gray-300 mb-2 bg-red-50 dark:bg-red-900/10 p-1.5 rounded border dark:border-red-900/20 leading-tight">{item.rule_description}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500 dark:text-gray-400">No urgent red alerts.</div>
+                )}
+              </div>
+            </div>
+          </div>
+          {/* Red Urgent Ends */}
+
+          {/* Absent Students */}
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-[#1a1d27] rounded-xl border border-gray-200 dark:border-[#2e3240] shadow-sm overflow-hidden transition-colors flex flex-col h-[450px]">
+              <div className="p-5 border-b border-gray-100 dark:border-[#2e3240] flex items-center justify-between shrink-0 bg-slate-50 dark:bg-[#151722]">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center space-x-2 font-sora">
+                  <span className="text-blue-500">🕒</span><span>Absent This Week</span>
+                </h3>
+                <span className="text-xs font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full">{dashboard.absent_students?.length || 0}</span>
+              </div>
+              <div className="p-3 overflow-y-auto custom-scrollbar flex-1">
+                {dashboard.absent_students && dashboard.absent_students.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    {dashboard.absent_students.map((student: any) => (
+                      <div key={student.student_id} className="flex-1 flex flex-col p-3 border border-gray-100 dark:border-gray-800 rounded-lg">
+                        <p className="font-bold text-sm flex items-center gap-1.5 text-gray-900 dark:text-white">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>
+                          {student.first_name} {student.last_name}
+                        </p>
+                        <div className="mt-2 text-xs text-gray-500 flex items-center justify-between">
+                          <span>{student.class_name}</span>
+                          <span className={`font-bold px-2 py-0.5 rounded ${student.consecutive_absences >= 3 ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'}`}>
+                            {student.consecutive_absences} {student.consecutive_absences === 1 ? 'day' : 'days'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-sm text-gray-500 dark:text-gray-400">
+                    No students have been marked absent this week.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          {/* Absent Students Ends */}
+        </div>
+      )}
+
       {/* ── School Heat Map & Department Overview ───────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-        <div className="lg:col-span-7">
+      <div className="flex flex-col gap-6 mb-8">
+        <div className="w-full">
           {heatmap && allTiles.length > 0 && (
             <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm p-6 space-y-6">
               <div className="flex items-center justify-between">
@@ -429,7 +523,7 @@ export default function PrincipalDashboard() {
           )}
         </div>
 
-        <div className="lg:col-span-5">
+        <div className="w-full">
           {/* ── Department Overview ────────────────────────────────── */}
           {dashboard && dashboard.departments && dashboard.departments.length > 0 && (() => {
             const deptData = dashboard.departments.map(dept => {
@@ -593,134 +687,62 @@ export default function PrincipalDashboard() {
             );
           })()}
 
-          {/* Recommendations / School Insights */}
-          {dashboard && dashboard.recommendations.length > 0 && (
-            <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] border-l-orange-500 border-l-[3px] shadow-sm overflow-hidden transition-colors mt-6">
-              <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <Sparkles size={16} className="text-orange-500" />
-                  <h3 className="font-bold text-gray-900 dark:text-white tracking-wide">School Insights</h3>
-                </div>
-                <ChevronRight size={16} className="text-gray-400 dark:text-gray-500" />
-              </div>
-              <div className="flex flex-col">
-                {dashboard.recommendations.map((rec, i) => {
-                  let title = rec;
-                  let subtitle = '';
-                  if (rec.includes(' — ')) {
-                    const parts = rec.split(' — ');
-                    title = parts[0];
-                    subtitle = parts.slice(1).join(' — ');
-                  } else if (rec.includes(' - ')) {
-                    const parts = rec.split(' - ');
-                    title = parts[0];
-                    subtitle = parts.slice(1).join(' - ');
-                  }
 
-                  let Icon = User;
-                  let iconColor = 'text-orange-500';
-                  const tl = title.toLowerCase() + subtitle.toLowerCase();
-                  if (tl.includes('green') || tl.includes('recogniz') || tl.includes('positive')) {
-                    Icon = Star;
-                    iconColor = 'text-green-500';
-                  } else if (tl.includes('class') || tl.includes('log') || tl.includes('absent')) {
-                    Icon = ClipboardList;
-                    iconColor = 'text-orange-500';
-                  } else if (tl.includes('alert') || tl.includes('red') || tl.includes('urgent')) {
-                    Icon = AlertCircle;
-                    iconColor = 'text-red-500';
-                  }
-
-                  return (
-                    <div key={i} className={`flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors cursor-pointer ${i !== dashboard.recommendations.length - 1 ? 'border-b border-gray-200 dark:border-[#262a3d]' : ''}`}>
-                      <Icon size={20} className={iconColor} />
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900 dark:text-white text-sm">{title}</p>
-                        {subtitle && <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">{subtitle}</p>}
-                      </div>
-                      <ChevronRight size={16} className="text-gray-400 dark:text-gray-500" />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Pending Teacher Observation Flags */}
-        {dashboard && dashboard.pending_teacher_flags.length > 0 && (
-          <div className="bg-white dark:bg-[#151722] rounded-xl border border-amber-200 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-amber-100 flex items-center gap-2 bg-amber-50">
-              <Shield size={18} className="text-amber-600" />
-              <h3 className="font-bold text-gray-900 dark:text-white text-sm">Teacher Observation Flags</h3>
-              <span className="ml-auto text-xs text-amber-700 font-medium">{dashboard.pending_teacher_flags.length} pending</span>
-            </div>
-            <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
-              {dashboard.pending_teacher_flags.map(flag => (
-                <div key={flag.flag_id} className="p-4 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{flag.class_name}</p>
-                    <span className="text-xs text-gray-400">{timeAgo(flag.triggered_at)}</span>
-                  </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {flag.teacher_first_name} {flag.teacher_last_name} · Grade {flag.grade_level}
-                  </p>
-                  <div className="flex items-center gap-3 mt-2 text-xs">
-                    <span className="text-yellow-700">🟡 {flag.yellow_count}</span>
-                    <span className="text-red-700">🔴 {flag.red_count}</span>
-                    <span className="text-gray-500 dark:text-gray-400">{Math.round(flag.threshold_percentage * 100)}% threshold</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+
 
       {/* Most Supergreen This Week */}
-      {dashboard && dashboard.teacher_leaderboard && dashboard.teacher_leaderboard.length > 0 && (
+      {dashboard && dashboard.teacher_leaderboard && (
         <div className="bg-[#151722] rounded-xl border border-[#262a3d] p-5 shadow-sm mt-6">
           <div className="flex items-start justify-between mb-4">
             <div>
               <h2 className="text-lg font-bold text-white tracking-wide">Most Supergreen This Week</h2>
               <p className="text-xs text-gray-400 mt-0.5">Based on positive student outcomes this week</p>
             </div>
-            <Link href="/leaderboard" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
-              View Full List
-            </Link>
+            {dashboard.teacher_leaderboard.length > 0 && (
+              <Link href="/leaderboard" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                View Full List
+              </Link>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {dashboard.teacher_leaderboard.slice(0, 3).map((teacher, index) => {
-              const rank = index + 1;
-              let rankColor = 'bg-[#262a3d] text-gray-400';
-              if (rank === 1) rankColor = 'bg-yellow-400 text-yellow-900';
-              if (rank === 2) rankColor = 'bg-gray-300 text-gray-800 dark:text-white';
-              if (rank === 3) rankColor = 'bg-[#f4a460] text-orange-950';
+          {dashboard.teacher_leaderboard.length === 0 ? (
+            <div className="py-8 text-center bg-[#1b1e2c] border border-[#262a3d] rounded-lg">
+              <p className="text-sm text-gray-400 font-medium">No super green outcomes recorded yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {dashboard.teacher_leaderboard.slice(0, 3).map((teacher, index) => {
+                const rank = index + 1;
+                let rankColor = 'bg-[#262a3d] text-gray-400';
+                if (rank === 1) rankColor = 'bg-yellow-400 text-yellow-900';
+                if (rank === 2) rankColor = 'bg-gray-300 text-gray-800 dark:text-white';
+                if (rank === 3) rankColor = 'bg-[#f4a460] text-orange-950';
 
-              return (
-                <div key={teacher.teacher_id} className="bg-[#1b1e2c] border border-[#262a3d] rounded-lg p-3 flex items-center gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${rankColor}`}>
-                    {rank}
+                return (
+                  <div key={teacher.teacher_id} className="bg-[#1b1e2c] border border-[#262a3d] rounded-lg p-3 flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${rankColor}`}>
+                      {rank}
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-sm font-bold text-gray-300 shrink-0">
+                      {teacher.teacher_first_name[0]}{teacher.teacher_last_name[0]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white truncate">{teacher.teacher_first_name} {teacher.teacher_last_name}</p>
+                      <p className="text-xs text-gray-400 truncate">{teacher.department || 'General Department'}</p>
+                    </div>
+                    <div className="text-right shrink-0 pr-1">
+                      <p className="text-lg font-bold text-[#4ade80] leading-none mb-1">{teacher.super_green_count}</p>
+                      <p className="text-[0.65rem] text-gray-400 uppercase tracking-wider leading-none">Super Greens</p>
+                    </div>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-sm font-bold text-gray-300 shrink-0">
-                    {teacher.teacher_first_name[0]}{teacher.teacher_last_name[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white truncate">{teacher.teacher_first_name} {teacher.teacher_last_name}</p>
-                    <p className="text-xs text-gray-400 truncate">{teacher.department || 'General Department'}</p>
-                  </div>
-                  <div className="text-right shrink-0 pr-1">
-                    <p className="text-lg font-bold text-[#4ade80] leading-none mb-1">{teacher.super_green_count}</p>
-                    <p className="text-[0.65rem] text-gray-400 uppercase tracking-wider leading-none">Super Greens</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

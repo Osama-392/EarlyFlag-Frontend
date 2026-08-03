@@ -199,7 +199,7 @@ export default function AdminTeacherReportModal({ isOpen, onClose, teacherId, te
               {/* Report Title / Meta info */}
               <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] p-6 shadow-sm flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Playfair Display, serif' }}>{data.first_name} {data.last_name}</h1>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white font-playfair">{data.first_name} {data.last_name}</h1>
                   <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 flex items-center gap-2">
                     <Calendar size={14} /> 
                     {formatDisplayDate(data.range_start)} to {formatDisplayDate(data.range_end)} ({data.range_days} days)

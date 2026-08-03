@@ -2,6 +2,7 @@
 
 import { Users, Search, Clock, CheckCircle2, XCircle, UserCheck, UserX, RefreshCw, Mail, Calendar, Shield, AlertCircle, Eye, Flag } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { getPendingTeachers, approveTeacher, rejectTeacher, PendingTeacher } from '@/lib/adminService';
 import { getAdminTeacherFlags, acknowledgeTeacherFlag, TeacherObservationFlagRow, getAdminTeacherReports, TeacherReportItem } from '@/lib/adminDashboardService';
 import AdminTeacherReportModal from './AdminTeacherReportModal';
@@ -85,20 +86,23 @@ export default function PrincipalTeachersPage() {
     loadApproved();
   }, [loadPending, loadApproved]);
 
+  const searchParams = useSearchParams();
+
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const urlTab = params.get('tab');
+    if (searchParams) {
+      const urlTab = searchParams.get('tab');
       if (urlTab === 'pending' || urlTab === 'approved' || urlTab === 'observation') {
         setTab(urlTab as any);
       }
-      const q = params.get('q');
+      const q = searchParams.get('q');
       if (q) {
         setSearchTerm(q);
         if (!urlTab) setTab('approved');
+      } else {
+        setSearchTerm('');
       }
     }
-  }, []);
+  }, [searchParams]);
 
   const loadObsFlags = useCallback(async () => {
     try {
@@ -195,7 +199,6 @@ export default function PrincipalTeachersPage() {
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-8 pb-12">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Sora:wght@400;500;600;700&display=swap');
 
         @keyframes slideInUp {
           from { opacity: 0; transform: translateY(20px); }
@@ -316,7 +319,7 @@ export default function PrincipalTeachersPage() {
               )}
             </div>
 
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white text-center mb-2" style={{ fontFamily: 'Sora' }}>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white text-center mb-2 font-sora">
               {confirmAction.type === 'approve' ? 'Approve Teacher?' : 'Reject Teacher?'}
             </h3>
 
@@ -368,7 +371,7 @@ export default function PrincipalTeachersPage() {
             <Users size={24} className="text-blue-600" />
           </div>
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white dark:text-white" style={{ fontFamily: 'Playfair Display' }}>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white dark:text-white font-playfair">
               Teachers
             </h1>
             <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400 text-sm mt-1">Monitor observation flags and manage teacher approvals</p>
@@ -626,7 +629,7 @@ export default function PrincipalTeachersPage() {
               <div className="mx-auto w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6">
                 <CheckCircle2 size={40} className="text-emerald-400" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white mb-2" style={{ fontFamily: 'Sora' }}>All Caught Up!</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white mb-2 font-sora">All Caught Up!</h3>
               <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm max-w-md mx-auto mb-6">
                 There are no pending teacher approval requests right now. New teachers who sign up will appear here for your review.
               </p>
@@ -784,7 +787,7 @@ export default function PrincipalTeachersPage() {
               <div className="mx-auto w-24 h-24 bg-gray-50 dark:bg-[#1b1e2c] dark:bg-[#1b1e2c] rounded-full flex items-center justify-center mb-6">
                 <Users size={40} className="text-gray-300" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white mb-2" style={{ fontFamily: 'Sora' }}>No Approved Teachers</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white mb-2 font-sora">No Approved Teachers</h3>
               <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm max-w-md mx-auto mb-6">
                 There are no approved teachers registered in your school yet. Pending approval requests in the "Pending" tab can be reviewed to approve them.
               </p>
