@@ -267,37 +267,7 @@ export default function PrincipalDashboard() {
         </div>
       </div>
 
-      {/* ── Monday Red Flag Overlay ─────────────────────────────── */}
-      {dashboard?.monday_red_flag?.active && (
-        <div className="bg-gradient-to-r from-red-50 via-red-50 to-orange-50 border-2 border-red-200 rounded-xl p-5 shadow-sm">
-          <div className="flex items-start gap-3 mb-3">
-            <AlertTriangle size={22} className="text-red-600 mt-0.5" />
-            <div>
-              <h3 className="font-bold text-red-800 text-lg">Monday Red Flag Brief</h3>
-              <p className="text-red-600 text-sm">
-                {dashboard.monday_red_flag.unresolved_critical_count} critical · {dashboard.monday_red_flag.unresolved_high_count} high priority alerts from last week
-              </p>
-            </div>
-          </div>
-          {dashboard.monday_red_flag.top_students.length > 0 && (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
-              {dashboard.monday_red_flag.top_students.map(s => (
-                <div key={s.student_id} className="bg-white dark:bg-[#151722] rounded-lg p-3 border border-red-100 flex items-center gap-3 cursor-pointer hover:shadow-md transition"
-                  onClick={() => router.push(`/principal-students/${s.student_id}`)}>
-                  <div className="w-9 h-9 bg-red-100 rounded-full flex items-center justify-center text-red-600 font-bold text-sm">
-                    {s.first_name[0]}{s.last_name[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{s.first_name} {s.last_name}</p>
-                    <p className="text-xs text-red-600">{s.critical_alert_count} critical · {s.high_alert_count} high</p>
-                  </div>
-                  <ChevronRight size={16} className="text-gray-400" />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+
 
       {/* KPI Stats Cards removed per request */}
 
