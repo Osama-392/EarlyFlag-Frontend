@@ -97,13 +97,23 @@ export interface MondayBriefBlock {
   top_students?: MondayBriefTopStudent[];
 }
 
+export interface AbsentStudentRow {
+  student_id: string;
+  first_name: string;
+  last_name: string;
+  class_name: string;
+  absent_days_count: number;
+  consecutive_absences: number;
+  parent_email_on_file: boolean;
+}
+
 export interface TeacherDashboardResponse {
   kpis: TeacherKpiBlock;
   classes: ClassLoggingStatusRow[];
   yellow_watch_list: YellowWatchListRow[];
   red_urgent: RedUrgentRow[];
   super_green_highlights: SuperGreenHighlightRow[];
-  absent_students?: any[];
+  absent_students?: AbsentStudentRow[];
   monday_brief: MondayBriefBlock;
   recommendations: string[];
   generated_at: string;

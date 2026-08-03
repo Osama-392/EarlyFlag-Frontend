@@ -7,7 +7,7 @@ import { Bell, Check, Clipboard, Clock } from 'lucide-react';
 
 type TabType = 'all' | 'red_flag' | 'manual' | 'resolved';
 
-export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '30d' }) {
+export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '30d' | 'all' }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [referrals, setReferrals] = useState<AdminReferral[]>([]);
