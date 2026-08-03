@@ -26,10 +26,19 @@ function handle401() {
   }
 }
 
-async function handleResponse(response: Response, isAuthRoute: boolean) {
+async function handleResponse(response: Response, isAuthRoute: boolean, config?: any) {
   if (response.ok) {
+    if (config?.responseType === 'blob') {
+      const data = await response.blob();
+      return { data };
+    }
     const text = await response.text();
-    const data = text ? JSON.parse(text) : null;
+    let data;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch (e) {
+      data = text;
+    }
     return { data };
   }
 
@@ -80,7 +89,7 @@ async function handleResponse(response: Response, isAuthRoute: boolean) {
   throw errorObj;
 }
 
-async function fetchWithRetry(url: string, options: RequestInit = {}): Promise<any> {
+async function fetchWithRetry(url: string, options: RequestInit = {}, config?: any): Promise<any> {
   const isAuthRoute = url.includes('/auth/login') || url.includes('/auth/signup') || url.includes('/auth/refresh');
   
   let token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -129,7 +138,7 @@ async function fetchWithRetry(url: string, options: RequestInit = {}): Promise<a
     }
   }
 
-  return handleResponse(response, isAuthRoute);
+  return handleResponse(response, isAuthRoute, config);
 }
 
 function buildUrl(endpoint: string, config?: { params?: Record<string, any> }) {
@@ -147,12 +156,12 @@ function buildUrl(endpoint: string, config?: { params?: Record<string, any> }) {
 }
 
 const api = {
-  get: <T = any>(url: string, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'GET' }),
-  post: <T = any>(url: string, data?: any, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'POST', body: data ? JSON.stringify(data) : undefined }),
-  put: <T = any>(url: string, data?: any, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'PUT', body: data ? JSON.stringify(data) : undefined }),
-  patch: <T = any>(url: string, data?: any, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'PATCH', body: data ? JSON.stringify(data) : undefined }),
-  delete: <T = any>(url: string, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'DELETE' }),
-  postForm: <T = any>(url: string, data: FormData, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'POST', body: data }),
+  get: <T = any>(url: string, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'GET' }, config),
+  post: <T = any>(url: string, data?: any, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'POST', body: data ? JSON.stringify(data) : undefined }, config),
+  put: <T = any>(url: string, data?: any, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'PUT', body: data ? JSON.stringify(data) : undefined }, config),
+  patch: <T = any>(url: string, data?: any, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'PATCH', body: data ? JSON.stringify(data) : undefined }, config),
+  delete: <T = any>(url: string, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'DELETE' }, config),
+  postForm: <T = any>(url: string, data: FormData, config?: any) => fetchWithRetry(buildUrl(url, config), { method: 'POST', body: data }, config),
 };
 
 export default api;
