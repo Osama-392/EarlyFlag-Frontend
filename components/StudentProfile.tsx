@@ -89,7 +89,8 @@ export default function StudentProfile() {
     : statusText === 'Super Green' ? 'super_green' as const
     : null;
 
-  const hasAbsent = signals.some((s: any) => s.signal_type === 'absent');
+  const absentCount = signals.filter((s: any) => s.signal_type === 'absent').length;
+  const meetsAbsenceThreshold = absentCount >= 3;
 
   const teacherFullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Your Teacher';
   const studentFullName = [history?.first_name, history?.last_name].filter(Boolean).join(' ') || 'Student';
@@ -155,7 +156,7 @@ export default function StudentProfile() {
             </button>
           )}
 
-          {hasAbsent && (
+          {meetsAbsenceThreshold && (
             <button
               onClick={() => {
                 setEmailCategoryState('absent');
