@@ -18,327 +18,327 @@ import { useToast } from '@/components/Toast';
 import { ArrowLeft, Search, Upload, Plus, Edit2 } from 'lucide-react';
 
 export default function StudentRoster() {
-  const params = useParams();
-  const router = useRouter();
-  const classId = params.classId as string;
-  const { students, loading, error, loadStudents, loadStudentHistory, studentHistory, logStudentSignal } = useStudentRoster();
-  const { showToast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStudentForHistory, setSelectedStudentForHistory] = useState<Student | null>(null);
-  const [selectedStudentForSignal, setSelectedStudentForSignal] = useState<Student | null>(null);
-  const [selectedSignalToEdit, setSelectedSignalToEdit] = useState<{ student: Student; signal: any } | null>(null);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
-  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
-  const [classInfo, setClassInfo] = useState<Class | null>(null);
+ const params = useParams();
+ const router = useRouter();
+ const classId = params.classId as string;
+ const { students, loading, error, loadStudents, loadStudentHistory, studentHistory, logStudentSignal } = useStudentRoster();
+ const { showToast } = useToast();
+ const [searchTerm, setSearchTerm] = useState('');
+ const [selectedStudentForHistory, setSelectedStudentForHistory] = useState<Student | null>(null);
+ const [selectedStudentForSignal, setSelectedStudentForSignal] = useState<Student | null>(null);
+ const [selectedSignalToEdit, setSelectedSignalToEdit] = useState<{ student: Student; signal: any } | null>(null);
+ const [historyLoading, setHistoryLoading] = useState(false);
+ const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+ const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+ const [classInfo, setClassInfo] = useState<Class | null>(null);
 
-  // Load students and class info on mount or classId change
-  useEffect(() => {
-    if (classId) {
-      loadStudents(classId);
-      // Fetch class details to get grade level
-      getClass(classId)
-        .then((cls) => setClassInfo(cls))
-        .catch((err) => console.error('Failed to load class info:', err));
-    }
-  }, [classId, loadStudents]);
+ // Load students and class info on mount or classId change
+ useEffect(() => {
+ if (classId) {
+ loadStudents(classId);
+ // Fetch class details to get grade level
+ getClass(classId)
+ .then((cls) => setClassInfo(cls))
+ .catch((err) => console.error('Failed to load class info:', err));
+ }
+ }, [classId, loadStudents]);
 
-  const handleViewHistory = async (student: Student) => {
-    setSelectedStudentForHistory(student);
-    setHistoryLoading(true);
-    await loadStudentHistory(student.id);
-    setHistoryLoading(false);
-  };
+ const handleViewHistory = async (student: Student) => {
+ setSelectedStudentForHistory(student);
+ setHistoryLoading(true);
+ await loadStudentHistory(student.id);
+ setHistoryLoading(false);
+ };
 
-  const handleLogSignal = async (student: Student) => {
-    setSelectedStudentForSignal(student);
-  };
+ const handleLogSignal = async (student: Student) => {
+ setSelectedStudentForSignal(student);
+ };
 
-  const handleSignalLogged = async (signalType: 'green' | 'yellow' | 'red', category?: string, note?: string, reasonCode?: string) => {
-    if (!selectedStudentForSignal) {
-      console.error('No student selected');
-      return false;
-    }
+ const handleSignalLogged = async (signalType: 'green' | 'yellow' | 'red', category?: string, note?: string, reasonCode?: string) => {
+ if (!selectedStudentForSignal) {
+ console.error('No student selected');
+ return false;
+ }
 
-    const studentName = `${selectedStudentForSignal.first_name} ${selectedStudentForSignal.last_name}`;
-    
-    // Optimistic: close modal immediately
-    setSelectedStudentForSignal(null);
+ const studentName = `${selectedStudentForSignal.first_name} ${selectedStudentForSignal.last_name}`;
+ 
+ // Optimistic: close modal immediately
+ setSelectedStudentForSignal(null);
 
-    // Fire API in background
-    logStudentSignal(selectedStudentForSignal.id, signalType, category, note, reasonCode)
-      .then((success) => {
-        if (success) {
-          showToast(`Signal logged for ${studentName}`, 'success');
-          loadStudents(classId);
-        } else {
-          showToast(`Failed to log signal for ${studentName}`, 'error');
-        }
-      })
-      .catch(() => {
-        showToast(`Failed to log signal for ${studentName}`, 'error');
-      });
+ // Fire API in background
+ logStudentSignal(selectedStudentForSignal.id, signalType, category, note, reasonCode)
+ .then((success) => {
+ if (success) {
+ showToast(`Signal logged for ${studentName}`, 'success');
+ loadStudents(classId);
+ } else {
+ showToast(`Failed to log signal for ${studentName}`, 'error');
+ }
+ })
+ .catch(() => {
+ showToast(`Failed to log signal for ${studentName}`, 'error');
+ });
 
-    return true;
-  };
+ return true;
+ };
 
-  const handleUpdateSignal = async (
-    signalId: string,
-    signalType: 'green' | 'yellow' | 'red',
-    category?: string,
-    note?: string,
-    reasonCode?: string
-  ) => {
-    try {
-      await updateSignal(signalId, {
-        signal_type: signalType,
-        category,
-        note,
-        // reason_code: reasonCode // Backend might expect this in category or separate field
-      });
-      
-      await loadStudents(classId);
-      setSelectedSignalToEdit(null);
-      return true;
-    } catch (err) {
-      console.error('Failed to update signal:', err);
-      return false;
-    }
-  };
+ const handleUpdateSignal = async (
+ signalId: string,
+ signalType: 'green' | 'yellow' | 'red',
+ category?: string,
+ note?: string,
+ reasonCode?: string
+ ) => {
+ try {
+ await updateSignal(signalId, {
+ signal_type: signalType,
+ category,
+ note,
+ // reason_code: reasonCode // Backend might expect this in category or separate field
+ });
+ 
+ await loadStudents(classId);
+ setSelectedSignalToEdit(null);
+ return true;
+ } catch (err) {
+ console.error('Failed to update signal:', err);
+ return false;
+ }
+ };
 
-  const getSignalCounts = (student: Student) => {
-    if (!student.today_signal) return { green: 0, yellow: 0, red: 0 };
+ const getSignalCounts = (student: Student) => {
+ if (!student.today_signal) return { green: 0, yellow: 0, red: 0 };
 
-    const signal = student.today_signal;
-    if (signal.signal_type === 'green') return { green: 1, yellow: 0, red: 0 };
-    if (signal.signal_type === 'yellow') return { green: 0, yellow: 1, red: 0 };
-    if (signal.signal_type === 'red') return { green: 0, yellow: 0, red: 1 };
-    
-    return { green: 0, yellow: 0, red: 0 };
-  };
+ const signal = student.today_signal;
+ if (signal.signal_type === 'green') return { green: 1, yellow: 0, red: 0 };
+ if (signal.signal_type === 'yellow') return { green: 0, yellow: 1, red: 0 };
+ if (signal.signal_type === 'red') return { green: 0, yellow: 0, red: 1 };
+ 
+ return { green: 0, yellow: 0, red: 0 };
+ };
 
-  const getStatusBadge = (student: Student) => {
-    const { green, yellow, red } = getSignalCounts(student);
-    
-    if (red > 0) return { text: 'At Risk', color: 'bg-red-100 text-red-700' };
-    if (yellow > 0) return { text: 'Monitor', color: 'bg-yellow-100 text-yellow-700' };
-    if (green > 0) return { text: 'Good', color: 'bg-green-100 text-green-700' };
-    return null;
-  };
+ const getStatusBadge = (student: Student) => {
+ const { green, yellow, red } = getSignalCounts(student);
+ 
+ if (red > 0) return { text: 'At Risk', color: 'bg-red-100 text-red-700' };
+ if (yellow > 0) return { text: 'Monitor', color: 'bg-yellow-100 text-yellow-700' };
+ if (green > 0) return { text: 'Good', color: 'bg-green-100 text-green-700' };
+ return null;
+ };
 
-  const filteredStudents = Array.isArray(students)
-    ? students.filter((student) =>
-        `${student.first_name} ${student.last_name}`
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase())
-      )
-    : [];
+ const filteredStudents = Array.isArray(students)
+ ? students.filter((student) =>
+ `${student.first_name} ${student.last_name}`
+ .toLowerCase()
+ .includes(searchTerm.toLowerCase())
+ )
+ : [];
 
 
 
-  return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-12" style={{ fontFamily: 'Inter, sans-serif' }}>
-      {/* Back to Classes */}
-      <div>
-        <Link 
-          href="/classes"
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Classes
-        </Link>
-      </div>
+ return (
+ <div className="max-w-6xl mx-auto space-y-6 pb-12" >
+ {/* Back to Classes */}
+ <div>
+ <Link 
+ href="/classes"
+ className="inline-flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm"
+ >
+ <ArrowLeft className="w-4 h-4 mr-2" />
+ Back to Classes
+ </Link>
+ </div>
 
-      {/* Header */}
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800 dark:text-white font-playfair">
-            {classInfo ? classInfo.name : 'Student Roster'}
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
-            {classInfo
-              ? `Grade ${classInfo.grade_level} · ${classInfo.subject || ''} · ${filteredStudents.length} student${filteredStudents.length !== 1 ? 's' : ''}`
-              : 'View or edit profile of any student'}
-          </p>
+ {/* Header */}
+ <div className="flex items-end justify-between">
+ <div>
+ <h1 className="text-3xl font-bold text-slate-800 dark:text-white ">
+ {classInfo ? classInfo.name : 'Student Roster'}
+ </h1>
+ <p className="text-gray-500 dark:text-gray-400 mt-1">
+ {classInfo
+ ? `Grade ${classInfo.grade_level} · ${classInfo.subject || ''} · ${filteredStudents.length} student${filteredStudents.length !== 1 ? 's' : ''}`
+ : 'View or edit profile of any student'}
+ </p>
 
-        </div>
-        <div className="flex items-center space-x-3">
-          <button 
-            onClick={() => setIsBulkUploadOpen(true)}
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] text-slate-700 dark:text-gray-300 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors text-sm font-medium shadow-sm"
-          >
-            <Upload className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-            <span>Upload Students</span>
-          </button>
-          <button 
-            onClick={() => setIsAddStudentOpen(true)}
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-slate-700 text-white rounded-full hover:bg-slate-800 transition-colors text-sm font-medium shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Student</span>
-          </button>
-        </div>
-      </div>
+ </div>
+ <div className="flex items-center space-x-3">
+ <button 
+ onClick={() => setIsBulkUploadOpen(true)}
+ className="inline-flex items-center space-x-2 px-4 py-2 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] text-slate-700 dark:text-gray-300 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors text-sm font-medium shadow-sm"
+ >
+ <Upload className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+ <span>Upload Students</span>
+ </button>
+ <button 
+ onClick={() => setIsAddStudentOpen(true)}
+ className="inline-flex items-center space-x-2 px-4 py-2 bg-slate-700 text-white rounded-full hover:bg-slate-800 transition-colors text-sm font-medium shadow-sm"
+ >
+ <Plus className="w-4 h-4" />
+ <span>Add Student</span>
+ </button>
+ </div>
+ </div>
 
-      {/* Search Bar */}
-      <div className="flex items-center space-x-3 max-w-2xl mt-8">
-        <div className="flex-1 flex items-center bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] rounded-full px-4 py-2.5 shadow-sm">
-          <Search className="w-5 h-5 text-gray-400 mr-2" />
-          <input
-            type="text"
-            placeholder="Search Students by Name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-gray-700 dark:text-gray-300 placeholder-gray-400"
-          />
-        </div>
-        <button
-          className="px-8 py-2.5 bg-slate-700 text-white rounded-full hover:bg-slate-800 transition-colors font-medium shadow-sm"
-        >
-          Search
-        </button>
-      </div>
+ {/* Search Bar */}
+ <div className="flex items-center space-x-3 max-w-2xl mt-8">
+ <div className="flex-1 flex items-center bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] rounded-full px-4 py-2.5 shadow-sm">
+ <Search className="w-5 h-5 text-gray-400 mr-2" />
+ <input
+ type="text"
+ placeholder="Search Students by Name..."
+ value={searchTerm}
+ onChange={(e) => setSearchTerm(e.target.value)}
+ className="flex-1 bg-transparent outline-none text-gray-700 dark:text-gray-300 placeholder-gray-400"
+ />
+ </div>
+ <button
+ className="px-8 py-2.5 bg-slate-700 text-white rounded-full hover:bg-slate-800 transition-colors font-medium shadow-sm"
+ >
+ Search
+ </button>
+ </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-700 text-sm">{error}</p>
-        </div>
-      )}
+ {/* Error Message */}
+ {error && (
+ <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+ <p className="text-red-700 text-sm">{error}</p>
+ </div>
+ )}
 
-      {/* Class Container Card */}
-      <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden mt-6">
-        <div className="p-8">
-          <div className="mb-6">
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white">{classInfo ? classInfo.name : 'Loading Class...'}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Period {classInfo?.period || '—'}</p>
-          </div>
+ {/* Class Container Card */}
+ <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden mt-6">
+ <div className="p-8">
+ <div className="mb-6">
+ <h2 className="text-xl font-bold text-slate-800 dark:text-white">{classInfo ? classInfo.name : 'Loading Class...'}</h2>
+ <p className="text-sm text-gray-500 dark:text-gray-400">Period {classInfo?.period || '—'}</p>
+ </div>
 
-          {loading ? (
-            <div className="flex justify-center py-10">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-700 dark:border-gray-300"></div>
-            </div>
-          ) : filteredStudents.length === 0 ? (
-            <div className="text-center py-10 text-gray-500 dark:text-gray-400">No students found.</div>
-          ) : (
-            <div className="space-y-4">
-              {filteredStudents.map((student) => {
-                const initials = `${student.first_name.charAt(0)}${student.last_name.charAt(0)}`.toUpperCase();
-                
-                // MOCKUP Logic: Map status based on today's signal, fallback to neutral
-                let statusColor = "bg-gray-400 text-white";
-                let statusText = "Neutral";
-                if (student.today_signal?.signal_type === 'green') {
-                  statusColor = "bg-emerald-500 text-white";
-                  statusText = "Super Green";
-                } else if (student.today_signal?.signal_type === 'red') {
-                  statusColor = "bg-red-400 text-white";
-                  statusText = "Red";
-                } else if (student.today_signal?.signal_type === 'yellow') {
-                  statusColor = "bg-amber-400 text-white";
-                  statusText = "Yellow";
-                }
+ {loading ? (
+ <div className="flex justify-center py-10">
+ <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-700 dark:border-gray-300"></div>
+ </div>
+ ) : filteredStudents.length === 0 ? (
+ <div className="text-center py-10 text-gray-500 dark:text-gray-400">No students found.</div>
+ ) : (
+ <div className="space-y-4">
+ {filteredStudents.map((student) => {
+ const initials = `${student.first_name.charAt(0)}${student.last_name.charAt(0)}`.toUpperCase();
+ 
+ // MOCKUP Logic: Map status based on today's signal, fallback to neutral
+ let statusColor = "bg-gray-400 text-white";
+ let statusText = "Neutral";
+ if (student.today_signal?.signal_type === 'green') {
+ statusColor = "bg-emerald-500 text-white";
+ statusText = "Super Green";
+ } else if (student.today_signal?.signal_type === 'red') {
+ statusColor = "bg-red-400 text-white";
+ statusText = "Red";
+ } else if (student.today_signal?.signal_type === 'yellow') {
+ statusColor = "bg-amber-400 text-white";
+ statusText = "Yellow";
+ }
 
-                // Mockup counts (using static or extracted if available)
-                const yellowCount = student.today_signal?.signal_type === 'yellow' ? 1 : 0; // Ideally from actual history
-                const redCount = student.today_signal?.signal_type === 'red' ? 1 : 0;
+ // Mockup counts (using static or extracted if available)
+ const yellowCount = student.today_signal?.signal_type === 'yellow' ? 1 : 0; // Ideally from actual history
+ const redCount = student.today_signal?.signal_type === 'red' ? 1 : 0;
 
-                return (
-                  <div
-                    key={student.id}
-                    className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors group"
-                  >
-                    <div className="flex items-center space-x-4">
-                      {/* Avatar */}
-                      <div className="w-11 h-11 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium text-sm shadow-sm">
-                        {initials}
-                      </div>
+ return (
+ <div
+ key={student.id}
+ className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors group"
+ >
+ <div className="flex items-center space-x-4">
+ {/* Avatar */}
+ <div className="w-11 h-11 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium text-sm shadow-sm">
+ {initials}
+ </div>
 
-                      {/* Student Info */}
-                      <div>
-                        <div className="flex items-center gap-3">
-                          <p className="font-semibold text-slate-800 dark:text-white">
-                            {student.first_name} {student.last_name}
-                          </p>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor} tracking-wide uppercase`}>
-                            {statusText}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Grade {student.grade_level}</p>
-                      </div>
-                    </div>
+ {/* Student Info */}
+ <div>
+ <div className="flex items-center gap-3">
+ <p className="font-semibold text-slate-800 dark:text-white">
+ {student.first_name} {student.last_name}
+ </p>
+ <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor} tracking-wide uppercase`}>
+ {statusText}
+ </span>
+ </div>
+ <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Grade {student.grade_level}</p>
+ </div>
+ </div>
 
-                    {/* Actions Panel */}
-                    <div className="flex items-center space-x-3">
-                      {/* Action Buttons */}
-                      {student.today_signal && (
-                        <button
-                          onClick={() => setSelectedSignalToEdit({ student, signal: student.today_signal })}
-                          className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold transition-colors border border-indigo-100/50 dark:border-indigo-800/50 flex items-center gap-1"
-                          title="Correct today's signal"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                          Edit
-                        </button>
-                      )}
-                      <button
-                        onClick={() => router.push(`/classes/${classId}/${student.id}`)}
-                        className="px-4 py-1.5 bg-gray-50 dark:bg-[#1b1e2c] hover:bg-gray-100 dark:hover:bg-black/20 border border-gray-200 dark:border-[#262a3d] text-slate-700 dark:text-gray-300 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ml-2"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        Profile
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
+ {/* Actions Panel */}
+ <div className="flex items-center space-x-3">
+ {/* Action Buttons */}
+ {student.today_signal && (
+ <button
+ onClick={() => setSelectedSignalToEdit({ student, signal: student.today_signal })}
+ className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold transition-colors border border-indigo-100/50 dark:border-indigo-800/50 flex items-center gap-1"
+ title="Correct today's signal"
+ >
+ <Edit2 className="w-3 h-3" />
+ Edit
+ </button>
+ )}
+ <button
+ onClick={() => router.push(`/classes/${classId}/${student.id}`)}
+ className="px-4 py-1.5 bg-gray-50 dark:bg-[#1b1e2c] hover:bg-gray-100 dark:hover:bg-black/20 border border-gray-200 dark:border-[#262a3d] text-slate-700 dark:text-gray-300 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ml-2"
+ >
+ <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+ Profile
+ </button>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ )}
+ </div>
+ </div>
 
-      {/* Modals */}
-      <StudentHistoryModal
-        isOpen={selectedStudentForHistory !== null}
-        onClose={() => setSelectedStudentForHistory(null)}
-        studentName={selectedStudentForHistory ? `${selectedStudentForHistory.first_name} ${selectedStudentForHistory.last_name}` : ''}
-        history={studentHistory}
-        loading={historyLoading}
-      />
+ {/* Modals */}
+ <StudentHistoryModal
+ isOpen={selectedStudentForHistory !== null}
+ onClose={() => setSelectedStudentForHistory(null)}
+ studentName={selectedStudentForHistory ? `${selectedStudentForHistory.first_name} ${selectedStudentForHistory.last_name}` : ''}
+ history={studentHistory}
+ loading={historyLoading}
+ />
 
-      <SignalLogModal
-        isOpen={selectedStudentForSignal !== null}
-        onClose={() => setSelectedStudentForSignal(null)}
-        studentName={selectedStudentForSignal ? `${selectedStudentForSignal.first_name} ${selectedStudentForSignal.last_name}` : ''}
-        onLog={handleSignalLogged}
-      />
+ <SignalLogModal
+ isOpen={selectedStudentForSignal !== null}
+ onClose={() => setSelectedStudentForSignal(null)}
+ studentName={selectedStudentForSignal ? `${selectedStudentForSignal.first_name} ${selectedStudentForSignal.last_name}` : ''}
+ onLog={handleSignalLogged}
+ />
 
-      <EditSignalModal
-        isOpen={selectedSignalToEdit !== null}
-        onClose={() => setSelectedSignalToEdit(null)}
-        studentName={selectedSignalToEdit ? `${selectedSignalToEdit.student.first_name} ${selectedSignalToEdit.student.last_name}` : ''}
-        signal={selectedSignalToEdit?.signal}
-        onUpdate={handleUpdateSignal}
-      />
+ <EditSignalModal
+ isOpen={selectedSignalToEdit !== null}
+ onClose={() => setSelectedSignalToEdit(null)}
+ studentName={selectedSignalToEdit ? `${selectedSignalToEdit.student.first_name} ${selectedSignalToEdit.student.last_name}` : ''}
+ signal={selectedSignalToEdit?.signal}
+ onUpdate={handleUpdateSignal}
+ />
 
-      <AddStudentModal
-        isOpen={isAddStudentOpen}
-        onClose={() => setIsAddStudentOpen(false)}
-        classId={classId}
-        classGradeLevel={classInfo?.grade_level}
-        onAddSuccess={async () => {
-          await loadStudents(classId);
-        }}
-      />
+ <AddStudentModal
+ isOpen={isAddStudentOpen}
+ onClose={() => setIsAddStudentOpen(false)}
+ classId={classId}
+ classGradeLevel={classInfo?.grade_level}
+ onAddSuccess={async () => {
+ await loadStudents(classId);
+ }}
+ />
 
-      <BulkUploadModal
-        isOpen={isBulkUploadOpen}
-        onClose={() => setIsBulkUploadOpen(false)}
-        classId={classId}
-        onUploadSuccess={async () => {
-          await loadStudents(classId);
-        }}
-      />
-    </div>
-  );
+ <BulkUploadModal
+ isOpen={isBulkUploadOpen}
+ onClose={() => setIsBulkUploadOpen(false)}
+ classId={classId}
+ onUploadSuccess={async () => {
+ await loadStudents(classId);
+ }}
+ />
+ </div>
+ );
 }
