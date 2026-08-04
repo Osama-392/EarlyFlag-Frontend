@@ -5,43 +5,43 @@ import QuickLogPage from '@/components/QuickLogPage';
 import { logger } from '@/lib/logger';
 
 interface QuickLogModalProps {
-  onClose: () => void;
-  initialClassId?: string;
-  targetDate?: string;
+ onClose: () => void;
+ initialClassId?: string;
+ targetDate?: string;
 }
 
 export default function QuickLogModal({ onClose, initialClassId, targetDate }: QuickLogModalProps) {
-  return (
-    <div
-      className="fixed inset-0 bg-black/50 z-[60] flex items-start justify-end"
-      onClick={() => {
-        logger.buttonClick('Backdrop close Quick Log', 'QuickLogModal');
-        onClose();
-      }}
-    >
-      <div
-        className="w-full max-w-7xl bg-white dark:bg-[#0f111a] rounded-l-xl shadow-2xl h-screen overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Modal Header */}
-        <div className="sticky top-0 bg-white dark:bg-[#0f111a] border-b border-gray-200 dark:border-[#262a3d] px-8 py-4 z-10 flex justify-between items-center">
-          <button
-            onClick={() => {
-              logger.buttonClick('Close Quick Log Modal', 'QuickLogModal');
-              onClose();
-            }}
-            className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Back to Dashboard</span>
-          </button>
-        </div>
+ return (
+ <div
+ className="fixed inset-0 bg-black/50 z-[60] flex items-start justify-end"
+ onClick={() => {
+ logger.buttonClick('Backdrop close Quick Log', 'QuickLogModal');
+ onClose();
+ }}
+ >
+ <div
+ className="w-full max-w-7xl bg-white dark:bg-[#0f111a] rounded-l-xl shadow-2xl h-screen overflow-y-auto"
+ onClick={(e) => e.stopPropagation()}
+ >
+ {/* Modal Header */}
+ <div className="sticky top-0 bg-white dark:bg-[#0f111a] border-b border-gray-200 dark:border-[#262a3d] px-8 py-4 z-10 flex justify-between items-center">
+ <button
+ onClick={() => {
+ logger.buttonClick('Close Quick Log Modal', 'QuickLogModal');
+ onClose();
+ }}
+ className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm"
+ >
+ <ArrowLeft className="w-5 h-5" />
+ <span>Back to Dashboard</span>
+ </button>
+ </div>
 
-        {/* Modal Content */}
-        <div className="px-6 py-4">
-          <QuickLogPage onCancel={onClose} initialClassId={initialClassId} targetDate={targetDate} />
-        </div>
-      </div>
-    </div>
-  );
+ {/* Modal Content */}
+ <div className="px-6 py-4">
+ <QuickLogPage onCancel={onClose} initialClassId={initialClassId} targetDate={targetDate} />
+ </div>
+ </div>
+ </div>
+ );
 }

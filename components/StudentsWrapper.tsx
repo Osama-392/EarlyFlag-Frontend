@@ -3,5 +3,5 @@
 import ClassesPage from '@/components/ClassesPage';
 
 export default function StudentsWrapper() {
-  return <ClassesPage />;
+ return <ClassesPage />;
 }

@@ -10,7 +10,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sora: ['Sora', 'sans-serif'],
+        sans: ['var(--font-sora)', 'sans-serif'],
+        sora: ['var(--font-sora)', 'sans-serif'],
         playfair: ['Playfair Display', 'serif'],
       },
       colors: {
