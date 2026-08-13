@@ -460,7 +460,7 @@ export default function StudentProfile() {
  <SendAdminModal
  isOpen={isSendAdminModalOpen}
  onClose={() => setIsSendAdminModalOpen(false)}
- studentId={studentId}
+ studentId={history?.student_id || studentId}
  studentName={studentFullName}
  />
  </div>
