@@ -98,12 +98,23 @@ export default function Dashboard() {
  studentName: string;
  flagCategory: 'red' | 'yellow' | 'super_green' | 'absent';
  reason?: string;
+ studentId?: string;
+ classId?: string;
+ recentFlags?: any[];
  } | null>(null);
 
  const [stats, setStats] = useState<{ today: SignalStats; week: SignalStats; month: SignalStats } | null>(null);
  const [activeWindow, setActiveWindow] = useState<TimeWindow>('today');
 
  const { user } = useAuth();
+
+ const getClassIdByName = useCallback((className?: string) => {
+   if (!className) return undefined;
+   const cls = dashboardData?.classes?.find(
+     (c: any) => c.class_name?.toLowerCase() === className.toLowerCase()
+   );
+   return cls?.class_id;
+ }, [dashboardData]);
 
  const loadDashboard = useCallback(async (refreshMode: boolean | 'silent' = false) => {
  try {
@@ -348,10 +359,10 @@ export default function Dashboard() {
 
  // ─── Category breakdown ──────────────────────────────────────────
  const categoryData = [
- { label: 'Yellow Academic', count: current.yellow_academic_count, color: 'bg-blue-400', icon: '📘' },
- { label: 'Yellow Behavioral', count: current.yellow_behavioral_count, color: 'bg-purple-400', icon: '📙' },
- { label: 'Red Academic', count: current.red_academic_count, color: 'bg-orange-500', icon: '🔴' },
- { label: 'Red Behavioral', count: current.red_behavioral_count, color: 'bg-rose-500', icon: '⛔' },
+ { label: 'Yellow Academic', count: current.yellow_academic_count, color: 'bg-yellow-400', icon: '📘' },
+ { label: 'Yellow Behavioral', count: current.yellow_behavioral_count, color: 'bg-amber-500', icon: '📙' },
+ { label: 'Red Academic', count: current.red_academic_count, color: 'bg-red-500', icon: '🔴' },
+ { label: 'Red Behavioral', count: current.red_behavioral_count, color: 'bg-rose-600', icon: '⛔' },
  ];
  const maxCategory = Math.max(...categoryData.map(d => d.count), 1);
 
@@ -635,8 +646,8 @@ export default function Dashboard() {
  </td>
  <td className="px-3 py-2 text-right">
  <button
- onClick={() => setTemplateModalData({ studentName: `${row.first_name} ${row.last_name}`, flagCategory: 'yellow', reason: row.unresolved_alert_max_severity ? `frequent ${row.unresolved_alert_max_severity} level alerts` : undefined })}
- className="inline-flex items-center gap-1 px-2 py-1 bg-[#1b1e2c] hover:bg-[#262a3d] text-white text-[10px] font-semibold rounded-full transition-colors"
+ onClick={() => setTemplateModalData({ studentName: `${row.first_name} ${row.last_name}`, flagCategory: 'yellow', reason: row.unresolved_alert_max_severity ? `frequent ${row.unresolved_alert_max_severity} level alerts` : undefined, studentId: row.student_id, classId: undefined })}
+ className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-semibold rounded-full transition-colors shadow-sm"
  >
  <Mail className="w-3.5 h-3.5" />
  Email
@@ -676,8 +687,8 @@ export default function Dashboard() {
  <p className="text-xs text-gray-700 dark:text-gray-300 mb-2 bg-red-50 dark:bg-red-900/10 p-1.5 rounded border dark:border-red-900/20 leading-tight">{item.rule_description}</p>
  <div className="flex justify-end">
  <button
- onClick={() => setTemplateModalData({ studentName: `${item.student.first_name} ${item.student.last_name}`, flagCategory: 'red', reason: item.rule_description })}
- className="inline-flex items-center gap-1 px-2 py-1 bg-[#1b1e2c] hover:bg-[#262a3d] text-white text-[10px] font-semibold rounded-full transition-colors"
+ onClick={() => setTemplateModalData({ studentName: `${item.student.first_name} ${item.student.last_name}`, flagCategory: 'red', reason: item.rule_description, studentId: item.student.student_id, recentFlags: item.recent_flags, classId: getClassIdByName(item.recent_flags?.[0]?.class_name) })}
+ className="inline-flex items-center gap-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-[10px] font-semibold rounded-full transition-colors shadow-sm"
  >
  <Mail className="w-3.5 h-3.5" />
  Email
@@ -714,8 +725,8 @@ export default function Dashboard() {
  <span className="text-[9px] bg-gray-100 dark:bg-[#202330] text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded font-bold">No Email</span>
  )}
  <button
- onClick={() => setTemplateModalData({ studentName: `${item.first_name} ${item.last_name}`, flagCategory: 'super_green', reason: item.reason_description ?? undefined })}
- className="inline-flex items-center gap-1 px-2 py-1 bg-[#1b1e2c] hover:bg-[#262a3d] text-white text-[10px] font-semibold rounded-full transition-colors"
+ onClick={() => setTemplateModalData({ studentName: `${item.first_name} ${item.last_name}`, flagCategory: 'super_green', reason: item.reason_description ?? undefined, studentId: item.student_id, classId: undefined })}
+ className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold rounded-full transition-colors shadow-sm"
  >
  <Mail className="w-3.5 h-3.5" />
  Email
@@ -760,7 +771,7 @@ export default function Dashboard() {
  <p className="text-xs text-gray-500 ml-3">{student.class_name}</p>
  <div className="mt-2 ml-3">
  <span className={`text-xs font-bold px-2 py-0.5 rounded ${student.consecutive_absences >= 3 ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'}`}>
- {student.consecutive_absences} {student.consecutive_absences === 1 ? 'day' : 'days'}
+ {student.consecutive_absences} {student.consecutive_absences === 1 ? 'absence' : 'absences'}
  </span>
  </div>
  </div>
@@ -769,9 +780,11 @@ export default function Dashboard() {
  onClick={() => setTemplateModalData({
  studentName: `${student.first_name} ${student.last_name}`,
  flagCategory: 'absent',
- reason: `${student.consecutive_absences} consecutive absences`
+ reason: `${student.consecutive_absences} absences in the last 7 days`,
+ studentId: student.student_id,
+ classId: getClassIdByName(student.class_name)
  })}
- className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1b1e2c] hover:bg-[#262a3d] text-white text-xs font-semibold rounded-full transition-colors"
+ className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-full transition-colors shadow-sm"
  >
  <Mail className="w-3.5 h-3.5" />
  Email
@@ -789,8 +802,10 @@ export default function Dashboard() {
  )}
  </div>
  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 border-t border-yellow-100 dark:border-yellow-900/30 text-xs text-yellow-800 dark:text-yellow-500 flex items-center gap-2">
- <AlertCircle className="w-4 h-4 flex-shrink-0" />
- <p>Email button appears automatically when a student reaches 3 consecutive absences in your class this week.</p>
+ <AlertCircle />
+ <p className="text-xs text-yellow-800 dark:text-yellow-500/90 leading-relaxed">
+ Email button appears automatically when a student reaches 3 absences in the last 7 days in your classes.
+ </p>
  </div>
  </div>
  <div className="mt-16 pt-8 border-t border-gray-200 dark:border-[#262a3d] space-y-6 sm:space-y-8">
@@ -1160,6 +1175,9 @@ export default function Dashboard() {
  teacherName={user?.first_name ? `${user.first_name} ${user.last_name}` : 'Teacher'}
  flagCategory={templateModalData.flagCategory}
  reason={templateModalData.reason}
+ studentId={templateModalData.studentId}
+ classId={templateModalData.classId}
+ recentFlags={templateModalData.recentFlags}
  />
  )}
  </div>

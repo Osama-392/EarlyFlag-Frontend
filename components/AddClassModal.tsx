@@ -70,6 +70,7 @@ export default function AddClassModal({
  subject: '',
  period: '',
  gradeLevel: '',
+ section: '',
  teachingDays: [] as string[],
  });
  const [isSubjectOpen, setIsSubjectOpen] = useState(false);
@@ -85,13 +86,17 @@ export default function AddClassModal({
  alert('Please select a grade level');
  return;
  }
+ const generatedName = `${formData.subject} ${formData.gradeLevel}${formData.section.trim()}`;
  onSave({
- ...formData,
- period: parseInt(formData.period) || 1,
+ name: generatedName,
+ subject: formData.subject,
+ grade_level: parseInt(formData.gradeLevel),
+ period: 1,
+ section: formData.section.trim(),
  gradeLevel: parseInt(formData.gradeLevel),
  teaching_days: formData.teachingDays,
  });
- setFormData({ name: '', subject: '', period: '', gradeLevel: '', teachingDays: [] });
+ setFormData({ name: '', subject: '', period: '', section: '', gradeLevel: '', teachingDays: [] });
  };
 
  if (!isOpen) return null;
@@ -112,21 +117,6 @@ export default function AddClassModal({
 
  {/* Form */}
  <form onSubmit={handleSubmit} className="p-6 space-y-4">
- <div>
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
- Class Name *
- </label>
- <input
- type="text"
- required
- value={formData.name}
- onChange={(e) =>
- setFormData({ ...formData, name: e.target.value })
- }
- className="w-full px-3 py-2 border dark:bg-[#1b1e2c] dark:text-white border-gray-300 dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
- placeholder="e.g., AP Calculus BC"
- />
- </div>
 
  <div className="relative">
  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -210,20 +200,18 @@ export default function AddClassModal({
  </div>
 
  <div>
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
- Period *
+ <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
+ Section <span className="text-red-500">*</span>
  </label>
  <input
- type="number"
+ type="text"
  required
- min="1"
- max="8"
- value={formData.period}
+ value={formData.section}
  onChange={(e) =>
- setFormData({ ...formData, period: e.target.value })
+ setFormData({ ...formData, section: e.target.value })
  }
- className="w-full px-3 py-2 border dark:bg-[#1b1e2c] dark:text-white border-gray-300 dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
- placeholder="1-8"
+ placeholder="e.g., A, B, C"
+ className="w-full px-4 py-2.5 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
  />
  </div>
 

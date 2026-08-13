@@ -401,7 +401,7 @@ export default function PrincipalReportsPage() {
  student={{
  id: generatedStudentReport.student.student_id,
  name: `${generatedStudentReport.student.first_name} ${generatedStudentReport.student.last_name}`,
- gradeLevel: parseInt(generatedStudentReport.student.grade_level) || 9,
+ gradeLevel: parseInt(generatedStudentReport.student.grade_level) || 6,
  initial: `${generatedStudentReport.student.first_name.charAt(0)}${generatedStudentReport.student.last_name.charAt(0)}`.toUpperCase(),
  bgColor: 'from-blue-400 to-blue-600'
  }}

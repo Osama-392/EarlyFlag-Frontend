@@ -18,6 +18,8 @@ import { getPendingTeachers } from '@/lib/adminService';
 import { useAuth } from '@/app/providers';
 import GoodMorningBanner from '@/components/GoodMorningBanner';
 import AdminReferralsList from '@/components/AdminReferralsList';
+import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
+import { Mail } from 'lucide-react';
 
 // ─── Predefined Subjects (from Create Class dropdown) ─────────────
 const PREDEFINED_SUBJECTS = [
@@ -106,8 +108,17 @@ export default function PrincipalDashboard() {
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState<string | null>(null);
  const [refreshing, setRefreshing] = useState(false);
-
-
+ const [templateModalData, setTemplateModalData] = useState<{
+    studentName: string;
+    teacherName: string;
+    flagCategory: 'red' | 'yellow' | 'super_green' | 'absent' | 'admin_concern';
+    reason?: string;
+    studentId?: string;
+    classId?: string;
+    adminEmailReason?: string;
+    adminEmailConcerns?: string;
+    recentFlags?: any[];
+  } | null>(null);
 
  // Pending teachers state
  const [pendingCount, setPendingCount] = useState<number>(0);
@@ -120,7 +131,7 @@ export default function PrincipalDashboard() {
  setError(null);
  const [dashData, heatData, pendingData] = await Promise.all([
  getAdminDashboard(range),
- getAdminHeatmap('1d'),
+ getAdminHeatmap('7d'),
  getPendingTeachers().catch(() => []),
  ]);
  setDashboard(dashData);
@@ -206,6 +217,15 @@ export default function PrincipalDashboard() {
  .fade-up:nth-child(3){animation-delay:.15s} .fade-up:nth-child(4){animation-delay:.2s}
  .fade-up:nth-child(5){animation-delay:.25s} .fade-up:nth-child(6){animation-delay:.3s}
  `}</style>
+
+ {/* Parent Email Template Modal */}
+ {templateModalData && (
+   <ParentEmailTemplateModal
+     isOpen={!!templateModalData}
+     onClose={() => setTemplateModalData(null)}
+     {...templateModalData}
+   />
+ )}
 
  {/* Good Morning Banner */}
  <GoodMorningBanner
@@ -344,7 +364,30 @@ export default function PrincipalDashboard() {
  <p className="font-bold text-gray-900 dark:text-white text-sm">{item.student.first_name} {item.student.last_name}</p>
  <p className="text-[11px] text-gray-500 dark:text-gray-400">Gr {item.student.grade_level}</p>
  </div>
- <span className="text-[9px] font-bold text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded uppercase tracking-wider">{item.severity}</span>
+ <div className="flex items-center gap-2">
+   <button
+     onClick={() => {
+       const concerns = item.recent_flags
+       ?.filter((f: any) => f.signal_type === 'red' || f.signal_type === 'yellow')
+       ?.map((f: any) => `- ${f.class_name || 'Class'}: ${f.rule_description || f.description || f.note || 'Concern logged'}`)
+       ?.join('\n');
+
+       setTemplateModalData({ 
+         studentName: `${item.student.first_name} ${item.student.last_name}`, 
+         teacherName: 'Administration',
+         flagCategory: 'admin_concern', 
+         adminEmailReason: item.rule_description, 
+         studentId: item.student.student_id,
+         adminEmailConcerns: concerns
+       })
+     }}
+     className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-600 hover:bg-red-700 text-white text-[9px] font-bold uppercase tracking-wider rounded transition-colors shadow-sm"
+   >
+     <Mail className="w-3 h-3" />
+     Email
+   </button>
+   <span className="text-[9px] font-bold text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded uppercase tracking-wider">{item.severity}</span>
+ </div>
  </div>
  <p className="text-xs text-gray-700 dark:text-gray-300 mb-2 bg-red-50 dark:bg-red-900/10 p-1.5 rounded border dark:border-red-900/20 leading-tight">{item.rule_description}</p>
  </div>
@@ -437,7 +480,7 @@ export default function PrincipalDashboard() {
  const c = bandColors[tile.band];
  return (
  <div key={tile.class_id}
- onClick={() => router.push(`/principal-classes/${tile.class_id}`)}
+ onClick={() => router.push(`/principal-classes/${(tile as any).slug || tile.class_id}`)}
  className={`fade-up ${c.bg} border-2 ${c.border} rounded-xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-0.5`}>
  <div className="flex items-start justify-between mb-3">
  <div>

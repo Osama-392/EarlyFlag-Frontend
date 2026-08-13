@@ -27,6 +27,7 @@ export default function Header() {
  const [searchStudents, setSearchStudents] = useState<any[]>([]);
  const [searchLoading, setSearchLoading] = useState(false);
  const searchRef = useRef<HTMLDivElement>(null);
+ const latestSearchRef = useRef<number>(0);
  
  const [quickLogTargetDate, setQuickLogTargetDate] = useState<string | undefined>(undefined);
  
@@ -62,15 +63,22 @@ export default function Header() {
  }, [searchQuery]);
 
  const performSearch = async (query: string) => {
+ const currentId = ++latestSearchRef.current;
  try {
  setSearchLoading(true);
  const res = await getTeacherSearch(query);
+ if (currentId === latestSearchRef.current) {
  setSearchClasses(res.classes || []);
  setSearchStudents(res.students || []);
+ }
  } catch (err) {
+ if (currentId === latestSearchRef.current) {
  console.error('Failed to load search data:', err);
+ }
  } finally {
+ if (currentId === latestSearchRef.current) {
  setSearchLoading(false);
+ }
  }
  };
 
@@ -152,7 +160,7 @@ export default function Header() {
  <button
  key={cls.id}
  onClick={() => {
- router.push(`/classes/${cls.id}`);
+ router.push(`/classes/${cls.slug}`);
  setIsSearchOpen(false);
  setSearchQuery('');
  }}
@@ -185,7 +193,7 @@ export default function Header() {
  <button
  key={`${s.class_id}-${s.id}`}
  onClick={() => {
- router.push(`/classes/${s.class_id}/${s.id}`);
+ router.push(`/classes/${s.class_id}/${s.slug}`);
  setIsSearchOpen(false);
  setSearchQuery('');
  }}

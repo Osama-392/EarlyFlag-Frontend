@@ -3,6 +3,7 @@ import { getTeacherClasses } from './classService';
 
 export interface Student {
   id: string;
+  slug: string;
   first_name: string;
   last_name: string;
   grade_level: string;
@@ -111,9 +112,10 @@ export const logSignals = async (batch: BatchSignalPayload): Promise<any> => {
 };
 
 // Get available dates for signal backlogging (last 3 days)
-export const getAvailableSignalDates = async (): Promise<string[]> => {
+export const getAvailableSignalDates = async (classId?: string): Promise<string[]> => {
   try {
-    const response = await api.get<{ dates: string[] }>('/api/v1/teacher/signals/available-dates');
+    const url = classId ? `/api/v1/teacher/signals/available-dates?class_id=${classId}` : '/api/v1/teacher/signals/available-dates';
+    const response = await api.get<{ dates: string[] }>(url);
     return response.data.dates;
   } catch (error: any) {
     console.error('Failed to fetch available signal dates:', error?.response?.data);

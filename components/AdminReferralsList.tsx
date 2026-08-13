@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAdminReferrals, acknowledgeReferral, AdminReferral } from '@/lib/adminService';
-import { Bell, Check, Clipboard, Clock } from 'lucide-react';
+import { Bell, Check, Clipboard, Clock, Mail } from 'lucide-react';
+import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
 
 type TabType = 'all' | 'red_flag' | 'manual' | 'resolved';
 
@@ -12,6 +13,8 @@ export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '3
  const [activeTab, setActiveTab] = useState<TabType>('all');
  const [referrals, setReferrals] = useState<AdminReferral[]>([]);
  const [loading, setLoading] = useState(true);
+ const [emailModalStudent, setEmailModalStudent] = useState<any>(null);
+ const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
 
  useEffect(() => {
  fetchReferrals();
@@ -70,29 +73,38 @@ export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '3
  }
  };
 
- const formatDate = (dateString: string) => {
- const d = new Date(dateString);
- const today = new Date();
- 
- // If it's today, show "Today, h:mm A"
- if (d.toDateString() === today.toDateString()) {
- return `Today, ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
- }
- 
- // If it's yesterday, show "Yesterday, h:mm A"
- const yesterday = new Date(today);
- yesterday.setDate(yesterday.getDate() - 1);
- if (d.toDateString() === yesterday.toDateString()) {
- return `Yesterday, ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
- }
+  const formatDate = (dateString: string) => {
+    const d = new Date(dateString);
+    const today = new Date();
+    
+    const etOptions = { timeZone: 'America/New_York' };
+    const dDateStr = d.toLocaleDateString('en-US', etOptions);
+    const todayStr = today.toLocaleDateString('en-US', etOptions);
+    
+    const timeOptions: Intl.DateTimeFormatOptions = { 
+      hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York' 
+    };
 
- return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ', ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
- };
+    if (dDateStr === todayStr) {
+      return `Today, ${d.toLocaleTimeString('en-US', timeOptions)} ET`;
+    }
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toLocaleDateString('en-US', etOptions);
+
+    if (dDateStr === yesterdayStr) {
+      return `Yesterday, ${d.toLocaleTimeString('en-US', timeOptions)} ET`;
+    }
+
+    const dateOptions: Intl.DateTimeFormatOptions = {
+      month: 'short', day: 'numeric', timeZone: 'America/New_York'
+    };
+    return d.toLocaleDateString('en-US', dateOptions) + ', ' + d.toLocaleTimeString('en-US', timeOptions) + ' ET';
+  };
 
  const tabs = [
- { id: 'all', label: `All (${referrals.length})` },
- { id: 'red_flag', label: 'Red Flag' },
- { id: 'manual', label: 'Manual Send' },
+ { id: 'all', label: `Referrals & Follow ups (${referrals.length})` },
  { id: 'resolved', label: 'Resolved' }
  ];
 
@@ -178,7 +190,7 @@ export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '3
  )}
  </div>
  <p className="text-gray-600 dark:text-gray-300 text-sm font-medium mb-1.5">
- {referral.note.split('\\n').pop()}
+ {referral.note.split('\n').pop()?.replace(/\[auto\]\s*/i, 'Notes: ')}
  </p>
  <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500 font-medium">
  <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
@@ -204,10 +216,28 @@ export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '3
 
  <div className="flex items-center gap-2 mt-1">
  <button 
- onClick={() => router.push(`/principal-students/${referral.student_id}`)}
+ onClick={() => router.push(`/principal-students/${(referral as any).slug || referral.student_id}`)}
  className="px-4 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-bold text-xs rounded-lg transition-colors"
  >
  View
+ </button>
+ <button
+ onClick={() => {
+   setEmailModalStudent({
+     student_id: referral.student_id,
+     student_name: `${referral.student_first_name} ${referral.student_last_name}`,
+     class_name: '',
+     teacher_name: 'Administration',
+     reason: referral.note,
+     flags_count: 1
+   });
+   setIsEmailModalOpen(true);
+ }}
+ className="px-4 py-1.5 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5"
+ title="Email Parent"
+ >
+ <Mail className="w-3.5 h-3.5" />
+ Email
  </button>
  {referral.acknowledged_at ? (
  <button disabled className="px-4 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-500 font-bold text-xs rounded-lg cursor-default">
@@ -233,6 +263,21 @@ export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '3
  View All Referral History →
  </button>
  </div>
+ 
+ {isEmailModalOpen && emailModalStudent && (
+   <ParentEmailTemplateModal
+     isOpen={isEmailModalOpen}
+     onClose={() => {
+       setIsEmailModalOpen(false);
+       setEmailModalStudent(null);
+     }}
+     studentName={emailModalStudent.student_name}
+     teacherName={emailModalStudent.teacher_name}
+     reason={emailModalStudent.reason}
+     flagCategory="admin_concern"
+     studentId={emailModalStudent.student_id}
+   />
+ )}
  </div>
  );
 }

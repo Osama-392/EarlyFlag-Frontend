@@ -53,6 +53,7 @@ export interface YellowWatchListRow {
   yellow_behavioral_count: number;
   yellow_total: number;
   unresolved_alert_max_severity?: string | null;
+  alert_category?: 'academic' | 'behavioral';
 }
 
 export interface RedUrgentStudentSummary {
@@ -68,6 +69,8 @@ export interface RedUrgentRow {
   severity: string;
   triggered_at: string;
   student: RedUrgentStudentSummary;
+  recent_flags?: any[];
+  alert_category?: 'academic' | 'behavioral';
 }
 
 export interface SuperGreenHighlightRow {
@@ -160,5 +163,14 @@ export const getTeacherRecognitions = async (limit: number = 50): Promise<Studen
   } catch (error: any) {
     console.error('Failed to fetch teacher recognitions:', error?.response?.data);
     throw error;
+  }
+};
+
+export const logTeacherEmail = async (studentId: string, payload: { flagCategory: string; templateIndex: number; renderedText: string }): Promise<void> => {
+  try {
+    await api.post(`/api/v1/teacher/students/${studentId}/log-email`, payload);
+  } catch (error: any) {
+    console.error(`Failed to log email for student ${studentId}:`, error?.response?.data);
+    // Non-blocking, so we don't necessarily throw here unless desired.
   }
 };

@@ -72,10 +72,10 @@ export default function ClassSetupModal({
  error = null,
 }: ClassSetupModalProps) {
  const [formData, setFormData] = useState({
- name: '',
  subject: '',
  grade_level: '',
  period: '',
+ section: '',
  room_number: '',
  academic_year: '2025-2026', // Default academic year
  teaching_days: [] as string[],
@@ -90,20 +90,20 @@ export default function ClassSetupModal({
  setIsGradeOpen(false);
  if (classData) {
  setFormData({
- name: classData.name || '',
  subject: classData.subject || '',
  grade_level: String(classData.grade_level || ''),
  period: String(classData.period || ''),
+ section: classData.section || '',
  room_number: String(classData.room_number || ''),
  academic_year: classData.academic_year || '2025-2026',
  teaching_days: classData.teaching_days || [],
  });
  } else {
  setFormData({
- name: '',
  subject: '',
  grade_level: '',
  period: '',
+ section: '',
  room_number: '',
  academic_year: '2025-2026',
  teaching_days: [],
@@ -114,8 +114,8 @@ export default function ClassSetupModal({
  const handleSubmit = async (e: React.FormEvent) => {
  e.preventDefault();
 
- if (!formData.name.trim() || !formData.subject.trim()) {
- alert('Please enter class name and select a subject');
+ if (!formData.subject.trim() || !formData.section.trim()) {
+ alert('Please select a subject and enter a section');
  return;
  }
  if (!formData.grade_level) {
@@ -126,23 +126,26 @@ export default function ClassSetupModal({
  try {
  setLoading(true);
  
+ const generatedName = `${formData.subject.trim()} ${formData.grade_level}${formData.section.trim()}`;
+
  // Sanitize data: convert empty strings to null for optional fields
  await onSave({
- name: formData.name.trim(),
+ name: generatedName,
  subject: formData.subject.trim(),
+ section: formData.section.trim(),
  grade_level: parseInt(formData.grade_level, 10),
  academic_year: formData.academic_year.trim(),
- period: formData.period.trim() ? parseInt(formData.period.trim(), 10) : null,
+ period: 1, // Defaulting period to 1
  room_number: formData.room_number.trim() || null,
  teaching_days: formData.teaching_days,
  });
 
  // Reset form
  setFormData({
- name: '',
  subject: '',
  grade_level: '',
  period: '',
+ section: '',
  room_number: '',
  academic_year: '2025-2026',
  teaching_days: [],
@@ -185,24 +188,6 @@ export default function ClassSetupModal({
 
  {/* Form */}
  <form onSubmit={handleSubmit} className="p-6 space-y-5">
- {/* Class Name - Required */}
- <div>
- <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
- Class Name <span className="text-red-500">*</span>
- </label>
- <input
- type="text"
- required
- value={formData.name}
- onChange={(e) =>
- setFormData({ ...formData, name: e.target.value })
- }
- placeholder="e.g., AP Calculus BC, Physics 101"
- className="w-full px-4 py-2.5 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-colors text-sm"
- disabled={loading}
- />
- </div>
-
  {/* Subject - Custom Dropdown */}
  <div className="relative">
  <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
@@ -286,7 +271,7 @@ export default function ClassSetupModal({
  )}
  </div>
 
- {/* Grade and Period - Side by Side */}
+ {/* Grade and Section - Side by Side */}
  <div className="grid grid-cols-2 gap-4">
  <div className="relative">
  <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
@@ -346,15 +331,16 @@ export default function ClassSetupModal({
 
  <div>
  <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
- Period
+ Section <span className="text-red-500">*</span>
  </label>
  <input
  type="text"
- value={formData.period}
+ required
+ value={formData.section}
  onChange={(e) =>
- setFormData({ ...formData, period: e.target.value })
+ setFormData({ ...formData, section: e.target.value })
  }
- placeholder="e.g., 1, 2, 3"
+ placeholder="e.g., A, B, C"
  className="w-full px-4 py-2.5 border border-gray-300 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-white dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-colors text-sm"
  disabled={loading}
  />

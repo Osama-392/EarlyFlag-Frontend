@@ -185,6 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
  }
  
  setError(message);
+ throw err;
  } finally {
  setLoading(false);
  }

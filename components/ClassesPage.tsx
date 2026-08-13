@@ -31,7 +31,7 @@ export default function ClassesPage() {
  }
  acc[grade].push({
  ...cls,
- studentCount: cls.studentCount || 0,
+ studentCount: cls.studentCount || (cls as any).student_count || 0,
  });
  return acc;
  }, {} as GradedClasses);
@@ -72,7 +72,7 @@ export default function ClassesPage() {
  const newClassData = {
  name: classData.name || '',
  subject: classData.subject || '',
- grade_level: classData.grade_level || 9,
+ grade_level: classData.grade_level || 6,
  academic_year: classData.academic_year || '2025-2026',
  period: classData.period,
  room_number: classData.room_number,

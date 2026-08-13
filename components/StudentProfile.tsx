@@ -14,8 +14,8 @@ import { useAuth } from '@/app/providers';
 export default function StudentProfile() {
  const params = useParams();
  const pathname = usePathname();
- const studentId = params.studentId as string;
- const classId = params.classId as string;
+ const studentId = (params.studentId || params.studentSlug) as string;
+ const classId = (params.classId || params.classSlug) as string;
  
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState<string | null>(null);
@@ -91,8 +91,27 @@ export default function StudentProfile() {
  : statusText === 'Super Green' ? 'super_green' as const
  : null;
 
- const absentCount = signals.filter((s: any) => s.signal_type === 'absent').length;
- const meetsAbsenceThreshold = absentCount >= 3;
+  // Calculate absences per class to ensure they aren't cumulative across different classes
+  const classAbsenceCounts = signals.reduce((acc: Record<string, number>, s: any) => {
+    if (s.signal_type === 'absent') {
+      if (classId) {
+        // If viewing within a class context, only count absences for this class
+        if (s.class_id === classId || s.class_slug === classId) {
+          acc['current'] = (acc['current'] || 0) + 1;
+        }
+      } else if (user && s.teacher_id === user.id) {
+        // If viewing globally, count absences per class for this teacher
+        acc[s.class_id] = (acc[s.class_id] || 0) + 1;
+      }
+    }
+    return acc;
+  }, {});
+
+  const maxAbsencesInSingleClass = classId 
+    ? (classAbsenceCounts['current'] || 0)
+    : Math.max(0, ...(Object.values(classAbsenceCounts) as number[]));
+
+  const meetsAbsenceThreshold = maxAbsencesInSingleClass >= 3;
 
  const teacherFullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Your Teacher';
  const studentFullName = [history?.first_name, history?.last_name].filter(Boolean).join(' ') || 'Student';
@@ -337,7 +356,7 @@ export default function StudentProfile() {
  <div className={`w-3 h-1 rounded-full ${lineColor}`}></div>
  
  <div className={`px-3 py-1.5 rounded-lg text-xs font-bold ${pillClass} border`}>
- {signal.signal_type === 'present' ? 'Present' : (signal.category || 'General')}
+ {signal.signal_type === 'present' ? 'Present' : signal.signal_type === 'absent' ? 'Absent' : (signal.category || 'General')}
  </div>
  
  <div className="flex-1 px-4 py-1.5 bg-gray-50 dark:bg-[#1b1e2c] rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 border border-gray-100 dark:border-[#262a3d] truncate flex justify-between items-center gap-2">
@@ -433,6 +452,8 @@ export default function StudentProfile() {
  studentName={studentFullName}
  teacherName={teacherFullName}
  flagCategory={emailCategoryState || emailCategory!}
+ studentId={studentId}
+ classId={classId}
  />
  )}
 
