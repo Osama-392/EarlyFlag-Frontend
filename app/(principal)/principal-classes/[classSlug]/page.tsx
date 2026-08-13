@@ -5,7 +5,7 @@ import PrincipalClassRoster from '@/components/PrincipalClassRoster';
 
 export default function PrincipalClassRosterPage() {
  const params = useParams();
- const classId = params.classId as string;
+ const classId = params.classSlug as string;
 
  return <PrincipalClassRoster classId={classId} />;
 }

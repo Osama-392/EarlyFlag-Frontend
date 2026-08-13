@@ -60,6 +60,7 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
  isOpen: boolean;
  student: any;
  category: 'super_green' | 'red' | 'yellow' | 'absent' | 'admin_concern' | 'admin_commendation';
+ adminEmailConcerns?: string;
  } | null>(null);
 
  useEffect(() => {
@@ -135,17 +136,28 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
  </div>
  </div>
  <div className="flex items-center gap-2 pt-1 md:pt-0">
+ {(profile.counts_30d.red > 0 || profile.counts_30d.super_green >= 5) && (
  <button
- onClick={() => setEmailModalData({
+ onClick={() => {
+ const category = profile.counts_30d.red > 0 ? 'admin_concern' : (profile.counts_30d.super_green >= 5 ? 'admin_commendation' : (profile.counts_30d.yellow > 0 ? 'yellow' : 'super_green'));
+ const adminEmailConcerns = profile?.flag_log
+ ?.filter((f: any) => f.signal_type === 'red' || f.signal_type === 'yellow')
+ ?.map((f: any) => `- ${f.class_name || 'Class'}: ${f.rule_description || f.description || f.note || 'Concern logged'}`)
+ ?.join('\n');
+ 
+ setEmailModalData({
  isOpen: true,
  student,
- category: (profile.counts_30d.red + profile.counts_30d.yellow) > 0 ? 'admin_concern' : 'admin_commendation'
- })}
+ category,
+ adminEmailConcerns
+ });
+ }}
  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-semibold transition-colors border border-blue-200 dark:border-blue-900/50"
  >
  <Mail size={16} />
  Email Parent
  </button>
+ )}
  <button
  onClick={() => setIsDeactivateModalOpen(true)}
  className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-semibold transition-colors border border-red-200 dark:border-red-900/50"
@@ -331,6 +343,8 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
  teacherName={adminFullName}
  flagCategory={emailModalData.category}
  recentFlags={profile?.flag_log}
+ studentId={emailModalData.student.student_id || emailModalData.student.id}
+ adminEmailConcerns={emailModalData.adminEmailConcerns}
  />
  )}
  </div>

@@ -222,7 +222,7 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
  return (
  <div
  key={student.student_id}
- onClick={() => router.push(`/principal-students/${student.student_id}`)}
+ onClick={() => router.push(`/principal-students/${(student as any).slug || student.student_id}`)}
  className={`roster-item bg-white dark:bg-[#151722] dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d]/80 border-t-[3.5px] ${cfg.accentBorder.replace('border-l-', 'border-t-')} rounded-xl p-5 cursor-pointer
  shadow-sm hover:shadow-lg ${cfg.glowShadow} ${cfg.bgHover}
  transition-all duration-200 group`}

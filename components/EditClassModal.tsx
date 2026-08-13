@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 interface EditClassModalProps {
@@ -19,15 +19,28 @@ export default function EditClassModal({
  const [formData, setFormData] = useState({
  name: classData?.name || '',
  subject: classData?.subject || '',
- period: String(classData?.period || ''),
+ section: String(classData?.section || ''),
  });
+
+ useEffect(() => {
+   if (classData) {
+     setFormData({
+       name: classData.name || '',
+       subject: classData.subject || '',
+       section: String(classData.section || ''),
+     });
+   }
+ }, [classData]);
 
  const handleSubmit = (e: React.FormEvent) => {
  e.preventDefault();
- onSave({
- ...formData,
- period: parseInt(formData.period),
- });
+      const generatedName = `${formData.subject} ${classData?.grade_level || ''} ${formData.section.trim()}`.trim();
+      onSave({ 
+        ...formData,
+        name: generatedName,
+        period: 1,
+        section: formData.section.trim()
+      });
  };
 
  if (!isOpen) return null;
@@ -50,21 +63,6 @@ export default function EditClassModal({
  <form onSubmit={handleSubmit} className="p-6 space-y-4">
  <div>
  <label className="block text-sm font-medium text-gray-700 mb-1">
- Class Name *
- </label>
- <input
- type="text"
- required
- value={formData.name}
- onChange={(e) =>
- setFormData({ ...formData, name: e.target.value })
- }
- className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
- />
- </div>
-
- <div>
- <label className="block text-sm font-medium text-gray-700 mb-1">
  Subject *
  </label>
  <input
@@ -78,22 +76,21 @@ export default function EditClassModal({
  />
  </div>
 
- <div>
- <label className="block text-sm font-medium text-gray-700 mb-1">
- Period *
- </label>
- <input
- type="number"
- required
- min="1"
- max="8"
- value={formData.period}
- onChange={(e) =>
- setFormData({ ...formData, period: e.target.value })
- }
- className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
- />
- </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Section *
+          </label>
+          <input
+            type="text"
+            required
+            value={formData.section}
+            onChange={(e) =>
+              setFormData({ ...formData, section: e.target.value })
+            }
+            className="w-full px-3 py-2 border dark:bg-[#1b1e2c] dark:text-white border-gray-300 dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+            placeholder="e.g., A, B, C"
+          />
+        </div>
 
  {/* Actions */}
  <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">

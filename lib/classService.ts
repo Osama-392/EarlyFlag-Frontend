@@ -5,6 +5,7 @@ export interface Class {
   school_id: string;
   teacher_id: string;
   name: string;
+  slug: string;
   subject: string;
   grade_level: string;
   period?: string;
@@ -74,7 +75,7 @@ export const getClass = async (classId: string): Promise<Class> => {
     // The backend doesn't have a specific endpoint for getting a single class by ID.
     // Instead, fetch all classes for the teacher and find the matching one.
     const classes = await getTeacherClasses();
-    const foundClass = classes.find(c => c.id === classId);
+    const foundClass = classes.find(c => c.id === classId || c.slug === classId);
     if (!foundClass) {
       throw new Error(`Class with ID ${classId} not found`);
     }

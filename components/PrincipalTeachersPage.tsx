@@ -478,7 +478,7 @@ export default function PrincipalTeachersPage() {
  <div className="flex items-center gap-3 text-xs mb-3">
  <span className="text-yellow-700 font-semibold">🟡 {flag.yellow_count} yellow</span>
  <span className="text-red-700 font-semibold">🔴 {flag.red_count} red</span>
- <span className="text-gray-500 dark:text-gray-400 dark:text-gray-400">{Math.round(flag.threshold_percentage * 100)}%</span>
+ <span className="text-gray-500 dark:text-gray-400 dark:text-gray-400">{Math.round(flag.threshold_percentage)}%</span>
  </div>
  <div className="flex items-center justify-between">
  <span className="text-xs text-gray-400">

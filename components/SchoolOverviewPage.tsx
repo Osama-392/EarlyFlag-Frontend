@@ -19,7 +19,7 @@ export default function SchoolOverviewPage() {
  const [activeTab, setActiveTab] = useState<TabType>('all');
  const [isPending, startTransition] = useTransition();
  const { user } = useAuth();
- const [emailModalData, setEmailModalData] = useState<{ isOpen: boolean, student: any, category: 'red' | 'yellow' | 'super_green' | 'absent' | 'admin_concern' | 'admin_commendation', reason?: string } | null>(null);
+ const [emailModalData, setEmailModalData] = useState<{ isOpen: boolean, student: any, category: 'red' | 'yellow' | 'super_green' | 'absent' | 'admin_concern' | 'admin_commendation', reason?: string, adminEmailConcerns?: string } | null>(null);
  
  const adminFullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Administration';
 
@@ -291,12 +291,22 @@ export default function SchoolOverviewPage() {
  </div>
  </td>
  <td className="py-4 pr-6 text-right flex items-center justify-end gap-2">
+ {(student.red_count > 0 || student.super_green_count >= 5) && (
  <button
- onClick={() => setEmailModalData({
+ onClick={() => {
+ const category = student.red_count > 0 ? 'admin_concern' : (student.super_green_count >= 5 ? 'admin_commendation' : (student.yellow_count > 0 ? 'yellow' : 'super_green'));
+ const concerns = student.recent_flags
+ ?.filter((f: any) => f.signal_type === 'red' || f.signal_type === 'yellow')
+ ?.map((f: any) => `- ${f.class_name || 'Class'}: ${f.rule_description || f.description || f.note || 'Concern logged'}`)
+ ?.join('\n');
+
+ setEmailModalData({
  isOpen: true,
  student,
- category: student.risk_level === 'Low' ? 'admin_commendation' : 'admin_concern'
- })}
+ category,
+ adminEmailConcerns: concerns
+ });
+ }}
  className={`p-1.5 rounded-lg transition-colors border ${
  student.risk_level === 'High Risk' ? 'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:hover:bg-red-900/20'
  : student.risk_level === 'Medium' ? 'border-amber-200 text-amber-600 hover:bg-amber-50 dark:border-amber-900/50 dark:hover:bg-amber-900/20'
@@ -307,6 +317,7 @@ export default function SchoolOverviewPage() {
  >
  <Mail size={16} />
  </button>
+ )}
  {student.absent_count > 0 && (
  <button
  onClick={() => setEmailModalData({
@@ -322,7 +333,7 @@ export default function SchoolOverviewPage() {
  </button>
  )}
  <button
- onClick={() => router.push(`/principal-students/${student.student_id}`)}
+ onClick={() => router.push(`/principal-students/${student.slug || student.student_id}`)}
  className="px-4 py-1.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold text-xs rounded-lg transition-colors"
  >
  View
@@ -346,6 +357,8 @@ export default function SchoolOverviewPage() {
  flagCategory={emailModalData.category}
  reason={emailModalData.reason}
  recentFlags={emailModalData.student.recent_flags}
+ studentId={emailModalData.student.student_id}
+ adminEmailConcerns={emailModalData.adminEmailConcerns}
  />
  )}
  </div>
