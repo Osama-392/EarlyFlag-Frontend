@@ -162,7 +162,7 @@ export default function PrincipalHeader() {
  <button
  key={cls.class_id}
  onClick={() => {
- router.push(`/principal-classes/${cls.class_id}`);
+ router.push(`/principal-classes/${(cls as any).slug || cls.class_id}`);
  setIsSearchOpen(false);
  setSearchQuery('');
  }}
@@ -199,7 +199,7 @@ export default function PrincipalHeader() {
  <button
  key={targetId}
  onClick={() => {
- router.push(`/principal-students/${targetId}`);
+ router.push(`/principal-students/${(s as any).slug || targetId}`);
  setIsSearchOpen(false);
  setSearchQuery('');
  }}

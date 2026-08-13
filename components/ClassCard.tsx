@@ -19,7 +19,7 @@ export default function ClassCard({ classData, onEdit, onDelete }: ClassCardProp
 
  const handleCardClick = (e: React.MouseEvent) => {
  e.stopPropagation();
- router.push(`/classes/${classData.id}`);
+ router.push(`/classes/${classData.slug}`);
  };
 
  return (

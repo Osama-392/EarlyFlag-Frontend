@@ -89,7 +89,7 @@ export default function SignupForm() {
  value={firstName}
  onChange={(e) => setFirstName(e.target.value)}
  placeholder="First name"
- className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+ className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 text-gray-900"
  disabled={loading}
  />
  </div>
@@ -103,7 +103,7 @@ export default function SignupForm() {
  value={lastName}
  onChange={(e) => setLastName(e.target.value)}
  placeholder="Last name"
- className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+ className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 text-gray-900"
  disabled={loading}
  />
  </div>
@@ -119,7 +119,7 @@ export default function SignupForm() {
  value={email}
  onChange={(e) => setEmail(e.target.value)}
  placeholder="Enter your email"
- className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+ className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 text-gray-900"
  disabled={loading}
  />
  </div>
@@ -132,7 +132,7 @@ export default function SignupForm() {
  <select
  value={countryCode}
  onChange={(e) => setCountryCode(e.target.value)}
- className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-white text-gray-900 text-sm flex-shrink-0 w-[35%] min-w-[130px] max-w-[180px]"
+ className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 text-gray-900 text-sm flex-shrink-0 w-[35%] min-w-[130px] max-w-[180px]"
  disabled={loading}
  >
  {COUNTRY_CODES.map((item) => (
@@ -147,7 +147,7 @@ export default function SignupForm() {
  value={phoneNumber}
  onChange={(e) => setPhoneNumber(e.target.value)}
  placeholder="Phone number"
- className="flex-1 min-w-0 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-white text-gray-900"
+ className="flex-1 min-w-0 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 text-gray-900"
  disabled={loading}
  />
  </div>
@@ -163,7 +163,7 @@ export default function SignupForm() {
  value={schoolId}
  onChange={(e) => setSchoolId(e.target.value)}
  placeholder="Enter your school ID"
- className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+ className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 text-gray-900"
  disabled={loading}
  />
  <p className="text-xs text-gray-500 mt-1">Ask your school administrator for your school ID</p>
@@ -180,7 +180,7 @@ export default function SignupForm() {
  value={password}
  onChange={(e) => setPassword(e.target.value)}
  placeholder="Create a password (min 8 characters)"
- className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+ className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 text-gray-900"
  disabled={loading}
  />
  <button
@@ -205,7 +205,7 @@ export default function SignupForm() {
  value={confirmPassword}
  onChange={(e) => setConfirmPassword(e.target.value)}
  placeholder="Confirm your password"
- className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+ className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 text-gray-900"
  disabled={loading}
  />
  <button

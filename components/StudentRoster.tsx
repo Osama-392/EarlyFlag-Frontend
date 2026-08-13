@@ -20,7 +20,7 @@ import { ArrowLeft, Search, Upload, Plus, Edit2 } from 'lucide-react';
 export default function StudentRoster() {
  const params = useParams();
  const router = useRouter();
- const classId = params.classId as string;
+ const classId = params.classSlug as string;
  const { students, loading, error, loadStudents, loadStudentHistory, studentHistory, logStudentSignal } = useStudentRoster();
  const { showToast } = useToast();
  const [searchTerm, setSearchTerm] = useState('');
@@ -282,7 +282,7 @@ export default function StudentRoster() {
  </button>
  )}
  <button
- onClick={() => router.push(`/classes/${classId}/${student.id}`)}
+ onClick={() => router.push(`/classes/${classId}/${student.slug}`)}
  className="px-4 py-1.5 bg-gray-50 dark:bg-[#1b1e2c] hover:bg-gray-100 dark:hover:bg-black/20 border border-gray-200 dark:border-[#262a3d] text-slate-700 dark:text-gray-300 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ml-2"
  >
  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>

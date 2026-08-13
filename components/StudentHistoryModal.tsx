@@ -93,7 +93,7 @@ export default function StudentHistoryModal({
  </div>
  </div>
  <span className="text-xs whitespace-nowrap ml-4">
- {new Date(signal.created_at).toLocaleDateString()} {new Date(signal.created_at).toLocaleTimeString()}
+ {new Date(signal.created_at).toLocaleDateString('en-US', { timeZone: 'America/New_York' })} {new Date(signal.created_at).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' })} ET
  </span>
  </div>
  </div>

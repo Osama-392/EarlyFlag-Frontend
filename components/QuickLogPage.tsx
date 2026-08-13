@@ -72,33 +72,38 @@ export default function QuickLogPage({ onCancel, initialClassId, targetDate }: Q
  } | null>(null);
  const itemsPerPage = 5;
 
- // Fetch available dates and incomplete sessions on mount
- useEffect(() => {
- const fetchInitialData = async () => {
- try {
- const [dates, sessions] = await Promise.all([
- getAvailableSignalDates(),
- getIncompleteQuickLogs()
- ]);
- const workingDays = dates.filter(date => {
- const d = new Date(date + 'T00:00:00');
- const day = d.getDay();
- return day !== 0 && day !== 6;
- });
- setAvailableDates(workingDays);
- if (workingDays.length > 0) {
- const today = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
- if (!workingDays.includes(today)) {
- setSelectedDate(workingDays[0]);
- }
- }
- setIncompleteSessions(sessions);
- } catch (err) {
- console.error('Failed to fetch initial QuickLog data', err);
- }
- };
- fetchInitialData();
- }, []);
+  // Fetch incomplete sessions on mount
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const sessions = await getIncompleteQuickLogs();
+        setIncompleteSessions(sessions);
+      } catch (err) {
+        console.error('Failed to fetch incomplete QuickLog data', err);
+      }
+    };
+    fetchSessions();
+  }, []);
+
+  // Fetch available dates when activeClassId changes
+  useEffect(() => {
+    if (!activeClassId) return;
+    const fetchDates = async () => {
+      try {
+        const dates = await getAvailableSignalDates(activeClassId);
+        setAvailableDates(dates);
+        if (dates.length > 0) {
+          const today = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+          if (!dates.includes(today)) {
+            setSelectedDate(dates[0]);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch available signal dates', err);
+      }
+    };
+    fetchDates();
+  }, [activeClassId]);
 
  // Fetch classes and set active class (only if not already set via initialClassId)
  useEffect(() => {
@@ -213,8 +218,8 @@ export default function QuickLogPage({ onCancel, initialClassId, targetDate }: Q
  return {
  id: s.id,
  name: `${s.first_name} ${s.last_name}`,
- grade: parseInt(s.grade_level) || 9,
- period: classes.find(c => c.id === activeClassId)?.period || 1,
+ grade: Number(parseInt(s.grade_level as string) || classes.find(c => c.id === activeClassId)?.grade_level || 6),
+ period: Number(classes.find(c => c.id === activeClassId)?.period || 1),
  initial: `${s.first_name[0]}${s.last_name[0]}`.toUpperCase(),
  bgColor: colors[idx % colors.length],
  };

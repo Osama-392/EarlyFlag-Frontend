@@ -112,7 +112,7 @@ export default function PrincipalStudentsPage() {
  {bucket.tiles.map((tile) => (
  <div 
  key={tile.class_id}
- onClick={() => router.push(`/principal-classes/${tile.class_id}`)}
+ onClick={() => router.push(`/principal-classes/${(tile as any).slug || tile.class_id}`)}
  className="bg-white dark:bg-[#151722] dark:bg-[#151722] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer border border-gray-100 dark:border-[#262a3d] dark:border-[#262a3d] flex items-center gap-4 group"
  >
  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0 group-hover:scale-105 transition-transform ${getAvatarColor(tile.class_name)}`}>

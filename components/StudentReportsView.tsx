@@ -95,7 +95,7 @@ export default function StudentReportsView({
  student={{
  id: generatedReport.student.id,
  name: `${generatedReport.student.first_name} ${generatedReport.student.last_name}`,
- gradeLevel: parseInt(generatedReport.student.grade_level) || 9,
+ gradeLevel: generatedReport.student.grade_level || 6,
  initial: `${generatedReport.student.first_name.charAt(0)}${generatedReport.student.last_name.charAt(0)}`.toUpperCase(),
  bgColor: 'from-blue-400 to-blue-600'
  }}
@@ -193,7 +193,7 @@ export default function StudentReportsView({
  {status.text}
  </span>
  </div>
- <p className="text-sm text-gray-500 dark:text-gray-400">Grade {student.grade_level || 9}</p>
+ <p className="text-sm text-gray-500 dark:text-gray-400">Grade {student.grade_level || 6}</p>
  </div>
  </div>
 

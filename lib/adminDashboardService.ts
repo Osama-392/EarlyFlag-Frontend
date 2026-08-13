@@ -322,6 +322,8 @@ export interface AdminStudentProfileBlock {
   recent_referrals: AdminStudentReferralRow[];
   recent_notes: ReportRecentNoteRow[];
   flag_log: any[]; // Or import ReportFlagLogRow if available, but any[] is fine for now
+  admin_email_concerns?: string | null;
+  admin_email_reason?: string | null;
 }
 
 // ─── 6. Counselor Escalation Log ──────────────────────────────────
@@ -909,6 +911,7 @@ export const generateAdminStudentReport = async (studentId: string, payload: any
 
 export interface AdminSchoolOverviewStudentRow {
   student_id: string;
+  slug: string;
   first_name: string;
   last_name: string;
   grade_level: number;
@@ -918,6 +921,9 @@ export interface AdminSchoolOverviewStudentRow {
   super_green_count: number;
   absent_count: number;
   risk_level: string;
+  admin_email_concerns?: string | null;
+  admin_email_reason?: string | null;
+  recent_flags?: any[];
 }
 
 export interface AdminSchoolOverviewResponse {
