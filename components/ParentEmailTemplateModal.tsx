@@ -268,10 +268,11 @@ export default function ParentEmailTemplateModal({
     const lines = renderedText.split(/\r?\n/);
     const firstLine = lines[0] || '';
     
-    let subjectText = `Touching base from the Art room for ${studentName}`;
+    let subjectText = `Message regarding ${studentName}`;
     let bodyText = renderedText;
     
     if (firstLine.toLowerCase().startsWith('subject:')) {
+      subjectText = firstLine.substring(8).trim();
       let bodyLines = lines.slice(1);
       while (bodyLines.length > 0 && bodyLines[0].trim() === '') {
         bodyLines = bodyLines.slice(1);
