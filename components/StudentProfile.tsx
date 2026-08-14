@@ -74,8 +74,28 @@ export default function StudentProfile() {
  );
  }
 
- // Calculate stats from history data
- const signals = history?.signals || [];
+  // Calculate stats from history data
+  const rawSignals = history?.signals || [];
+  const rawReferrals = history?.referrals || [];
+  
+  const mappedReferrals = rawReferrals.map((r: any) => {
+    let sType = 'referral';
+    if (r.referral_type === 'manual_green') sType = 'super_green';
+    else if (r.referral_type === 'manual_yellow') sType = 'yellow';
+    else if (r.referral_type === 'manual_admin') sType = 'red';
+
+    return {
+      id: r.id,
+      created_at: r.created_at,
+      signal_type: sType,
+      category: 'Referral',
+      reason_description: r.note || (r.referral_type === 'manual_admin' ? 'Sent to Admin' : 'Sent to Counselor'),
+      note: r.note,
+      class_name: 'Admin',
+    };
+  });
+
+  const signals = [...rawSignals, ...mappedReferrals].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
  
  // Determine overall status (most severe recent signal, or neutral)
  let statusText = 'Normal';
