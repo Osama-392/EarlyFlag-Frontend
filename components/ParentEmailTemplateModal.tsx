@@ -288,15 +288,20 @@ export default function ParentEmailTemplateModal({
 
     // Fix hard-wrapped lines from backend templates
     const cleanEmailBody = (text: string) => {
-      // First, fix instances of space before a period caused by backend templates
-      const normalizedText = text.replace(/\s+\./g, '.');
-      const bLines = normalizedText.split(/\r?\n/);
+      const bLines = text.split(/\r?\n/);
       const resultLines: string[] = [];
       
       let currentParagraph: string[] = [];
+      let inSignature = false;
       
       for (let i = 0; i < bLines.length; i++) {
-        const line = bLines[i].trim();
+        let line = bLines[i].trim();
+        
+        // Remove standalone periods from empty backend variables like {{DYNAMIC_CONCERNS}}
+        if (line === '.') continue;
+        
+        // Fix instances of space before a period at the end of a line
+        line = line.replace(/[ \t]+\.$/, '.');
         
         if (line === '') {
           if (currentParagraph.length > 0) {
@@ -305,13 +310,15 @@ export default function ParentEmailTemplateModal({
           }
           resultLines.push('');
         } else {
-          // If the line is short (e.g. signature "Best," or "John Doe"), and it's not the first line of a paragraph,
-          // we might not want to merge it if it looks like a signature.
-          // However, the simplest robust heuristic: if the PREVIOUS line in the paragraph was long, this is probably a continuation.
-          // If we just join everything in the block until an empty line, it might merge the signature!
           const lowerLine = line.toLowerCase();
           const signOffs = ['best,', 'best regards,', 'regards,', 'sincerely,', 'thank you,', 'respectfully,', 'warmly,', 'yours truly,', 'yours sincerely,'];
-          if (signOffs.includes(lowerLine) || lowerLine.startsWith('thank you for')) {
+          const isListItem = line.startsWith('- ');
+          
+          if (signOffs.includes(lowerLine)) {
+            inSignature = true;
+          }
+          
+          if (signOffs.includes(lowerLine) || lowerLine.startsWith('thank you for') || isListItem || inSignature) {
             if (currentParagraph.length > 0) {
               resultLines.push(currentParagraph.join(' '));
               currentParagraph = [];
