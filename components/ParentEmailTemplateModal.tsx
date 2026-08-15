@@ -149,10 +149,28 @@ export default function ParentEmailTemplateModal({
 
   const flagsList = useMemo(() => recentFlags || fetchedFlags || [], [recentFlags, fetchedFlags]);
 
+  const cleanText = (str: string | null | undefined) => {
+    if (!str || typeof str !== 'string') return null;
+    let cleaned = str
+      .replace(/\[auto\]\s*-?\s*/gi, '')
+      .replace(/\bflag(s|ged)?\b\s*/gi, '')
+      .replace(/escalated\s*(\(cross-class\))?:?-?\s*/gi, '')
+      .replace(/\s*\|\s*/g, ', ')
+      .replace(/\s*-\s*auto-to red/gi, '') // remove "Auto-escalated to RED" artifact
+      .replace(/\s*auto-to red/gi, '')
+      .trim();
+    
+    if (cleaned.endsWith('.')) {
+      cleaned = cleaned.slice(0, -1);
+    }
+    return cleaned;
+  };
+
   const dynamicConcerns = useMemo(() => {
     if (flagCategory !== 'admin_concern') return '';
     if (adminEmailConcerns) {
-      return `Among the specific concerns that have been documented:\n${adminEmailConcerns}`;
+      const cleanedConcerns = cleanText(adminEmailConcerns);
+      return `Among the specific concerns that have been documented:\n${cleanedConcerns}`;
     }
     return '';
   }, [flagCategory, adminEmailConcerns]);
@@ -195,25 +213,6 @@ export default function ParentEmailTemplateModal({
     if (!flaggedReasonText && !reasonText) {
        flaggedReasonText = DEFAULT_REASONS[flagCategory];
     }
-
-    const cleanText = (str: string | null | undefined) => {
-      if (!str || typeof str !== 'string') return null;
-      let cleaned = str
-        .replace(/\[auto\]\s*-?\s*/gi, '')
-        .replace(/\bflag(s|ged)?\b\s*/gi, '')
-        .replace(/escalated\s*(\(cross-class\))?:?-?\s*/gi, '')
-        .replace(/\s*\|\s*/g, ', ')
-        .replace(/\s*-\s*auto-to red/gi, '') // remove "Auto-escalated to RED" artifact
-        .replace(/\s*auto-to red/gi, '')
-        .trim();
-      
-      if (cleaned.endsWith('.')) {
-        cleaned = cleaned.slice(0, -1);
-      }
-      // Removed the code that incorrectly lowercased the first letter, 
-      // keeping the case as it was in the backend.
-      return cleaned;
-    };
 
     return {
       reason: cleanText(reasonText),
