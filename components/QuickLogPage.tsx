@@ -304,9 +304,14 @@ export default function QuickLogPage({ onCancel, initialClassId, targetDate }: Q
  let mappedReasonCode: string | undefined = undefined;
 
  // Backend validation rules require specific reason codes for certain signals
- if (signalType === 'super_green' && entry.flagData?.reasons?.length) {
- const firstReason = entry.flagData.reasons[0].toLowerCase().replace(/ /g, '_');
- mappedReasonCode = firstReason;
+ if (signalType === 'super_green') {
+   if (entry.flagData?.reasons?.length) {
+     const firstReason = entry.flagData.reasons[0].toLowerCase().replace(/ /g, '_');
+     mappedReasonCode = firstReason;
+   } else {
+     // Backend requires a reason_code for super_green. Defaulting if Quick Logged without one.
+     mappedReasonCode = 'exceptional_participation';
+   }
  }
 
  // For green/present and absent signals, don't send empty strings
