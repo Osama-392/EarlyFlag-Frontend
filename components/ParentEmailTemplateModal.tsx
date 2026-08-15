@@ -288,7 +288,9 @@ export default function ParentEmailTemplateModal({
 
     // Fix hard-wrapped lines from backend templates
     const cleanEmailBody = (text: string) => {
-      const bLines = text.split(/\r?\n/);
+      // First, fix instances of space before a period caused by backend templates
+      const normalizedText = text.replace(/\s+\./g, '.');
+      const bLines = normalizedText.split(/\r?\n/);
       const resultLines: string[] = [];
       
       let currentParagraph: string[] = [];
