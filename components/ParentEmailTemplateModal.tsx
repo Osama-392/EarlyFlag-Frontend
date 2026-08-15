@@ -198,13 +198,20 @@ export default function ParentEmailTemplateModal({
 
     const cleanText = (str: string | null | undefined) => {
       if (!str || typeof str !== 'string') return null;
-      let cleaned = str.replace(/\[auto\]\s*-?\s*/gi, '').replace(/\bflagged\b\s*/gi, '').trim();
+      let cleaned = str
+        .replace(/\[auto\]\s*-?\s*/gi, '')
+        .replace(/\bflag(s|ged)?\b\s*/gi, '')
+        .replace(/escalated\s*(\(cross-class\))?:?-?\s*/gi, '')
+        .replace(/\s*\|\s*/g, ', ')
+        .replace(/\s*-\s*auto-to red/gi, '') // remove "Auto-escalated to RED" artifact
+        .replace(/\s*auto-to red/gi, '')
+        .trim();
+      
       if (cleaned.endsWith('.')) {
         cleaned = cleaned.slice(0, -1);
       }
-      if (cleaned.length > 0 && cleaned[0] === cleaned[0].toUpperCase() && !/^[A-Z]{2,}/.test(cleaned)) {
-        cleaned = cleaned[0].toLowerCase() + cleaned.slice(1);
-      }
+      // Removed the code that incorrectly lowercased the first letter, 
+      // keeping the case as it was in the backend.
       return cleaned;
     };
 
@@ -301,9 +308,9 @@ export default function ParentEmailTemplateModal({
           // we might not want to merge it if it looks like a signature.
           // However, the simplest robust heuristic: if the PREVIOUS line in the paragraph was long, this is probably a continuation.
           // If we just join everything in the block until an empty line, it might merge the signature!
-          // Let's check if the line looks like a signature sign-off.
           const lowerLine = line.toLowerCase();
-          if (lowerLine === 'best,' || lowerLine === 'best regards,' || lowerLine === 'regards,' || lowerLine === 'sincerely,' || lowerLine === 'thank you,' || lowerLine.startsWith('thank you for')) {
+          const signOffs = ['best,', 'best regards,', 'regards,', 'sincerely,', 'thank you,', 'respectfully,', 'warmly,', 'yours truly,', 'yours sincerely,'];
+          if (signOffs.includes(lowerLine) || lowerLine.startsWith('thank you for')) {
             if (currentParagraph.length > 0) {
               resultLines.push(currentParagraph.join(' '));
               currentParagraph = [];

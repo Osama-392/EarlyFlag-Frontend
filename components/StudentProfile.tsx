@@ -95,7 +95,7 @@ export default function StudentProfile() {
     };
   });
 
-  const signals = [...rawSignals, ...mappedReferrals].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const signals = [...rawSignals, ...mappedReferrals].sort((a, b) => new Date(b.signal_date || b.created_at).getTime() - new Date(a.signal_date || a.created_at).getTime());
  
  // Determine overall status (most severe recent signal, or neutral)
  let statusText = 'Normal';
@@ -139,12 +139,12 @@ export default function StudentProfile() {
  // Last 30 days
  const thirtyDaysAgo = new Date();
  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
- const recentSignals = signals.filter((s: any) => new Date(s.created_at) >= thirtyDaysAgo);
+ const recentSignals = signals.filter((s: any) => new Date(s.signal_date || s.created_at) >= thirtyDaysAgo);
 
  // Last 7 days
  const sevenDaysAgo = new Date();
  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
- const recent7Days = signals.filter((s: any) => new Date(s.created_at) >= sevenDaysAgo);
+ const recent7Days = signals.filter((s: any) => new Date(s.signal_date || s.created_at) >= sevenDaysAgo);
 
  const redFlags = recent7Days.filter((s: any) => s.signal_type === 'red');
  const yellowFlags = recent7Days.filter((s: any) => s.signal_type === 'yellow');
@@ -349,7 +349,8 @@ export default function StudentProfile() {
  {recentSignals.length > 0 ? (
  <div className="space-y-5">
  {recentSignals.map((signal: any, idx: number) => {
- const dateString = new Date(signal.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+ const dateToUse = signal.signal_date ? signal.signal_date : signal.created_at;
+ const dateString = new Date(dateToUse + (dateToUse.includes('T') ? '' : 'T12:00:00Z')).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
  
  let lineColor = 'bg-gray-400';
  let pillClass = 'bg-gray-50 text-gray-600 border-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
@@ -413,7 +414,7 @@ export default function StudentProfile() {
  notes.map((signal: any, idx: number) => (
  <div key={idx} className="border-b border-gray-100 dark:border-[#262a3d] last:border-0 pb-6 last:pb-0">
  <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-2">
- {new Date(signal.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+ {new Date((signal.signal_date || signal.created_at) + ((signal.signal_date || signal.created_at).includes('T') ? '' : 'T12:00:00Z')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
  </h3>
  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
  {signal.note}
