@@ -335,7 +335,10 @@ export default function QuickLogPage({ onCancel, initialClassId, targetDate }: Q
  s => s.class_id === activeClassId && s.signal_date === targetDate
  );
 
- const payload: any = { signals: signalsToLog };
+ const payload: any = { 
+ signals: signalsToLog,
+ signal_date: targetDate 
+ };
  if (draftSession) {
  payload.session_id = draftSession.session_id;
  }
