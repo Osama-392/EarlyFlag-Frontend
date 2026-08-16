@@ -724,13 +724,6 @@ export default function Dashboard() {
  ) : (
  <span className="text-[9px] bg-gray-100 dark:bg-[#202330] text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded font-bold">No Email</span>
  )}
- <button
- onClick={() => setTemplateModalData({ studentName: `${item.first_name} ${item.last_name}`, flagCategory: 'super_green', reason: item.reason_description ?? undefined, studentId: item.student_id, classId: undefined })}
- className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold rounded-full transition-colors shadow-sm"
- >
- <Mail className="w-3.5 h-3.5" />
- Email
- </button>
  </div>
  </div>
  ))}

@@ -179,7 +179,7 @@ export default function StudentProfile() {
  <span>Send to Admin</span>
  </button>
 
- {emailCategory && (
+ {emailCategory && emailCategory !== 'super_green' && (
  <button
  onClick={() => {
  setEmailCategoryState(emailCategory);
