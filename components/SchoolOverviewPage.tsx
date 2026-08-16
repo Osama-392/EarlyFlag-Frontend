@@ -45,8 +45,8 @@ export default function SchoolOverviewPage() {
  if (!data) return [];
  return data.students.filter(s => {
  if (activeTab === 'high_risk') return s.risk_level === 'High Risk';
- if (activeTab === 'medium_risk') return s.risk_level === 'Medium';
- if (activeTab === 'super_green') return s.risk_level === 'Excellent';
+ if (activeTab === 'medium_risk') return s.risk_level === 'Medium' || s.risk_level === 'Medium Risk';
+ if (activeTab === 'super_green') return s.super_green_count > 0;
  if (activeTab === 'absent') return s.absent_count > 0;
  return true;
  });
@@ -57,8 +57,8 @@ export default function SchoolOverviewPage() {
  return {
  all: data.students.length,
  high: data.students.filter(s => s.risk_level === 'High Risk').length,
- medium: data.students.filter(s => s.risk_level === 'Medium').length,
- sg: data.students.filter(s => s.risk_level === 'Excellent').length,
+ medium: data.students.filter(s => s.risk_level === 'Medium' || s.risk_level === 'Medium Risk').length,
+ sg: data.students.filter(s => s.super_green_count > 0).length,
  absent: data.students.filter(s => s.absent_count > 0).length,
  };
  }, [data]);
@@ -265,7 +265,7 @@ export default function SchoolOverviewPage() {
  High<br/>Risk
  </span>
  )}
- {student.risk_level === 'Medium' && (
+ {(student.risk_level === 'Medium' || student.risk_level === 'Medium Risk') && (
  <span className="inline-flex text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-lg border border-amber-100 dark:border-amber-900/30">
  Medium
  </span>
