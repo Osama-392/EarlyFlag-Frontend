@@ -311,14 +311,31 @@ export default function ParentEmailTemplateModal({
           resultLines.push('');
         } else {
           const lowerLine = line.toLowerCase();
-          const signOffs = ['best,', 'best regards,', 'regards,', 'sincerely,', 'thank you,', 'respectfully,', 'warmly,', 'yours truly,', 'yours sincerely,'];
+          const signOffBases = ['best', 'best regards', 'regards', 'sincerely', 'thank you', 'respectfully', 'warmly', 'yours truly', 'yours sincerely'];
           const isListItem = line.startsWith('- ');
           
-          if (signOffs.includes(lowerLine)) {
-            inSignature = true;
-          }
+          let matchedSignOff = signOffBases.find(s => lowerLine.startsWith(s));
           
-          if (signOffs.includes(lowerLine) || lowerLine.startsWith('thank you for') || isListItem || inSignature) {
+          // "thank you for" is usually part of the body, not a sign-off
+          if (matchedSignOff && !lowerLine.startsWith('thank you for')) {
+            inSignature = true;
+            if (currentParagraph.length > 0) {
+              resultLines.push(currentParagraph.join(' '));
+              currentParagraph = [];
+            }
+            
+            // Check if there is text after the sign off on the same line (e.g., "Best regards, Criss Mark")
+            // This safely splits it into two lines
+            const regex = new RegExp(`^(${matchedSignOff}[,.]?)\\s+(.+)$`, 'i');
+            const match = line.match(regex);
+            
+            if (match) {
+              resultLines.push(match[1]);
+              resultLines.push(match[2]);
+            } else {
+              resultLines.push(line);
+            }
+          } else if (lowerLine.startsWith('thank you for') || isListItem || inSignature) {
             if (currentParagraph.length > 0) {
               resultLines.push(currentParagraph.join(' '));
               currentParagraph = [];
