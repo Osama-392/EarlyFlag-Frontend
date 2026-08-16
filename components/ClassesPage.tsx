@@ -7,7 +7,7 @@ import ClassCard from '@/components/ClassCard';
 import ClassSetupModal from '@/components/ClassSetupModal';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import { useClasses } from '@/lib/useClasses';
-import { Class, CreateClassRequest, deleteClassTeacher } from '@/lib/classService';
+import { Class, CreateClassRequest, deleteClassTeacher, updateClass } from '@/lib/classService';
 
 interface GradedClasses {
  [key: string]: Class[];
@@ -55,19 +55,33 @@ export default function ClassesPage() {
  const handleSaveClass = async (classData: Partial<CreateClassRequest>) => {
  try {
  setModalError(null);
- 
- if (selectedClass) {
- // Edit existing class - not implemented in API yet
- setClasses((prev) => {
- const grade = selectedClass.grade_level || 'Ungrouped';
- return {
- ...prev,
- [grade]: prev[grade].map((c) =>
- c.id === selectedClass.id ? { ...c, ...classData as any } : c
- ),
- };
- });
- } else {
+      if (selectedClass) {
+        // Edit existing class via API
+        const updatedClassData = {
+          name: classData.name || '',
+          subject: classData.subject || '',
+          grade_level: classData.grade_level || 6,
+          academic_year: classData.academic_year || '2025-2026',
+          period: classData.period,
+          room_number: classData.room_number,
+          teaching_days: (classData as any).teaching_days || [],
+        };
+        const returnedClass = await updateClass(selectedClass.id, updatedClassData);
+        
+        setClasses((prev) => {
+          const grade = selectedClass.grade_level || 'Ungrouped';
+          return {
+            ...prev,
+            [grade]: prev[grade].map((c) =>
+              c.id === selectedClass.id ? { 
+                ...c, 
+                ...returnedClass, 
+                teaching_days: updatedClassData.teaching_days // explicitly override in case backend response strips it
+              } : c
+            ),
+          };
+        });
+      } else {
  // Add new class via API
  const newClassData = {
  name: classData.name || '',
@@ -76,6 +90,7 @@ export default function ClassesPage() {
  academic_year: classData.academic_year || '2025-2026',
  period: classData.period,
  room_number: classData.room_number,
+ teaching_days: (classData as any).teaching_days || [],
  };
 
  await addClass(newClassData);
