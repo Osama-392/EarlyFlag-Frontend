@@ -89,15 +89,28 @@ export default function ClassSetupModal({
  setIsSubjectOpen(false);
  setIsGradeOpen(false);
  if (classData) {
- setFormData({
- subject: classData.subject || '',
- grade_level: String(classData.grade_level || ''),
- period: String(classData.period || ''),
- section: classData.section || '',
- room_number: String(classData.room_number || ''),
- academic_year: classData.academic_year || '2025-2026',
- teaching_days: classData.teaching_days || [],
- });
+    let derivedSection = classData.section || '';
+    if (!derivedSection && classData.name && classData.subject && classData.grade_level) {
+      const prefix = `${classData.subject.trim()} ${classData.grade_level}`;
+      if (classData.name.startsWith(prefix)) {
+        derivedSection = classData.name.substring(prefix.length).trim();
+      }
+    }
+
+    let parsedDays = classData.teaching_days || [];
+    if (typeof parsedDays === 'string') {
+      parsedDays = parsedDays.replace(/[{}]/g, '').split(',').map(d => d.trim()).filter(Boolean);
+    }
+
+    setFormData({
+      subject: classData.subject || '',
+      grade_level: String(classData.grade_level || ''),
+      period: String(classData.period || ''),
+      section: derivedSection,
+      room_number: String(classData.room_number || ''),
+      academic_year: classData.academic_year || '2025-2026',
+      teaching_days: parsedDays,
+    });
  } else {
  setFormData({
  subject: '',
