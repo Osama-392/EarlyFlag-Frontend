@@ -16,6 +16,7 @@ export interface Class {
   end_date?: string;
   max_students?: number;
   studentCount?: number;
+  teaching_days?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -31,6 +32,7 @@ export interface CreateClassRequest {
   start_date?: string;
   end_date?: string;
   max_students?: number;
+  teaching_days?: string[];
 }
 
 
@@ -55,6 +57,7 @@ export const createClass = async (classData: CreateClassRequest): Promise<Class>
       academic_year: classData.academic_year,
       period: classData.period ?? null,
       room_number: classData.room_number ?? null,
+      teaching_days: classData.teaching_days || [],
     };
 
     console.log('Creating class with data:', JSON.stringify(sanitized, null, 2));
@@ -63,6 +66,30 @@ export const createClass = async (classData: CreateClassRequest): Promise<Class>
     return response.data;
   } catch (error: any) {
     console.error('Failed to create class:');
+    console.error('Status:', error?.response?.status);
+    console.error('Data:', JSON.stringify(error?.response?.data, null, 2));
+    throw error;
+  }
+};
+
+export const updateClass = async (classId: string, classData: Partial<CreateClassRequest>): Promise<Class> => {
+  try {
+    const sanitized = {
+      ...(classData.name && { name: classData.name }),
+      ...(classData.subject && { subject: classData.subject }),
+      ...(classData.grade_level && { grade_level: Number(classData.grade_level) }),
+      ...(classData.academic_year && { academic_year: classData.academic_year }),
+      ...(classData.period !== undefined && { period: classData.period ?? null }),
+      ...(classData.room_number !== undefined && { room_number: classData.room_number ?? null }),
+      ...(classData.teaching_days !== undefined && { teaching_days: classData.teaching_days }),
+    };
+
+    console.log('Updating class with data:', JSON.stringify(sanitized, null, 2));
+    const response = await api.put(`/api/v1/teacher/classes/${classId}`, sanitized);
+    console.log('Class updated successfully:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error(`Failed to update class ${classId}:`);
     console.error('Status:', error?.response?.status);
     console.error('Data:', JSON.stringify(error?.response?.data, null, 2));
     throw error;
