@@ -208,6 +208,7 @@ export default function CreateReportModal({
  }}
  className="w-full px-3 py-2 border dark:bg-[#1b1e2c] dark:text-white border-gray-300 dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white text-gray-900 dark:text-white"
  >
+ <option value="All Subjects">All Subjects</option>
  {(gradeSubjects?.length ? gradeSubjects : [defaultSubject]).map((subj, idx) => (
  <option key={idx} value={subj}>{subj}</option>
  ))}

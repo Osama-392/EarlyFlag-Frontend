@@ -81,6 +81,7 @@ export interface SuperGreenHighlightRow {
   signal_date: string;
   reason_code?: string | null;
   reason_description?: string | null;
+  class_id?: string | null;
   parent_email_on_file: boolean;
 }
 
