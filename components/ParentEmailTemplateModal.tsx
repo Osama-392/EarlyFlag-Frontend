@@ -326,7 +326,7 @@ export default function ParentEmailTemplateModal({
           resultLines.push('');
         } else {
           const lowerLine = line.toLowerCase();
-          const signOffBases = ['best', 'best regards', 'regards', 'sincerely', 'thank you', 'respectfully', 'warmly', 'yours truly', 'yours sincerely'];
+          const signOffBases = ['best', 'best regards', 'regards', 'sincerely', 'thank you', 'respectfully', 'warmly', 'yours truly', 'yours sincerely', 'with appreciation', 'in partnership'];
           const isListItem = line.startsWith('- ');
           
           let matchedSignOff = signOffBases.find(s => lowerLine.startsWith(s));
