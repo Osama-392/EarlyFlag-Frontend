@@ -324,7 +324,7 @@ export default function StudentRoster() {
  <AddStudentModal
  isOpen={isAddStudentOpen}
  onClose={() => setIsAddStudentOpen(false)}
- classId={classId}
+ classId={classInfo?.id || ''}
  classGradeLevel={classInfo?.grade_level}
  onAddSuccess={async () => {
  await loadStudents(classId);
@@ -334,7 +334,7 @@ export default function StudentRoster() {
  <BulkUploadModal
  isOpen={isBulkUploadOpen}
  onClose={() => setIsBulkUploadOpen(false)}
- classId={classId}
+ classId={classInfo?.id || undefined}
  onUploadSuccess={async () => {
  await loadStudents(classId);
  }}

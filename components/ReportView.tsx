@@ -363,13 +363,15 @@ export default function ReportView({
 
  <div className="shrink-0 pt-0.5">
  <div className={`px-2.5 py-1 rounded-full text-[11px] font-bold border flex items-center gap-1.5 ${
- incident.signalType === 'RED' 
+ incident.signalType === 'RED' || incident.signalType === 'REFERRAL'
  ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30'
  : incident.signalType === 'YELLOW'
  ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30'
+ : incident.signalType === 'ABSENT'
+ ? 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
  : 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30'
  }`}>
- <div className={`w-1.5 h-1.5 rounded-full ${incident.signalType === 'RED' ? 'bg-red-500' : incident.signalType === 'YELLOW' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+ <div className={`w-1.5 h-1.5 rounded-full ${incident.signalType === 'RED' || incident.signalType === 'REFERRAL' ? 'bg-red-500' : incident.signalType === 'YELLOW' ? 'bg-amber-500' : incident.signalType === 'ABSENT' ? 'bg-slate-500' : 'bg-emerald-500'}`} />
  {incident.type}
  </div>
  </div>
