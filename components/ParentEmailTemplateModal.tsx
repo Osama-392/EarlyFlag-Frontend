@@ -239,9 +239,24 @@ export default function ParentEmailTemplateModal({
             payloadClassId = flagsList[0].class_id;
           }
           
+          const CATEGORY_TO_TEMPLATE_TYPE: Record<string, string> = {
+            super_green: 'Super Green',
+            red: 'Red',
+            red_academic: 'Red',
+            red_behavioral: 'Red',
+            yellow: 'Yellow',
+            yellow_academic: 'Yellow',
+            yellow_behavioral: 'Yellow',
+            absent: 'Absent',
+            admin_concern: 'admin_concern',
+            admin_commendation: 'admin_commendation',
+            admin_attendance: 'admin_attendance',
+          };
+          const resolvedTemplateType = CATEGORY_TO_TEMPLATE_TYPE[flagCategory] ?? flagCategory;
+
           const payload = {
             class_id: payloadClassId,
-            template_type: flagCategory,
+            template_type: resolvedTemplateType,
             reason: activeReasonData.reason,
             flagged_reason: activeReasonData.flaggedReason,
             dynamic_concerns: dynamicConcerns

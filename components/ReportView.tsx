@@ -413,9 +413,24 @@ export default function ReportView({
  <h2 className="text-lg font-bold text-slate-800 dark:text-white">Teachers Notes</h2>
  </div>
  <div className="p-6">
- <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
- {teachersNotes}
- </p>
+            {report?.recent_notes && report.recent_notes.length > 0 ? (
+              <div className="space-y-4">
+                {report.recent_notes.map((note: any, idx: number) => (
+                  <div key={idx}>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                      {note.class_name} • {new Date(note.signal_date).toLocaleDateString()}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                      {note.note || note.excerpt || note.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                {teachersNotes}
+              </p>
+            )}
  </div>
  </div>
  )}
