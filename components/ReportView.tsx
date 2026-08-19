@@ -121,23 +121,45 @@ export default function ReportView({
  // Use custom window counts if available, otherwise fall back to 30d window
  const summaryCounts = report?.summary_counts?.window_custom || report?.summary_counts?.window_30d;
 
+ // Calculate global auto-escalations to subtract them from the dashboard report totals
+ const globalRedCount = report?.flag_log?.filter((flag: any) => 
+  (flag.title?.includes('(Global)') || flag.description?.includes('(Global)') || flag.reason_description?.includes('(Global)')) &&
+  flag.signal_type?.toUpperCase() === 'RED'
+ ).length || 0;
+
+ const globalYellowCount = report?.flag_log?.filter((flag: any) => 
+  (flag.title?.includes('(Global)') || flag.description?.includes('(Global)') || flag.reason_description?.includes('(Global)')) &&
+  flag.signal_type?.toUpperCase() === 'YELLOW'
+ ).length || 0;
+
+ const redCount = Math.max(0, (summaryCounts?.red || 0) - globalRedCount);
+ const yellowCount = Math.max(0, (summaryCounts?.yellow || 0) - globalYellowCount);
+ const superGreenCount = summaryCounts?.super_green || 0;
+ const presentCount = summaryCounts?.present || 0;
+
  // Determine overall status based on count severities
  let statusText = 'Super Green';
- if ((summaryCounts?.red || 0) > 0) {
- statusText = 'Red';
- } else if ((summaryCounts?.yellow || 0) > 0) {
- statusText = 'Yellow';
+ if (redCount > 0) {
+  statusText = 'Red';
+ } else if (yellowCount > 0) {
+  statusText = 'Yellow';
  }
 
  // Calculate percentages for the summary bar
- const totalCounts = (summaryCounts?.red || 0) + (summaryCounts?.yellow || 0) + ((summaryCounts?.super_green || 0) + (summaryCounts?.present || 0));
+ const totalCounts = redCount + yellowCount + (superGreenCount + presentCount);
  const divisor = totalCounts || 1;
- const redPercent = Math.round(((summaryCounts?.red || 0) / divisor) * 100);
- const yellowPercent = Math.round(((summaryCounts?.yellow || 0) / divisor) * 100);
- const positivePercent = Math.round((((summaryCounts?.super_green || 0) + (summaryCounts?.present || 0)) / divisor) * 100);
+ const redPercent = Math.round((redCount / divisor) * 100);
+ const yellowPercent = Math.round((yellowCount / divisor) * 100);
+ const positivePercent = Math.round(((superGreenCount + presentCount) / divisor) * 100);
 
- // Use the new flag_log from the backend
- const incidents = report?.flag_log?.map((flag: any) => {
+ // Use the new flag_log from the backend, filtering out global escalations
+ const incidents = (report?.flag_log || [])
+  .filter((flag: any) => 
+    !flag.title?.includes('(Global)') && 
+    !flag.description?.includes('(Global)') && 
+    !flag.reason_description?.includes('(Global)')
+  )
+  .map((flag: any) => {
  let rawDate = new Date(flag.signal_date + 'T00:00:00');
  let dayOfWeek = '';
  let shortDate = flag.signal_date;
@@ -288,7 +310,7 @@ export default function ReportView({
  <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-3 shadow-sm">
  <AlertCircle className="w-4 h-4 text-amber-500" />
  </div>
- <div className="text-4xl font-bold text-amber-500 mb-1">{summaryCounts?.yellow || 0}</div>
+ <div className="text-4xl font-bold text-amber-500 mb-1">{yellowCount}</div>
  <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Yellow Flags</h3>
  <p className="text-xs text-amber-500/80 mt-1">Light concerns tracked</p>
  </div>
@@ -298,7 +320,7 @@ export default function ReportView({
  <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-3 shadow-sm">
  <AlertCircle className="w-4 h-4 text-red-500" />
  </div>
- <div className="text-4xl font-bold text-red-500 mb-1">{summaryCounts?.red || 0}</div>
+ <div className="text-4xl font-bold text-red-500 mb-1">{redCount}</div>
  <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Red Incidents</h3>
  <p className="text-xs text-red-400/80 mt-1">Urgent interventions</p>
  </div>
