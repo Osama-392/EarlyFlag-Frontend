@@ -298,13 +298,16 @@ export default function StudentRoster() {
  </div>
 
  {/* Modals */}
- <StudentHistoryModal
- isOpen={selectedStudentForHistory !== null}
- onClose={() => setSelectedStudentForHistory(null)}
- studentName={selectedStudentForHistory ? `${selectedStudentForHistory.first_name} ${selectedStudentForHistory.last_name}` : ''}
- history={studentHistory}
- loading={historyLoading}
- />
+  <StudentHistoryModal
+  isOpen={!!selectedStudentForHistory}
+  onClose={() => setSelectedStudentForHistory(null)}
+  studentName={selectedStudentForHistory ? `${selectedStudentForHistory.first_name} ${selectedStudentForHistory.last_name}` : ''}
+  history={(studentHistory || []).filter((s: any) => 
+    !s.reason_description?.includes('(Global)') && 
+    !s.note?.includes('(Global)')
+  )}
+  loading={historyLoading}
+  />
 
  <SignalLogModal
  isOpen={selectedStudentForSignal !== null}
