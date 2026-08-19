@@ -75,7 +75,11 @@ export default function StudentProfile() {
  }
 
   // Calculate stats from history data
-  const rawSignals = history?.signals || [];
+  const rawSignals = (history?.signals || []).filter((s: any) => 
+    !s.reason_description?.includes('(Global)') && 
+    !s.title?.includes('(Global)') && 
+    !s.note?.includes('(Global)')
+  );
   const rawReferrals = history?.referrals || [];
   
   const mappedReferrals = rawReferrals.map((r: any) => {
