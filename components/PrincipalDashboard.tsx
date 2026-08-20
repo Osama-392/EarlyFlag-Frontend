@@ -320,7 +320,14 @@ export default function PrincipalDashboard() {
  <tbody>
  {dashboard.yellow_watch_list.map((row) => (
  <tr key={row.student_id} className="border-b border-gray-100 dark:border-[#2e3240] hover:bg-gray-50 dark:hover:bg-[#202330] transition">
- <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">{row.first_name} {row.last_name}</td>
+ <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">
+ <span>{row.first_name} {row.last_name}</span>
+ {row.subject && (
+ <span className="text-black dark:text-white font-bold ml-1">
+ - {row.subject}
+ </span>
+ )}
+ </td>
  <td className="px-3 py-2 text-gray-500 dark:text-gray-400">Gr {row.grade_level}</td>
  <td className="px-3 py-2">
  <span className="text-blue-600 dark:text-blue-400 font-semibold">{row.yellow_academic_count}</span>
@@ -361,14 +368,14 @@ export default function PrincipalDashboard() {
  <div key={item.alert_id} className="bg-white dark:bg-[#151722] rounded-lg p-3 border border-red-100 dark:border-red-900/30 shadow-sm">
  <div className="flex items-start justify-between mb-1.5">
   <div>
-  <div className="flex items-center gap-1.5">
-  <p className="font-bold text-gray-900 dark:text-white text-sm">{item.student.first_name} {item.student.last_name}</p>
-  {(item.subject || (item as any).student?.subject) && (
-  <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold border border-slate-200 dark:border-slate-700">
-  {item.subject || (item as any).student?.subject}
-  </span>
-  )}
-  </div>
+    <p className="font-bold text-gray-900 dark:text-white text-sm">
+    {item.student.first_name} {item.student.last_name}
+    {(item.subject || (item as any).student?.subject) && (
+    <span className="text-black dark:text-white font-bold">
+    {" "} - {item.subject || (item as any).student?.subject}
+    </span>
+    )}
+    </p>
   <p className="text-[11px] text-gray-500 dark:text-gray-400">
   Gr {item.student.grade_level}
   </p>
