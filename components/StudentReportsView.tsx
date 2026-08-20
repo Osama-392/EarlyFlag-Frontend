@@ -234,7 +234,7 @@ export default function StudentReportsView({
  student={{
  id: selectedStudent.id,
  name: `${selectedStudent.first_name} ${selectedStudent.last_name}`,
- status: getStatusBadge(selectedStudent).text.toLowerCase() as any,
+ status: (getStatusBadge(selectedStudent)?.text?.toLowerCase() || 'neutral') as any,
  initial: `${selectedStudent.first_name.charAt(0)}${selectedStudent.last_name.charAt(0)}`.toUpperCase(),
  bgColor: 'from-blue-400 to-blue-600',
  redCount: getSignalCounts(selectedStudent).red,
