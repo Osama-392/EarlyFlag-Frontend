@@ -49,22 +49,35 @@ export default function StudentReportsView({
  );
  }, [searchTerm, students]);
 
- const getSignalCounts = (student: Student) => {
- if (!student.today_signal) return { green: 0, yellow: 0, red: 0 };
- const signal = student.today_signal;
- if (signal.signal_type === 'green') return { green: 1, yellow: 0, red: 0 };
- if (signal.signal_type === 'yellow') return { green: 0, yellow: 1, red: 0 };
- if (signal.signal_type === 'red') return { green: 0, yellow: 0, red: 1 };
- return { green: 0, yellow: 0, red: 0 };
- };
+  const isGlobalAutoEscalation = (s: any): boolean => {
+    if (!s) return false;
+    const reasonCode = String(s.reason_code || '').toLowerCase();
+    const reasonDesc = String(s.reason_description || s.reason || '').toLowerCase();
+    const note = String(s.note || '').toLowerCase();
+    const alertRule = String(s.triggered_by_rule || s.rule || '').toLowerCase();
+    if (alertRule.includes('global') || alertRule.includes('cross-class') || alertRule.includes('cross_class')) return true;
+    if (reasonDesc.includes('(global)') || reasonDesc.includes('global') || reasonDesc.includes('cross-class') || reasonDesc.includes('across all classes')) return true;
+    if (note.includes('across all classes') || note.includes('cross-class') || note.includes('auto-escalated to red') || note.includes('system auto-escalation (global)')) return true;
+    if (reasonCode === 'auto_escalation' && (note.includes('all classes') || note.includes('auto-escalat') || reasonDesc.includes('global'))) return true;
+    return false;
+  };
 
- const getStatusBadge = (student: Student) => {
- const { green, yellow, red } = getSignalCounts(student);
- if (red > 0) return { text: 'Red Incident', color: 'bg-red-100 text-red-700' };
- if (yellow > 0) return { text: 'Yellow Incident', color: 'bg-yellow-100 text-yellow-700' };
- if (green > 0) return { text: 'Super Green', color: 'bg-green-100 text-green-700' };
- return null;
- };
+  const getSignalCounts = (student: Student) => {
+    if (!student.today_signal || isGlobalAutoEscalation(student.today_signal)) return { green: 0, yellow: 0, red: 0 };
+    const signal = student.today_signal;
+    if (signal.signal_type === 'green' || signal.signal_type === 'super_green') return { green: 1, yellow: 0, red: 0 };
+    if (signal.signal_type === 'yellow') return { green: 0, yellow: 1, red: 0 };
+    if (signal.signal_type === 'red') return { green: 0, yellow: 0, red: 1 };
+    return { green: 0, yellow: 0, red: 0 };
+  };
+
+  const getStatusBadge = (student: Student) => {
+    const { green, yellow, red } = getSignalCounts(student);
+    if (red > 0) return { text: 'Red Incident', color: 'bg-red-100 text-red-700' };
+    if (yellow > 0) return { text: 'Yellow Incident', color: 'bg-yellow-100 text-yellow-700' };
+    if (green > 0) return { text: 'Super Green', color: 'bg-green-100 text-green-700' };
+    return null;
+  };
 
  const handleCreateReport = (student: Student) => {
  logger.buttonClick(`Create Report for ${student.first_name}`, 'StudentReportsView');

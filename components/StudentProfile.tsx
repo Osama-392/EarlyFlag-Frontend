@@ -74,10 +74,28 @@ export default function StudentProfile() {
  );
  }
 
-  // Calculate stats from history data
-  // Backend already scopes signals by teacher_id - no client-side global filtering needed
-  const rawSignals = history?.signals || [];
-  const rawReferrals = history?.referrals || [];
+  // Helper to rule out global/cross-class auto-escalations from teacher view
+  const isGlobalAutoEscalation = (s: any): boolean => {
+    if (!s) return false;
+    const reasonCode = String(s.reason_code || '').toLowerCase();
+    const reasonDesc = String(s.reason_description || s.reason || '').toLowerCase();
+    const note = String(s.note || '').toLowerCase();
+    const title = String(s.title || s.rule_name || s.rule_description || '').toLowerCase();
+    const desc = String(s.description || '').toLowerCase();
+    const alertRule = String(s.triggered_by_rule || s.rule || '').toLowerCase();
+    
+    if (alertRule.includes('global') || alertRule.includes('cross-class') || alertRule.includes('cross_class')) return true;
+    if (reasonDesc.includes('(global)') || reasonDesc.includes('global') || reasonDesc.includes('cross-class') || reasonDesc.includes('across all classes')) return true;
+    if (note.includes('across all classes') || note.includes('cross-class') || note.includes('auto-escalated to red') || note.includes('system auto-escalation (global)')) return true;
+    if (title.includes('global') || title.includes('cross-class') || title.includes('across all classes')) return true;
+    if (desc.includes('across all classes') || desc.includes('cross-class') || desc.includes('global auto-escalation') || desc.includes('system auto-escalation (global)')) return true;
+    if (reasonCode === 'auto_escalation' && (note.includes('all classes') || note.includes('auto-escalat') || reasonDesc.includes('global'))) return true;
+    return false;
+  };
+
+  // Calculate stats from history data (ruling out global auto escalations)
+  const rawSignals = (history?.signals || []).filter((s: any) => !isGlobalAutoEscalation(s));
+  const rawReferrals = (history?.referrals || []).filter((r: any) => !isGlobalAutoEscalation(r));
   
   const mappedReferrals = rawReferrals.map((r: any) => {
     let sType = 'referral';
@@ -98,63 +116,84 @@ export default function StudentProfile() {
 
   const signals = [...rawSignals, ...mappedReferrals].sort((a, b) => new Date(b.signal_date || b.created_at).getTime() - new Date(a.signal_date || a.created_at).getTime());
  
- // Determine overall status (most severe recent signal, or neutral)
- let statusText = 'Normal';
- const hasSuperGreen = signals.some((s: any) => s.signal_type === 'super_green');
- const hasRed = signals.some((s: any) => s.signal_type === 'red');
- const hasYellow = signals.some((s: any) => s.signal_type === 'yellow');
- if (hasRed) statusText = 'Red';
- else if (hasYellow) statusText = 'Yellow';
- else if (hasSuperGreen) statusText = 'Super Green';
+  const isSuperGreenOrGeneral = (s: any): boolean => {
+    if (!s) return false;
+    const st = String(s.signal_type || '').toLowerCase();
+    const cat = String(s.category || '').toLowerCase();
+    if (st === 'red' || st === 'yellow' || st === 'absent') return false;
+    return st === 'green' || st === 'super_green' || cat === 'super_green' || cat === 'general';
+  };
 
- const emailCategory = statusText === 'Red' ? 'red' as const
- : statusText === 'Yellow' ? 'yellow' as const
- : statusText === 'Super Green' ? 'super_green' as const
- : null;
+  // Determine overall status (most severe recent signal, or neutral)
+  let statusText = 'Normal';
+  const hasSuperGreen = signals.some(isSuperGreenOrGeneral);
+  const hasRed = signals.some((s: any) => String(s.signal_type || '').toLowerCase() === 'red');
+  const hasYellow = signals.some((s: any) => String(s.signal_type || '').toLowerCase() === 'yellow');
+  if (hasRed) statusText = 'Red';
+  else if (hasYellow) statusText = 'Yellow';
+  else if (hasSuperGreen) statusText = 'Super Green';
 
-  // Calculate absences per class to ensure they aren't cumulative across different classes
-  const classAbsenceCounts = signals.reduce((acc: Record<string, number>, s: any) => {
-    if (s.signal_type === 'absent') {
-      if (classId) {
-        // If viewing within a class context, only count absences for this class
-        if (s.class_id === classId || s.class_slug === classId) {
-          acc['current'] = (acc['current'] || 0) + 1;
-        }
-      } else if (user && s.teacher_id === user.id) {
-        // If viewing globally, count absences per class for this teacher
-        acc[s.class_id] = (acc[s.class_id] || 0) + 1;
-      }
+  const emailCategory = statusText === 'Red' ? 'red' as const
+  : statusText === 'Yellow' ? 'yellow' as const
+  : statusText === 'Super Green' ? 'super_green' as const
+  : null;
+
+   // Calculate absences per class to ensure they aren't cumulative across different classes
+   const classAbsenceCounts = signals.reduce((acc: Record<string, number>, s: any) => {
+     if (s.signal_type === 'absent') {
+       if (classId) {
+         // If viewing within a class context, only count absences for this class
+         if (s.class_id === classId || s.class_slug === classId) {
+           acc['current'] = (acc['current'] || 0) + 1;
+         }
+       } else if (user && s.teacher_id === user.id) {
+         // If viewing globally, count absences per class for this teacher
+         acc[s.class_id] = (acc[s.class_id] || 0) + 1;
+       }
+     }
+     return acc;
+   }, {});
+
+   const maxAbsencesInSingleClass = classId 
+     ? (classAbsenceCounts['current'] || 0)
+     : Math.max(0, ...(Object.values(classAbsenceCounts) as number[]));
+
+   const meetsAbsenceThreshold = maxAbsencesInSingleClass >= 3;
+
+  const teacherFullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Your Teacher';
+  const studentFullName = [history?.first_name, history?.last_name].filter(Boolean).join(' ') || 'Student';
+
+  // Helper to parse signal date without time-of-day cutoff
+  const parseSignalDate = (s: any): Date => {
+    const raw = s.signal_date || s.created_at;
+    if (!raw) return new Date(0);
+    if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      const [y, m, d] = raw.split('-').map(Number);
+      return new Date(y, m - 1, d, 23, 59, 59);
     }
-    return acc;
-  }, {});
+    return new Date(raw);
+  };
 
-  const maxAbsencesInSingleClass = classId 
-    ? (classAbsenceCounts['current'] || 0)
-    : Math.max(0, ...(Object.values(classAbsenceCounts) as number[]));
+  // Last 30 days (inclusive)
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  thirtyDaysAgo.setHours(0, 0, 0, 0);
+  const recentSignals = signals.filter((s: any) => parseSignalDate(s) >= thirtyDaysAgo);
 
-  const meetsAbsenceThreshold = maxAbsencesInSingleClass >= 3;
+  // Last 7 days (inclusive)
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+  const recent7Days = signals.filter((s: any) => parseSignalDate(s) >= sevenDaysAgo);
 
- const teacherFullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Your Teacher';
- const studentFullName = [history?.first_name, history?.last_name].filter(Boolean).join(' ') || 'Student';
+  const redFlags = recent7Days.filter((s: any) => String(s.signal_type || '').toLowerCase() === 'red');
+  const yellowFlags = recent7Days.filter((s: any) => String(s.signal_type || '').toLowerCase() === 'yellow');
+  const greenFlags = recent7Days.filter(isSuperGreenOrGeneral);
 
- // Last 30 days
- const thirtyDaysAgo = new Date();
- thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
- const recentSignals = signals.filter((s: any) => new Date(s.signal_date || s.created_at) >= thirtyDaysAgo);
-
- // Last 7 days
- const sevenDaysAgo = new Date();
- sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
- const recent7Days = signals.filter((s: any) => new Date(s.signal_date || s.created_at) >= sevenDaysAgo);
-
- const redFlags = recent7Days.filter((s: any) => s.signal_type === 'red');
- const yellowFlags = recent7Days.filter((s: any) => s.signal_type === 'yellow');
- const greenFlags = recent7Days.filter((s: any) => s.signal_type === 'green' || s.signal_type === 'super_green');
-
- const totalSummaryFlags = redFlags.length + yellowFlags.length + greenFlags.length || 1;
- const redPercent = Math.round((redFlags.length / totalSummaryFlags) * 100);
- const yellowPercent = Math.round((yellowFlags.length / totalSummaryFlags) * 100);
- const greenPercent = Math.round((greenFlags.length / totalSummaryFlags) * 100);
+  const totalSummaryFlags = redFlags.length + yellowFlags.length + greenFlags.length || 1;
+  const redPercent = Math.round((redFlags.length / totalSummaryFlags) * 100);
+  const yellowPercent = Math.round((yellowFlags.length / totalSummaryFlags) * 100);
+  const greenPercent = Math.round((greenFlags.length / totalSummaryFlags) * 100);
 
  // Notes
  const notes = signals.filter((s: any) => s.note && s.note.trim() !== '');

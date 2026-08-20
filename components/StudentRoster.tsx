@@ -225,23 +225,38 @@ export default function StudentRoster() {
  {filteredStudents.map((student) => {
  const initials = `${student.first_name.charAt(0)}${student.last_name.charAt(0)}`.toUpperCase();
  
-  // Map status based on today's signal
+  // Helper to rule out global auto-escalations from teacher roster
+  const isGlobalAutoEscalation = (s: any): boolean => {
+    if (!s) return false;
+    const reasonCode = String(s.reason_code || '').toLowerCase();
+    const reasonDesc = String(s.reason_description || s.reason || '').toLowerCase();
+    const note = String(s.note || '').toLowerCase();
+    const alertRule = String(s.triggered_by_rule || s.rule || '').toLowerCase();
+    if (alertRule.includes('global') || alertRule.includes('cross-class') || alertRule.includes('cross_class')) return true;
+    if (reasonDesc.includes('(global)') || reasonDesc.includes('global') || reasonDesc.includes('cross-class') || reasonDesc.includes('across all classes')) return true;
+    if (note.includes('across all classes') || note.includes('cross-class') || note.includes('auto-escalated to red') || note.includes('system auto-escalation (global)')) return true;
+    if (reasonCode === 'auto_escalation' && (note.includes('all classes') || note.includes('auto-escalat') || reasonDesc.includes('global'))) return true;
+    return false;
+  };
+
+  // Map status based on today's signal (excluding global auto escalations)
+  const todaySig = student.today_signal && !isGlobalAutoEscalation(student.today_signal) ? student.today_signal : null;
   let statusColor = "bg-gray-400 text-white";
   let statusText: string | null = null;
-  if (student.today_signal?.signal_type === 'green') {
+  if (todaySig?.signal_type === 'green' || todaySig?.signal_type === 'super_green') {
   statusColor = "bg-emerald-500 text-white";
   statusText = "Super Green";
-  } else if (student.today_signal?.signal_type === 'red') {
+  } else if (todaySig?.signal_type === 'red') {
   statusColor = "bg-red-400 text-white";
   statusText = "Red Incident";
-  } else if (student.today_signal?.signal_type === 'yellow') {
+  } else if (todaySig?.signal_type === 'yellow') {
   statusColor = "bg-amber-400 text-white";
   statusText = "Yellow Incident";
   }
 
   // Mockup counts (using static or extracted if available)
-  const yellowCount = student.today_signal?.signal_type === 'yellow' ? 1 : 0; // Ideally from actual history
-  const redCount = student.today_signal?.signal_type === 'red' ? 1 : 0;
+  const yellowCount = todaySig?.signal_type === 'yellow' ? 1 : 0;
+  const redCount = todaySig?.signal_type === 'red' ? 1 : 0;
 
   return (
   <div
