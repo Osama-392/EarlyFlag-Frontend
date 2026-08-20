@@ -118,27 +118,8 @@ export default function ReportView({
  }
  };
 
-  // Helper to rule out global/cross-class auto-escalations from teacher reports
-  const isGlobalAutoEscalation = (s: any): boolean => {
-    if (!s) return false;
-    const reasonCode = String(s.reason_code || '').toLowerCase();
-    const reasonDesc = String(s.reason_description || s.reason || '').toLowerCase();
-    const note = String(s.note || '').toLowerCase();
-    const title = String(s.title || s.rule_name || s.rule_description || '').toLowerCase();
-    const desc = String(s.description || '').toLowerCase();
-    const alertRule = String(s.triggered_by_rule || s.rule || '').toLowerCase();
-    
-    if (alertRule.includes('global') || alertRule.includes('cross-class') || alertRule.includes('cross_class')) return true;
-    if (reasonDesc.includes('(global)') || reasonDesc.includes('global') || reasonDesc.includes('cross-class') || reasonDesc.includes('across all classes')) return true;
-    if (note.includes('across all classes') || note.includes('cross-class') || note.includes('auto-escalated to red') || note.includes('system auto-escalation (global)')) return true;
-    if (title.includes('global') || title.includes('cross-class') || title.includes('across all classes')) return true;
-    if (desc.includes('across all classes') || desc.includes('cross-class') || desc.includes('global auto-escalation') || desc.includes('system auto-escalation (global)')) return true;
-    if (reasonCode === 'auto_escalation' && (note.includes('all classes') || note.includes('auto-escalat') || reasonDesc.includes('global'))) return true;
-    return false;
-  };
-
-  // Filter out global auto-escalations from report flag_log
-  const filteredFlagLog = (report?.flag_log || []).filter((flag: any) => !isGlobalAutoEscalation(flag));
+  // All flag log entries (including auto red escalations and manual referrals)
+  const filteredFlagLog = report?.flag_log || [];
 
   // Helper to categorize flags and referrals
   const isRedIncident = (f: any) => {
