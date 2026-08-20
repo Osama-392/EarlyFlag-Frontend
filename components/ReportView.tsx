@@ -121,19 +121,9 @@ export default function ReportView({
  // Use custom window counts if available, otherwise fall back to 30d window
  const summaryCounts = report?.summary_counts?.window_custom || report?.summary_counts?.window_30d;
 
- // Calculate global auto-escalations to subtract them from the dashboard report totals
- const globalRedCount = report?.flag_log?.filter((flag: any) => 
-  (flag.title?.includes('(Global)') || flag.description?.includes('(Global)') || flag.reason_description?.includes('(Global)')) &&
-  flag.signal_type?.toUpperCase() === 'RED'
- ).length || 0;
-
- const globalYellowCount = report?.flag_log?.filter((flag: any) => 
-  (flag.title?.includes('(Global)') || flag.description?.includes('(Global)') || flag.reason_description?.includes('(Global)')) &&
-  flag.signal_type?.toUpperCase() === 'YELLOW'
- ).length || 0;
-
- const redCount = Math.max(0, (summaryCounts?.red || 0) - globalRedCount);
- const yellowCount = Math.max(0, (summaryCounts?.yellow || 0) - globalYellowCount);
+ // Backend now returns window_custom for custom date ranges - counts are accurate
+ const redCount = summaryCounts?.red || 0;
+ const yellowCount = summaryCounts?.yellow || 0;
  const superGreenCount = summaryCounts?.super_green || 0;
  const presentCount = summaryCounts?.present || 0;
 
@@ -152,13 +142,8 @@ export default function ReportView({
  const yellowPercent = Math.round((yellowCount / divisor) * 100);
  const positivePercent = Math.round(((superGreenCount + presentCount) / divisor) * 100);
 
- // Use the new flag_log from the backend, filtering out global escalations
+ // Flag log is already teacher-scoped from the backend
  const incidents = (report?.flag_log || [])
-  .filter((flag: any) => 
-    !flag.title?.includes('(Global)') && 
-    !flag.description?.includes('(Global)') && 
-    !flag.reason_description?.includes('(Global)')
-  )
   .map((flag: any) => {
  let rawDate = new Date(flag.signal_date + 'T00:00:00');
  let dayOfWeek = '';
@@ -168,26 +153,28 @@ export default function ReportView({
  dayOfWeek = rawDate.toLocaleDateString('en-US', { weekday: 'short' });
  } catch (e) {}
  
- const sType = flag.signal_type ? flag.signal_type.toUpperCase() : '';
- const typeLabel = flag.signal_type ? flag.signal_type.charAt(0).toUpperCase() + flag.signal_type.slice(1).toLowerCase() : '';
- 
- let catLabel = '';
- if (flag.category) {
- if (flag.category.toLowerCase() === 'super_green') catLabel = 'Super Green';
- else catLabel = flag.category.charAt(0).toUpperCase() + flag.category.slice(1).toLowerCase();
- }
- const displayType = catLabel && sType !== 'SUPER_GREEN' ? `${typeLabel} - ${catLabel}` : (sType === 'SUPER_GREEN' ? 'Super Green' : typeLabel);
+  const sType = flag.signal_type ? flag.signal_type.toUpperCase() : '';
+  let typeLabel = flag.signal_type ? flag.signal_type.charAt(0).toUpperCase() + flag.signal_type.slice(1).toLowerCase() : '';
+  if (sType === 'YELLOW') typeLabel = 'Yellow Incident';
+  if (sType === 'RED') typeLabel = 'Red Incident';
+  
+  let catLabel = '';
+  if (flag.category) {
+  if (flag.category.toLowerCase() === 'super_green') catLabel = 'Super Green';
+  else catLabel = flag.category.charAt(0).toUpperCase() + flag.category.slice(1).toLowerCase();
+  }
+  const displayType = catLabel && sType !== 'SUPER_GREEN' ? `${typeLabel} - ${catLabel}` : (sType === 'SUPER_GREEN' ? 'Super Green' : typeLabel);
 
- return {
- date: shortDate,
- dayOfWeek,
- type: displayType,
- title: flag.title || 'Flag Logged',
- description: flag.description,
- className: flag.class_name,
- teacherName: flag.teacher_name,
- signalType: sType,
- };
+  return {
+  date: shortDate,
+  dayOfWeek,
+  type: displayType,
+  title: flag.title ? flag.title.replace(/Yellow Flag/gi, 'Yellow Incident').replace(/Red Flag/gi, 'Red Incident') : (sType === 'RED' ? 'Red Incident Logged' : sType === 'YELLOW' ? 'Yellow Incident Logged' : 'Signal Logged'),
+  description: flag.description ? flag.description.replace(/Yellow Flag/gi, 'Yellow Incident').replace(/Red Flag/gi, 'Red Incident') : '',
+  className: flag.class_name,
+  teacherName: flag.teacher_name,
+  signalType: sType,
+  };
  }) || [];
 
  const recommendations = report?.talking_points || [];
@@ -260,62 +247,55 @@ export default function ReportView({
  </div>
 
  <div className="flex items-center gap-3">
- <div className={`px-4 py-2 text-xs font-bold rounded-lg border shadow-sm ${
- statusText === 'Red' ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50' :
- statusText === 'Yellow' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50' :
- 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'
- }`}>
- Status : {statusText} Active
- </div>
- <div className="px-4 py-2 bg-gray-100 dark:bg-[#1b1e2c] text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg border border-gray-200 dark:border-[#262a3d] shadow-sm">
- Total Signals : {incidents.length}
- </div>
- <div className="px-4 py-2 bg-amber-100/50 text-amber-700 text-xs font-bold rounded-lg border border-amber-200/50 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50 shadow-sm">
- Period : {formatDisplayDate(startDateStr)} - {formatDisplayDate(endDateStr)}
- </div>
- </div>
- </div>
+  <div className={`px-4 py-2 text-xs font-bold rounded-lg border shadow-sm ${
+  statusText === 'Red' ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50' :
+  statusText === 'Yellow' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50' :
+  'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'
+  }`}>
+  Status : {statusText} Active
+  </div>
+  </div>
+  </div>
 
- {/* Middle Grid */}
- <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
- {/* Left Column: Flags Summary */}
- <div className="space-y-4">
- <div className="flex items-center gap-2 mb-2">
- <div className="p-1.5 bg-blue-50 text-blue-500 rounded-lg">
- <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
- <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
- </svg>
- </div>
- <div>
- <h2 className="text-[15px] font-bold text-slate-800 dark:text-white">Flags Summary</h2>
- <p className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Report Period</p>
- </div>
- </div>
+  {/* Middle Grid */}
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  {/* Left Column: Flags Summary */}
+  <div className="space-y-4">
+  <div className="flex items-center gap-2 mb-2">
+  <div className="p-1.5 bg-blue-50 text-blue-500 rounded-lg">
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+  </svg>
+  </div>
+  <div>
+  <h2 className="text-[15px] font-bold text-slate-800 dark:text-white">Incidents Summary</h2>
+  </div>
+  </div>
 
- <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm p-6 space-y-4">
- {/* Positive Incidents / Super Green */}
- <div className="bg-slate-50 dark:bg-[#1b1e2c] rounded-xl p-5 relative border border-slate-100 dark:border-[#262a3d]">
- <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center text-slate-400 mb-3 shadow-sm">
- <span className="font-bold text-sm text-emerald-500">P</span>
- </div>
- <div className="text-4xl font-bold text-emerald-500 mb-1">
- {(summaryCounts?.super_green || 0) + (summaryCounts?.present || 0)}
- </div>
- <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Positive Incidents</h3>
- <p className="text-xs text-gray-400 mt-1">Super Green / Present signals</p>
- </div>
+  <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm p-6 space-y-4">
+  {/* Positive Incidents / Super Green */}
+  <div className="bg-slate-50 dark:bg-[#1b1e2c] rounded-xl p-5 relative border border-slate-100 dark:border-[#262a3d]">
+  <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center text-slate-400 mb-3 shadow-sm">
+  <span className="font-bold text-sm text-emerald-500">P</span>
+  </div>
+  <div className="text-4xl font-bold text-emerald-500 mb-1">
+  {superGreenCount}
+  </div>
+  <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Positive Incidents</h3>
+  <p className="text-xs text-gray-400 mt-1">Super Green signals</p>
+  </div>
 
- {/* Yellow Flags */}
- <div className="bg-amber-50 dark:bg-[#1b1e2c] rounded-xl p-5 relative border border-amber-100 dark:border-[#262a3d]">
+  {/* Yellow Incidents */}
+  <div className="bg-amber-50 dark:bg-[#1b1e2c] rounded-xl p-5 relative border border-amber-100 dark:border-[#262a3d]">
  <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-3 shadow-sm">
  <AlertCircle className="w-4 h-4 text-amber-500" />
  </div>
  <div className="text-4xl font-bold text-amber-500 mb-1">{yellowCount}</div>
- <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Yellow Flags</h3>
+ <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Yellow Incidents</h3>
  <p className="text-xs text-amber-500/80 mt-1">Light concerns tracked</p>
  </div>
 
- {/* Red Flags */}
+ {/* Red Incidents */}
  <div className="bg-red-50 dark:bg-[#1b1e2c] rounded-xl p-5 relative border border-red-100 dark:border-[#262a3d]">
  <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-3 shadow-sm">
  <AlertCircle className="w-4 h-4 text-red-500" />
@@ -323,20 +303,6 @@ export default function ReportView({
  <div className="text-4xl font-bold text-red-500 mb-1">{redCount}</div>
  <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Red Incidents</h3>
  <p className="text-xs text-red-400/80 mt-1">Urgent interventions</p>
- </div>
-
- {/* Bar Chart Summary */}
- <div className="pt-4">
- <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 font-semibold mb-2">
- <span>Positive</span>
- <span>Yellow</span>
- <span>Red</span>
- </div>
- <div className="flex h-2.5 rounded-full overflow-hidden bg-gray-100 dark:bg-[#1b1e2c]">
- <div style={{ width: `${positivePercent}%` }} className="bg-emerald-400 relative" />
- <div style={{ width: `${yellowPercent}%` }} className="bg-amber-400 relative" />
- <div style={{ width: `${redPercent}%` }} className="bg-red-400 relative" />
- </div>
  </div>
  </div>
  </div>
@@ -350,7 +316,7 @@ export default function ReportView({
  </svg>
  </div>
  <div>
- <h2 className="text-[15px] font-bold text-slate-800 dark:text-white">Flag History</h2>
+ <h2 className="text-[15px] font-bold text-slate-800 dark:text-white">Student History</h2>
  <p className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Timeline</p>
  </div>
  </div>

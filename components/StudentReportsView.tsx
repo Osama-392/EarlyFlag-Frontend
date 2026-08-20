@@ -60,10 +60,10 @@ export default function StudentReportsView({
 
  const getStatusBadge = (student: Student) => {
  const { green, yellow, red } = getSignalCounts(student);
- if (red > 0) return { text: 'Red Flag', color: 'bg-red-100 text-red-700' };
- if (yellow > 0) return { text: 'Yellow', color: 'bg-yellow-100 text-yellow-700' };
+ if (red > 0) return { text: 'Red Incident', color: 'bg-red-100 text-red-700' };
+ if (yellow > 0) return { text: 'Yellow Incident', color: 'bg-yellow-100 text-yellow-700' };
  if (green > 0) return { text: 'Super Green', color: 'bg-green-100 text-green-700' };
- return { text: 'Neutral', color: 'bg-gray-100 dark:bg-[#1b1e2c] text-gray-700 dark:text-gray-300' };
+ return null;
  };
 
  const handleCreateReport = (student: Student) => {
@@ -187,11 +187,13 @@ export default function StudentReportsView({
  <div className="flex-1">
  <div className="flex items-center space-x-2">
  <h3 className="font-semibold text-gray-900 dark:text-white">{student.first_name} {student.last_name}</h3>
+ {status && (
  <span
  className={`text-xs font-semibold px-2 py-1 rounded-full ${status.color}`}
  >
  {status.text}
  </span>
+ )}
  </div>
  <p className="text-sm text-gray-500 dark:text-gray-400">Grade {student.grade_level || 6}</p>
  </div>

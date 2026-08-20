@@ -678,10 +678,14 @@ export default function Dashboard() {
  {red_urgent.map((item) => (
  <div key={item.alert_id} className="bg-white dark:bg-[#151722] rounded-lg p-3 border border-red-100 dark:border-red-900/30 shadow-sm">
  <div className="flex items-start justify-between mb-1.5">
- <div>
- <p className="font-bold text-gray-900 dark:text-white text-sm">{item.student.first_name} {item.student.last_name}</p>
- <p className="text-[11px] text-gray-500 dark:text-gray-400">Gr {item.student.grade_level}</p>
- </div>
+  <div>
+  <div className="flex items-center gap-1.5">
+  <p className="font-bold text-gray-900 dark:text-white text-sm">{item.student.first_name} {item.student.last_name}</p>
+  </div>
+  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+  Gr {item.student.grade_level}
+  </p>
+  </div>
  <span className="text-[9px] font-bold text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded uppercase tracking-wider">{item.severity}</span>
  </div>
  <p className="text-xs text-gray-700 dark:text-gray-300 mb-2 bg-red-50 dark:bg-red-900/10 p-1.5 rounded border dark:border-red-900/20 leading-tight">{item.rule_description}</p>
@@ -722,7 +726,7 @@ export default function Dashboard() {
  {item.parent_email_on_file ? (
  <span className="text-[9px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded font-bold">Email Sent</span>
  ) : (
- <span className="text-[9px] bg-gray-100 dark:bg-[#202330] text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded font-bold">No Email</span>
+ <div />
  )}
  <button
  onClick={() => setTemplateModalData({
