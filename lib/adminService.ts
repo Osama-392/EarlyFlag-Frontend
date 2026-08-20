@@ -45,6 +45,8 @@ export interface AdminReferral {
   referred_by_id: string;
   referred_by_first_name: string;
   referred_by_last_name: string;
+  subject?: string;
+  class_name?: string;
 }
 
 export interface EscalationLogResponse {

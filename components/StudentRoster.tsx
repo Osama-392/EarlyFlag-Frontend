@@ -225,45 +225,47 @@ export default function StudentRoster() {
  {filteredStudents.map((student) => {
  const initials = `${student.first_name.charAt(0)}${student.last_name.charAt(0)}`.toUpperCase();
  
- // MOCKUP Logic: Map status based on today's signal, fallback to neutral
- let statusColor = "bg-gray-400 text-white";
- let statusText = "Neutral";
- if (student.today_signal?.signal_type === 'green') {
- statusColor = "bg-emerald-500 text-white";
- statusText = "Super Green";
- } else if (student.today_signal?.signal_type === 'red') {
- statusColor = "bg-red-400 text-white";
- statusText = "Red";
- } else if (student.today_signal?.signal_type === 'yellow') {
- statusColor = "bg-amber-400 text-white";
- statusText = "Yellow";
- }
+  // Map status based on today's signal
+  let statusColor = "bg-gray-400 text-white";
+  let statusText: string | null = null;
+  if (student.today_signal?.signal_type === 'green') {
+  statusColor = "bg-emerald-500 text-white";
+  statusText = "Super Green";
+  } else if (student.today_signal?.signal_type === 'red') {
+  statusColor = "bg-red-400 text-white";
+  statusText = "Red Incident";
+  } else if (student.today_signal?.signal_type === 'yellow') {
+  statusColor = "bg-amber-400 text-white";
+  statusText = "Yellow Incident";
+  }
 
- // Mockup counts (using static or extracted if available)
- const yellowCount = student.today_signal?.signal_type === 'yellow' ? 1 : 0; // Ideally from actual history
- const redCount = student.today_signal?.signal_type === 'red' ? 1 : 0;
+  // Mockup counts (using static or extracted if available)
+  const yellowCount = student.today_signal?.signal_type === 'yellow' ? 1 : 0; // Ideally from actual history
+  const redCount = student.today_signal?.signal_type === 'red' ? 1 : 0;
 
- return (
- <div
- key={student.id}
- className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors group"
- >
- <div className="flex items-center space-x-4">
- {/* Avatar */}
- <div className="w-11 h-11 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium text-sm shadow-sm">
- {initials}
- </div>
+  return (
+  <div
+  key={student.id}
+  className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors group"
+  >
+  <div className="flex items-center space-x-4">
+  {/* Avatar */}
+  <div className="w-11 h-11 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium text-sm shadow-sm">
+  {initials}
+  </div>
 
- {/* Student Info */}
- <div>
- <div className="flex items-center gap-3">
- <p className="font-semibold text-slate-800 dark:text-white">
- {student.first_name} {student.last_name}
- </p>
- <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor} tracking-wide uppercase`}>
- {statusText}
- </span>
- </div>
+  {/* Student Info */}
+  <div>
+  <div className="flex items-center gap-3">
+  <p className="font-semibold text-slate-800 dark:text-white">
+  {student.first_name} {student.last_name}
+  </p>
+  {statusText && (
+  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor} tracking-wide uppercase`}>
+  {statusText}
+  </span>
+  )}
+  </div>
  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Grade {student.grade_level}</p>
  </div>
  </div>
@@ -302,10 +304,7 @@ export default function StudentRoster() {
   isOpen={!!selectedStudentForHistory}
   onClose={() => setSelectedStudentForHistory(null)}
   studentName={selectedStudentForHistory ? `${selectedStudentForHistory.first_name} ${selectedStudentForHistory.last_name}` : ''}
-  history={(studentHistory || []).filter((s: any) => 
-    !s.reason_description?.includes('(Global)') && 
-    !s.note?.includes('(Global)')
-  )}
+  history={studentHistory || []}
   loading={historyLoading}
   />
 

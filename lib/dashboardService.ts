@@ -61,6 +61,7 @@ export interface RedUrgentStudentSummary {
   first_name: string;
   last_name: string;
   grade_level: number;
+  subject?: string;
 }
 
 export interface RedUrgentRow {
@@ -71,6 +72,8 @@ export interface RedUrgentRow {
   student: RedUrgentStudentSummary;
   recent_flags?: any[];
   alert_category?: 'academic' | 'behavioral';
+  subject?: string;
+  class_name?: string;
 }
 
 export interface SuperGreenHighlightRow {

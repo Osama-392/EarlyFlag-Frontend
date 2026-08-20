@@ -75,11 +75,8 @@ export default function StudentProfile() {
  }
 
   // Calculate stats from history data
-  const rawSignals = (history?.signals || []).filter((s: any) => 
-    !s.reason_description?.includes('(Global)') && 
-    !s.title?.includes('(Global)') && 
-    !s.note?.includes('(Global)')
-  );
+  // Backend already scopes signals by teacher_id - no client-side global filtering needed
+  const rawSignals = history?.signals || [];
   const rawReferrals = history?.referrals || [];
   
   const mappedReferrals = rawReferrals.map((r: any) => {
@@ -256,12 +253,6 @@ export default function StudentProfile() {
  }`}>
  Status : {statusText} Active
  </div>
- <div className="px-4 py-2 bg-gray-100 dark:bg-[#1b1e2c] text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg border border-gray-200 dark:border-[#262a3d] shadow-sm">
- Days {statusText} : {history?.signals?.length || 0}
- </div>
- <div className="px-4 py-2 bg-amber-100/50 text-amber-700 text-xs font-bold rounded-lg border border-amber-200/50 shadow-sm">
- Notified : March 16
- </div>
  </div>
  </div>
 
@@ -275,76 +266,51 @@ export default function StudentProfile() {
  </div>
  <div>
  <h2 className="text-[15px] font-bold text-slate-800 dark:text-white">Last 7-Day</h2>
- <p className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Flags Summary</p>
+ <p className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Incidents Summary</p>
  </div>
  </div>
 
  <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm p-6 space-y-4">
- {/* Red Flags */}
+ {/* Red Incidents */}
  <div className="bg-red-50 dark:bg-[#1b1e2c] rounded-xl p-4 relative border border-red-100 dark:border-[#262a3d]">
  <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-2 shadow-sm">
  <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
  </div>
  <div className="text-3xl font-bold text-red-600 dark:text-red-400 mb-1">{redFlags.length}</div>
- <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Red Flags (7 Days)</h3>
+ <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Red Incidents (7 Days)</h3>
  <p className="text-xs text-red-400/80 mt-1">Urgent interventions</p>
  </div>
 
- {/* Yellow Flags */}
+ {/* Yellow Incidents */}
  <div className="bg-amber-50 dark:bg-[#1b1e2c] rounded-xl p-4 relative border border-amber-100 dark:border-[#262a3d]">
  <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-2 shadow-sm">
  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
  </div>
  <div className="text-3xl font-bold text-amber-600 dark:text-amber-400 mb-1">{yellowFlags.length}</div>
- <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Yellow Flags (7 Days)</h3>
+ <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Yellow Incidents (7 Days)</h3>
  <p className="text-xs text-amber-500/80 mt-1">Moderate concerns</p>
  </div>
 
- {/* Green Flags */}
+ {/* Super Green */}
  <div className="bg-emerald-50 dark:bg-[#1b1e2c] rounded-xl p-4 relative border border-emerald-100 dark:border-[#262a3d]">
  <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-2 shadow-sm">
  <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
  </div>
  <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">{greenFlags.length}</div>
- <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Green Flags (7 Days)</h3>
+ <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Super Green (7 Days)</h3>
  <p className="text-xs text-emerald-500/80 mt-1">Positive recognitions</p>
  </div>
-
- {/* Bar Chart Summary */}
- <div className="pt-2">
- <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 font-semibold mb-2">
- <span>Red</span>
- <span>Green</span>
- </div>
- <div className="flex h-2.5 rounded-full overflow-hidden bg-gray-100 dark:bg-[#1b1e2c]">
- <div style={{ width: `${redPercent}%` }} className="bg-red-400 relative">
- {redFlags.length > 0 && (
- <span className="absolute -top-6 right-0 text-[10px] font-bold bg-red-100 text-red-600 px-1.5 rounded-full">{redFlags.length}</span>
- )}
- </div>
- <div style={{ width: `${yellowPercent}%` }} className="bg-amber-400 relative">
- {yellowFlags.length > 0 && (
- <span className="absolute -top-6 right-0 text-[10px] font-bold bg-amber-100 text-amber-600 px-1.5 rounded-full">{yellowFlags.length}</span>
- )}
- </div>
- <div style={{ width: `${greenPercent}%` }} className="bg-emerald-400 relative">
- {greenFlags.length > 0 && (
- <span className="absolute -top-6 right-0 text-[10px] font-bold bg-emerald-100 text-emerald-600 px-1.5 rounded-full">{greenFlags.length}</span>
- )}
- </div>
- </div>
- </div>
  </div>
  </div>
 
- {/* Right Column: Flag History */}
+ {/* Right Column: Student History */}
  <div className="space-y-4">
  <div className="flex items-center gap-2 mb-2">
  <div className="p-1.5 bg-amber-50 text-amber-500 rounded-lg">
  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path></svg>
  </div>
  <div>
- <h2 className="text-[15px] font-bold text-slate-800 dark:text-white">Flag History</h2>
+ <h2 className="text-[15px] font-bold text-slate-800 dark:text-white">Student History</h2>
  <p className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Last 30 days</p>
  </div>
  </div>
