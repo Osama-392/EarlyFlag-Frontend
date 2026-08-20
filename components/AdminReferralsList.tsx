@@ -171,6 +171,11 @@ export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '3
  <div>
  <div className="flex items-center gap-2 mb-1">
  <h3 className="font-bold text-gray-900 dark:text-white text-[15px]">{referral.student_first_name} {referral.student_last_name}</h3>
+ {referral.subject && (
+ <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold border border-slate-200 dark:border-slate-700">
+ {referral.subject}
+ </span>
+ )}
  {isRedFlag ? (
  <>
  <span className="px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-[10px] font-bold flex items-center gap-1">
@@ -201,6 +206,12 @@ export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '3
  <span>{formatDate(referral.created_at)}</span>
  <span>•</span>
  <span>{referral.student_grade_level}{[1,2,3].includes(referral.student_grade_level % 10) ? ['st','nd','rd'][(referral.student_grade_level % 10) - 1] : 'th'} Grade</span>
+ {referral.subject && (
+ <>
+ <span>•</span>
+ <span>{referral.subject}</span>
+ </>
+ )}
  {!isRedFlag && (
  <>
  <span>•</span>
@@ -226,7 +237,7 @@ export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '3
    setEmailModalStudent({
      student_id: referral.student_id,
      student_name: `${referral.student_first_name} ${referral.student_last_name}`,
-     class_name: '',
+     class_name: referral.class_name || referral.subject || '',
      teacher_name: 'Administration',
      reason: referral.note,
      flags_count: 1

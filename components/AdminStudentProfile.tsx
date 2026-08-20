@@ -204,12 +204,12 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
  </div>
 
 
- {/* Flag History */}
+ {/* Student History */}
  {profile.flag_log && profile.flag_log.length > 0 && (
  <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden mb-6">
  <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex items-center gap-2">
  <Activity size={16} className="text-teal-500" />
- <h3 className="text-sm font-bold text-gray-900 dark:text-white">Flag History</h3>
+ <h3 className="text-sm font-bold text-gray-900 dark:text-white">Student History</h3>
  </div>
  <div className="divide-y divide-gray-100 dark:divide-[#262a3d] max-h-96 overflow-y-auto">
  {profile.flag_log.map((flag: any, i: number) => {
