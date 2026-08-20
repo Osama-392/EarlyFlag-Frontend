@@ -118,64 +118,139 @@ export default function ReportView({
  }
  };
 
- // Use custom window counts if available, otherwise fall back to 30d window
- const summaryCounts = report?.summary_counts?.window_custom || report?.summary_counts?.window_30d;
-
- // Backend now returns window_custom for custom date ranges - counts are accurate
- const redCount = summaryCounts?.red || 0;
- const yellowCount = summaryCounts?.yellow || 0;
- const superGreenCount = summaryCounts?.super_green || 0;
- const presentCount = summaryCounts?.present || 0;
-
- // Determine overall status based on count severities
- let statusText = 'Super Green';
- if (redCount > 0) {
-  statusText = 'Red';
- } else if (yellowCount > 0) {
-  statusText = 'Yellow';
- }
-
- // Calculate percentages for the summary bar
- const totalCounts = redCount + yellowCount + (superGreenCount + presentCount);
- const divisor = totalCounts || 1;
- const redPercent = Math.round((redCount / divisor) * 100);
- const yellowPercent = Math.round((yellowCount / divisor) * 100);
- const positivePercent = Math.round(((superGreenCount + presentCount) / divisor) * 100);
-
- // Flag log is already teacher-scoped from the backend
- const incidents = (report?.flag_log || [])
-  .map((flag: any) => {
- let rawDate = new Date(flag.signal_date + 'T00:00:00');
- let dayOfWeek = '';
- let shortDate = flag.signal_date;
- try {
- shortDate = rawDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
- dayOfWeek = rawDate.toLocaleDateString('en-US', { weekday: 'short' });
- } catch (e) {}
- 
-  const sType = flag.signal_type ? flag.signal_type.toUpperCase() : '';
-  let typeLabel = flag.signal_type ? flag.signal_type.charAt(0).toUpperCase() + flag.signal_type.slice(1).toLowerCase() : '';
-  if (sType === 'YELLOW') typeLabel = 'Yellow Incident';
-  if (sType === 'RED') typeLabel = 'Red Incident';
-  
-  let catLabel = '';
-  if (flag.category) {
-  if (flag.category.toLowerCase() === 'super_green') catLabel = 'Super Green';
-  else catLabel = flag.category.charAt(0).toUpperCase() + flag.category.slice(1).toLowerCase();
-  }
-  const displayType = catLabel && sType !== 'SUPER_GREEN' ? `${typeLabel} - ${catLabel}` : (sType === 'SUPER_GREEN' ? 'Super Green' : typeLabel);
-
-  return {
-  date: shortDate,
-  dayOfWeek,
-  type: displayType,
-  title: flag.title ? flag.title.replace(/Yellow Flag/gi, 'Yellow Incident').replace(/Red Flag/gi, 'Red Incident') : (sType === 'RED' ? 'Red Incident Logged' : sType === 'YELLOW' ? 'Yellow Incident Logged' : 'Signal Logged'),
-  description: flag.description ? flag.description.replace(/Yellow Flag/gi, 'Yellow Incident').replace(/Red Flag/gi, 'Red Incident') : '',
-  className: flag.class_name,
-  teacherName: flag.teacher_name,
-  signalType: sType,
+  // Helper to rule out global/cross-class auto-escalations from teacher reports
+  const isGlobalAutoEscalation = (s: any): boolean => {
+    if (!s) return false;
+    const reasonCode = String(s.reason_code || '').toLowerCase();
+    const reasonDesc = String(s.reason_description || s.reason || '').toLowerCase();
+    const note = String(s.note || '').toLowerCase();
+    const title = String(s.title || s.rule_name || s.rule_description || '').toLowerCase();
+    const desc = String(s.description || '').toLowerCase();
+    const alertRule = String(s.triggered_by_rule || s.rule || '').toLowerCase();
+    
+    if (alertRule.includes('global') || alertRule.includes('cross-class') || alertRule.includes('cross_class')) return true;
+    if (reasonDesc.includes('(global)') || reasonDesc.includes('global') || reasonDesc.includes('cross-class') || reasonDesc.includes('across all classes')) return true;
+    if (note.includes('across all classes') || note.includes('cross-class') || note.includes('auto-escalated to red') || note.includes('system auto-escalation (global)')) return true;
+    if (title.includes('global') || title.includes('cross-class') || title.includes('across all classes')) return true;
+    if (desc.includes('across all classes') || desc.includes('cross-class') || desc.includes('global auto-escalation') || desc.includes('system auto-escalation (global)')) return true;
+    if (reasonCode === 'auto_escalation' && (note.includes('all classes') || note.includes('auto-escalat') || reasonDesc.includes('global'))) return true;
+    return false;
   };
- }) || [];
+
+  // Filter out global auto-escalations from report flag_log
+  const filteredFlagLog = (report?.flag_log || []).filter((flag: any) => !isGlobalAutoEscalation(flag));
+
+  // Helper to categorize flags and referrals
+  const isRedIncident = (f: any) => {
+    const st = String(f.signal_type || '').toUpperCase();
+    const cat = String(f.category || '').toUpperCase();
+    const title = String(f.title || '').toUpperCase();
+    const desc = String(f.description || '').toUpperCase();
+    if (st === 'RED') return true;
+    if (st === 'REFERRAL' || cat === 'REFERRAL') {
+      return title.includes('ADMIN') || title.includes('RED') || desc.includes('ADMIN') || (!title.includes('YELLOW') && !title.includes('GREEN') && !title.includes('SUPER_GREEN') && !title.includes('POSITIVE'));
+    }
+    return false;
+  };
+
+  const isYellowIncident = (f: any) => {
+    const st = String(f.signal_type || '').toUpperCase();
+    const cat = String(f.category || '').toUpperCase();
+    const title = String(f.title || '').toUpperCase();
+    if (st === 'YELLOW') return true;
+    if (st === 'REFERRAL' || cat === 'REFERRAL') {
+      return title.includes('YELLOW');
+    }
+    return false;
+  };
+
+  const isSuperGreenIncident = (f: any) => {
+    const st = String(f.signal_type || '').toUpperCase();
+    const cat = String(f.category || '').toUpperCase();
+    const title = String(f.title || '').toUpperCase();
+    if (st === 'SUPER_GREEN' || st === 'GREEN' || cat === 'SUPER_GREEN') return true;
+    if (st === 'REFERRAL' || cat === 'REFERRAL') {
+      return title.includes('GREEN') || title.includes('POSITIVE') || title.includes('SUPER_GREEN');
+    }
+    return false;
+  };
+
+  // Count incidents accurately including referrals
+  const redCount = filteredFlagLog.filter(isRedIncident).length;
+  const yellowCount = filteredFlagLog.filter(isYellowIncident).length;
+  const superGreenCount = filteredFlagLog.filter(isSuperGreenIncident).length;
+  const presentCount = filteredFlagLog.filter((f: any) => String(f.signal_type || '').toUpperCase() === 'PRESENT').length;
+
+  // Determine overall status based on count severities
+  let statusText = 'Super Green';
+  if (redCount > 0) {
+    statusText = 'Red';
+  } else if (yellowCount > 0) {
+    statusText = 'Yellow';
+  }
+
+  // Calculate percentages for the summary bar
+  const totalCounts = redCount + yellowCount + (superGreenCount + presentCount);
+  const divisor = totalCounts || 1;
+  const redPercent = Math.round((redCount / divisor) * 100);
+  const yellowPercent = Math.round((yellowCount / divisor) * 100);
+  const positivePercent = Math.round(((superGreenCount + presentCount) / divisor) * 100);
+
+  // Flag log is already teacher-scoped and global auto escalations are ruled out
+  const incidents = filteredFlagLog
+    .map((flag: any) => {
+      let rawDate = new Date(flag.signal_date + 'T00:00:00');
+      let dayOfWeek = '';
+      let shortDate = flag.signal_date;
+      try {
+        shortDate = rawDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        dayOfWeek = rawDate.toLocaleDateString('en-US', { weekday: 'short' });
+      } catch (e) {}
+      
+      const rawSType = flag.signal_type ? String(flag.signal_type).toUpperCase() : '';
+      const catUpper = String(flag.category || '').toUpperCase();
+      const titleUpper = String(flag.title || '').toUpperCase();
+
+      let effectiveSType = rawSType;
+      if (rawSType === 'REFERRAL' || catUpper === 'REFERRAL') {
+        if (titleUpper.includes('YELLOW')) effectiveSType = 'YELLOW';
+        else if (titleUpper.includes('GREEN') || titleUpper.includes('POSITIVE') || titleUpper.includes('SUPER_GREEN')) effectiveSType = 'SUPER_GREEN';
+        else effectiveSType = 'RED';
+      }
+
+      let typeLabel = effectiveSType ? effectiveSType.charAt(0).toUpperCase() + effectiveSType.slice(1).toLowerCase() : '';
+      if (effectiveSType === 'YELLOW') typeLabel = 'Yellow Incident';
+      if (effectiveSType === 'RED') typeLabel = 'Red Incident';
+      if (effectiveSType === 'SUPER_GREEN') typeLabel = 'Super Green';
+      
+      let catLabel = '';
+      if (flag.category) {
+        if (flag.category.toLowerCase() === 'super_green') catLabel = 'Super Green';
+        else if (flag.category.toLowerCase() === 'referral') catLabel = 'Referral';
+        else catLabel = flag.category.charAt(0).toUpperCase() + flag.category.slice(1).toLowerCase();
+      }
+
+      let displayType = catLabel && effectiveSType !== 'SUPER_GREEN' && catLabel !== typeLabel
+        ? `${typeLabel} - ${catLabel}`
+        : (effectiveSType === 'SUPER_GREEN' && catLabel === 'Referral' ? 'Super Green - Referral' : (effectiveSType === 'SUPER_GREEN' ? 'Super Green' : typeLabel));
+
+      if (catUpper === 'REFERRAL') {
+        if (effectiveSType === 'YELLOW') displayType = 'Yellow Referral';
+        else if (effectiveSType === 'SUPER_GREEN') displayType = 'Positive Referral';
+        else displayType = 'Admin Referral';
+      }
+
+      return {
+        date: shortDate,
+        dayOfWeek,
+        type: displayType,
+        title: flag.title ? flag.title.replace(/Yellow Flag/gi, 'Yellow Incident').replace(/Red Flag/gi, 'Red Incident') : (effectiveSType === 'RED' ? 'Red Incident Logged' : effectiveSType === 'YELLOW' ? 'Yellow Incident Logged' : 'Signal Logged'),
+        description: flag.description ? flag.description.replace(/Yellow Flag/gi, 'Yellow Incident').replace(/Red Flag/gi, 'Red Incident') : '',
+        className: flag.class_name,
+        teacherName: flag.teacher_name,
+        signalType: effectiveSType,
+      };
+    }) || [];
 
  const recommendations = report?.talking_points || [];
  const teachersNotes = report?.one_ask_for_parents || (report ? 'No notes provided.' : '');
