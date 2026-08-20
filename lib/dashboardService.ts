@@ -54,6 +54,8 @@ export interface YellowWatchListRow {
   yellow_total: number;
   unresolved_alert_max_severity?: string | null;
   alert_category?: 'academic' | 'behavioral';
+  subject?: string;
+  class_name?: string;
 }
 
 export interface RedUrgentStudentSummary {
