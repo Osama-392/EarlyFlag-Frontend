@@ -62,23 +62,6 @@ export default function StudentReportsView({
     return false;
   };
 
-  const getSignalCounts = (student: Student) => {
-    if (!student.today_signal || isGlobalAutoEscalation(student.today_signal)) return { green: 0, yellow: 0, red: 0 };
-    const signal = student.today_signal;
-    if (signal.signal_type === 'green' || signal.signal_type === 'super_green') return { green: 1, yellow: 0, red: 0 };
-    if (signal.signal_type === 'yellow') return { green: 0, yellow: 1, red: 0 };
-    if (signal.signal_type === 'red') return { green: 0, yellow: 0, red: 1 };
-    return { green: 0, yellow: 0, red: 0 };
-  };
-
-  const getStatusBadge = (student: Student) => {
-    const { green, yellow, red } = getSignalCounts(student);
-    if (red > 0) return { text: 'Red Incident', color: 'bg-red-100 text-red-700' };
-    if (yellow > 0) return { text: 'Yellow Incident', color: 'bg-yellow-100 text-yellow-700' };
-    if (green > 0) return { text: 'Super Green', color: 'bg-green-100 text-green-700' };
-    return null;
-  };
-
   const handleCreateReport = (student: Student) => {
     logger.buttonClick(`Create Report for ${student.first_name}`, 'StudentReportsView');
     setSelectedStudent(student);
@@ -187,7 +170,6 @@ export default function StudentReportsView({
         <div className="space-y-3">
           {filteredStudents.length > 0 ? (
             filteredStudents.map((student) => {
-              const status = getStatusBadge(student);
               const initials = `${student.first_name.charAt(0)}${student.last_name.charAt(0)}`.toUpperCase();
 
               return (
@@ -206,16 +188,7 @@ export default function StudentReportsView({
 
                     {/* Student Details */}
                     <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <h3 className="font-semibold text-gray-900 dark:text-white">{student.first_name} {student.last_name}</h3>
-                        {status && (
-                          <span
-                            className={`text-xs font-semibold px-2 py-1 rounded-full ${status.color}`}
-                          >
-                            {status.text}
-                          </span>
-                        )}
-                      </div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{student.first_name} {student.last_name}</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Grade {student.grade_level || 6}</p>
                     </div>
                   </div>
@@ -255,11 +228,9 @@ export default function StudentReportsView({
           student={{
             id: selectedStudent.id,
             name: `${selectedStudent.first_name} ${selectedStudent.last_name}`,
-            status: (getStatusBadge(selectedStudent)?.text?.toLowerCase() || 'neutral') as any,
+            status: 'neutral',
             initial: `${selectedStudent.first_name.charAt(0)}${selectedStudent.last_name.charAt(0)}`.toUpperCase(),
             bgColor: 'from-blue-400 to-blue-600',
-            redCount: getSignalCounts(selectedStudent).red,
-            yellowCount: getSignalCounts(selectedStudent).yellow,
           }}
           defaultSubject={classData.subject || classData.name}
           gradeSubjects={gradeSubjects}
