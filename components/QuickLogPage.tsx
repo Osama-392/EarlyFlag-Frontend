@@ -19,23 +19,25 @@ interface Student {
 }
 
 interface LogEntry {
- studentId: string;
- superGreen?: boolean;
- green?: boolean;
- yellow?: boolean;
- red?: boolean;
- absent?: boolean;
- flagData?: {
- type: string;
- category?: string;
- reasons?: string[];
- flags?: Array<{
- category: string;
- reasons: string[];
- }>;
- note?: string;
- };
- isDraft?: boolean;
+  studentId: string;
+  superGreen?: boolean;
+  green?: boolean;
+  yellow?: boolean;
+  red?: boolean;
+  absent?: boolean;
+  flagData?: {
+    flagType?: string;
+    type?: string;
+    studentId?: string;
+    category?: string;
+    reasons?: string[];
+    flags?: Array<{
+      category: string;
+      reasons: string[];
+    }>;
+    note?: string;
+  };
+  isDraft?: boolean;
 }
 
 interface QuickLogPageProps {
@@ -483,7 +485,7 @@ export default function QuickLogPage({ onCancel, initialClassId, targetDate }: Q
  flagType={selectedFlagModal.type}
  student={selectedFlagModal.student}
  apiStudent={apiStudents.find(s => s.id === selectedFlagModal.student.id)}
- initialData={logData[selectedFlagModal.student.id]?.flagData}
+ initialData={logData[selectedFlagModal.student.id]?.flagData?.flagType === selectedFlagModal.type ? logData[selectedFlagModal.student.id]?.flagData : undefined}
  onClose={() => setSelectedFlagModal(null)}
  onSubmit={(data) => {
  logger.info('Flag submitted', data, 'QuickLog');

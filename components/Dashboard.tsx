@@ -629,7 +629,19 @@ export default function Dashboard() {
  <tbody>
  {yellow_watch_list.map((row) => (
  <tr key={row.student_id} className="border-b border-gray-100 dark:border-[#2e3240] hover:bg-gray-50 dark:hover:bg-[#202330] transition">
- <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">{row.first_name} {row.last_name}</td>
+ <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span>{row.first_name} {row.last_name}</span>
+                        {(row.red_escalation_count || 0) > 0 && (
+                          <span 
+                            className="inline-flex items-center px-1.5 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-bold text-[10px] rounded-full border border-red-200 dark:border-red-800"
+                            title={`${row.red_escalation_count} Red Escalation${row.red_escalation_count === 1 ? '' : 's'}`}
+                          >
+                            +{row.red_escalation_count}
+                          </span>
+                        )}
+                      </div>
+                    </td>
  <td className="px-3 py-2 text-gray-500 dark:text-gray-400">Gr {row.grade_level}</td>
  <td className="px-3 py-2">
  <span className="text-blue-600 dark:text-blue-400 font-semibold">{row.yellow_academic_count}</span>
