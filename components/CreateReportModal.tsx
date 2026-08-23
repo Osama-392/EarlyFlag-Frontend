@@ -94,21 +94,6 @@ export default function CreateReportModal({
  {/* Student Info */}
  <div>
  <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{student.name}</h3>
- <div className="flex items-center space-x-1 mt-0.5">
- {(student.redCount ?? 0) > 0 && (
- <span className="inline-flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full">
- {student.redCount}
- </span>
- )}
- {(student.yellowCount ?? 0) > 0 && (
- <span className="inline-flex items-center justify-center w-5 h-5 bg-yellow-400 text-white text-xs font-bold rounded-full">
- {student.yellowCount}
- </span>
- )}
- {(student.redCount ?? 0) === 0 && (student.yellowCount ?? 0) === 0 && (
- <span className="text-xs text-gray-400">No active flags</span>
- )}
- </div>
  </div>
  </div>
 

@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Search, FileText, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import CreateReportModal from '@/components/CreateReportModal';
-import ReportView from '@/components/ReportView';
+import StudentProfile from '@/components/StudentProfile';
 import { logger } from '@/lib/logger';
 import { useStudentRoster } from '@/lib/useStudentRoster';
 import { Student } from '@/lib/studentService';
@@ -118,15 +118,9 @@ export default function StudentReportsView({
   // Show report view if a report has been generated
   if (generatedReport) {
     return (
-      <ReportView
-        student={{
-          id: generatedReport.student.id,
-          name: `${generatedReport.student.first_name} ${generatedReport.student.last_name}`,
-          gradeLevel: generatedReport.student.grade_level || 6,
-          initial: `${generatedReport.student.first_name.charAt(0)}${generatedReport.student.last_name.charAt(0)}`.toUpperCase(),
-          bgColor: 'from-blue-400 to-blue-600'
-        }}
-        reportData={generatedReport.reportData}
+      <StudentProfile
+        studentId={generatedReport.student.id}
+        classId={classData?.id}
         onBack={handleBackFromReport}
       />
     );

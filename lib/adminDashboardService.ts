@@ -305,6 +305,9 @@ export interface AdminStudentReferralRow {
   referred_by_id: string;
   referred_by_first_name: string;
   referred_by_last_name: string;
+  note?: string | null;
+  subject?: string | null;
+  class_name?: string | null;
   created_at: string;
 }
 
@@ -321,9 +324,45 @@ export interface AdminStudentProfileBlock {
   unresolved_alerts: AdminStudentAlertRow[];
   recent_referrals: AdminStudentReferralRow[];
   recent_notes: ReportRecentNoteRow[];
-  flag_log: any[]; // Or import ReportFlagLogRow if available, but any[] is fine for now
+  flag_log: any[];
   admin_email_concerns?: string | null;
   admin_email_reason?: string | null;
+}
+
+export interface AdminStudentReportPayload {
+  student: ReportStudentHeader;
+  summary_counts?: {
+    total_signals: number;
+    super_green_count: number;
+    yellow_count: number;
+    red_count: number;
+    absent_count: number;
+  };
+  counts_7d?: SignalCountsByType;
+  counts_30d?: SignalCountsByType;
+  counts_semester?: SignalCountsByType;
+  category_7d?: ReportCategoryBreakdown;
+  category_breakdown?: ReportCategoryBreakdown;
+  timeline_30d?: DailySignalBucket[];
+  semester_start?: string;
+  semester_end?: string;
+  semester_absent_count?: number;
+  unresolved_alerts?: AdminStudentAlertRow[];
+  recent_referrals?: AdminStudentReferralRow[];
+  recent_notes?: ReportRecentNoteRow[];
+  talking_points?: string[];
+  one_ask_for_parents?: string;
+  flag_log?: Array<{
+    signal_date: string;
+    class_name: string;
+    teacher_name: string;
+    signal_type: string;
+    category?: string;
+    title?: string;
+    description?: string;
+  }>;
+  admin_email_reason?: string | null;
+  admin_email_concerns?: string | null;
 }
 
 // ─── 6. Counselor Escalation Log ──────────────────────────────────
