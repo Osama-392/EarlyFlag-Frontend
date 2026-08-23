@@ -1,14 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
   ArrowLeft, Mail, MessageSquare, Edit, AlertCircle, CheckCircle, 
-  AlertTriangle, Download, Loader2 
+  AlertTriangle 
 } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import { getStudentHistory, updateStudentProfile } from '@/lib/studentService';
 import { getCategoryStyle } from '@/lib/categoryColors';
 import EditStudentProfileModal from '@/components/EditStudentProfileModal';
@@ -36,8 +34,6 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [emailCategoryState, setEmailCategoryState] = useState<'red' | 'yellow' | 'super_green' | 'absent' | null>(null);
   const [isSendAdminModalOpen, setIsSendAdminModalOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const profileContentRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
 
   const loadStudent = async () => {
@@ -228,79 +224,8 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
   // Notes
   const notes = signals.filter((s: any) => s.note && s.note.trim() !== '');
 
-  const handleExportPDF = async () => {
-    if (!profileContentRef.current) return;
-    logger.buttonClick('Export as PDF', 'StudentProfile');
-    setExporting(true);
-    try {
-      const canvas = await html2canvas(profileContentRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#f9fafb',
-        windowWidth: 1200,
-        onclone: (clonedDoc) => {
-          const scrollables = clonedDoc.querySelectorAll('.overflow-y-auto, [class*="max-h-"]');
-          scrollables.forEach((el: any) => {
-            el.style.maxHeight = 'none';
-            el.style.overflow = 'visible';
-            el.style.height = 'auto';
-          });
-          const hiddenWrappers = clonedDoc.querySelectorAll('.overflow-hidden');
-          hiddenWrappers.forEach((el: any) => {
-            el.style.overflow = 'visible';
-          });
-        },
-      });
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const usableWidth = pageWidth - margin * 2;
-      const imgWidth = usableWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      const usableHeight = pageHeight - margin * 2;
-
-      let yOffset = 0;
-      let page = 0;
-
-      while (yOffset < imgHeight) {
-        if (page > 0) pdf.addPage();
-        const sourceY = (yOffset / imgHeight) * canvas.height;
-        const sourceH = (usableHeight / imgHeight) * canvas.height;
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = Math.min(sourceH, canvas.height - sourceY);
-        const ctx = pageCanvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(
-            canvas,
-            0, sourceY, canvas.width, pageCanvas.height,
-            0, 0, canvas.width, pageCanvas.height,
-          );
-          const pageImg = pageCanvas.toDataURL('image/png');
-          const drawHeight = (pageCanvas.height * imgWidth) / canvas.width;
-          pdf.addImage(pageImg, 'PNG', margin, margin, imgWidth, drawHeight);
-        }
-        yOffset += usableHeight;
-        page++;
-      }
-
-      const safeName = studentFullName.replace(/[^a-zA-Z0-9]/g, '_');
-      pdf.save(`${safeName}_Report.pdf`);
-    } catch (err) {
-      console.error('PDF export failed:', err);
-    } finally {
-      setExporting(false);
-    }
-  };
-
   return (
-    <div ref={profileContentRef} className="max-w-6xl mx-auto space-y-6 pb-12">
+    <div className="max-w-6xl mx-auto space-y-6 pb-12">
       {/* Top Bar: Back Button and Actions */}
       <div className="flex items-center justify-between">
         {onBack ? (
@@ -322,16 +247,6 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
         )}
         
         <div className="flex items-center space-x-3">
-          <button
-            onClick={handleExportPDF}
-            disabled={exporting}
-            className="inline-flex items-center space-x-2 px-5 py-2 bg-gray-50 dark:bg-[#1b1e2c] border border-gray-200 dark:border-[#262a3d] text-slate-700 dark:text-slate-300 rounded-lg hover:bg-gray-100 dark:hover:bg-[#262a3d] transition-colors text-sm font-bold shadow-sm disabled:opacity-50"
-            title="Export Student Report as PDF"
-          >
-            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            <span>Export PDF</span>
-          </button>
-
           <button
             onClick={() => setIsSendAdminModalOpen(true)}
             className="inline-flex items-center space-x-2 px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-bold shadow-sm"
