@@ -190,7 +190,9 @@ export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '3
  <Clipboard className="w-2.5 h-2.5" />
  Manual Referral
  </span>
- <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">Super Green Student</span>
+ <span className="px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 text-[10px] font-bold">
+ Send to Admin
+ </span>
  </>
  )}
  </div>
@@ -206,15 +208,6 @@ export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '3
  <span>{formatDate(referral.created_at)}</span>
  <span>•</span>
  <span>{referral.student_grade_level}{[1,2,3].includes(referral.student_grade_level % 10) ? ['st','nd','rd'][(referral.student_grade_level % 10) - 1] : 'th'} Grade</span>
- {!isRedFlag && (
- <>
- <span>•</span>
- <span className="text-orange-500 flex items-center gap-1">
- <span className="w-3 h-3 border border-orange-500 rounded-sm flex items-center justify-center text-[8px]">!</span>
- Not a behavioral issue — welfare check
- </span>
- </>
- )}
  </div>
  </div>
  </div>

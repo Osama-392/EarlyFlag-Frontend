@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Users, Search, ArrowLeft, AlertCircle, ChevronRight, Shield, BookOpen, Flag, Trash2 } from 'lucide-react';
 import { getAdminClassDrilldown, AdminClassDrilldownBlock, unenrollStudentAdmin } from '@/lib/adminDashboardService';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
@@ -59,6 +59,8 @@ const statusConfig: Record<string, {
 
 export default function PrincipalClassRoster({ classId }: { classId: string }) {
  const router = useRouter();
+ const searchParams = useSearchParams();
+ const fromSource = searchParams ? searchParams.get('from') : null;
  const [searchTerm, setSearchTerm] = useState('');
  const [data, setData] = useState<AdminClassDrilldownBlock | null>(null);
  const [loading, setLoading] = useState(true);
@@ -161,10 +163,18 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
 
  {/* Back */}
  <button
- onClick={() => router.push('/principal-students')}
+ onClick={() => {
+ if (fromSource === 'heatmap') {
+ router.push('/principal-dashboard');
+ } else if (typeof window !== 'undefined' && window.history.length > 1) {
+ router.back();
+ } else {
+ router.push('/principal-students');
+ }
+ }}
  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm"
  >
- <ArrowLeft size={16} /> Back to Classes
+ <ArrowLeft size={16} /> {fromSource === 'heatmap' ? 'Back to Dashboard' : 'Back to Classes'}
  </button>
 
  {/* Header */}
@@ -222,7 +232,7 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
  return (
  <div
  key={student.student_id}
- onClick={() => router.push(`/principal-students/${(student as any).slug || student.student_id}`)}
+ onClick={() => router.push(`/principal-students/${(student as any).slug || student.student_id}${fromSource ? `?from=${fromSource}` : ''}`)}
  className={`roster-item bg-white dark:bg-[#151722] dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d]/80 border-t-[3.5px] ${cfg.accentBorder.replace('border-l-', 'border-t-')} rounded-xl p-5 cursor-pointer
  shadow-sm hover:shadow-lg ${cfg.glowShadow} ${cfg.bgHover}
  transition-all duration-200 group`}
