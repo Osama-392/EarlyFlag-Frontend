@@ -566,10 +566,7 @@ export default function PrincipalReportsPage() {
  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Student</th>
  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Signals</th>
  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Categories</th>
-
  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Alerts</th>
- <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Referrals</th>
- <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Last Flag</th>
  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Classes</th>
  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-900 dark:text-white dark:text-white uppercase">Actions</th>
  </tr>
@@ -598,8 +595,6 @@ export default function PrincipalReportsPage() {
  </td>
 
  <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{s.unresolved_alert_count}</td>
- <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{s.open_referral_count}</td>
- <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">{formatDate(s.last_flag_date)}</td>
  <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{s.enrolled_class_count}</td>
  <td className="px-4 py-3 text-right">
  <button
@@ -613,7 +608,7 @@ export default function PrincipalReportsPage() {
  </tr>
  ))}
  {(studentData?.students || []).length === 0 && (
- <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400 text-sm">No students found for selected filters</td></tr>
+ <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400 text-sm">No students found for selected filters</td></tr>
  )}
  </tbody>
  </table>

@@ -434,7 +434,7 @@ export default function PrincipalTeachersPage() {
  {tab === 'observation' && (
  <div className="space-y-4">
  <div className="flex items-center justify-between">
- <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400 text-sm">Class-level threshold flags (Rule 5: ≥30% yellow)</p>
+ <p className="text-gray-600 dark:text-gray-400 text-sm">Class-level threshold ( ≥30% Yellow )</p>
  <div className="flex items-center gap-2">
  <div className="flex bg-gray-100 dark:bg-[#1b1e2c] dark:bg-[#1b1e2c] rounded-lg p-1">
  {(['open', 'all'] as const).map(s => (

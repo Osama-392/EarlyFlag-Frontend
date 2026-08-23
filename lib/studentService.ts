@@ -189,8 +189,19 @@ export const createEnrollment = async (studentId: string, classId: string): Prom
   }
 };
 
+export type ReferralType = 'manual_green' | 'manual_yellow' | 'manual_admin';
+export type SignalCategory = 'academic' | 'behavioral';
+
+export interface CreateManualReferralRequest {
+  student_id: string;
+  referral_type: ReferralType | string;
+  category?: SignalCategory | string; // 'academic' | 'behavioral'
+  note: string;
+  priority?: 'low' | 'normal' | 'high' | 'urgent' | string;
+}
+
 // Send a counselor referral
-export const sendCounselorReferral = async (payload: { student_id: string; referral_type: string; note: string; priority?: string }): Promise<any> => {
+export const sendCounselorReferral = async (payload: CreateManualReferralRequest): Promise<any> => {
   try {
     const response = await api.post('/api/v1/teacher/referrals', payload);
     return response.data;
