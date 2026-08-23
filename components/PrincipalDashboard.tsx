@@ -321,12 +321,22 @@ export default function PrincipalDashboard() {
  {dashboard.yellow_watch_list.map((row) => (
  <tr key={row.student_id} className="border-b border-gray-100 dark:border-[#2e3240] hover:bg-gray-50 dark:hover:bg-[#202330] transition">
  <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">
+ <div className="flex items-center gap-1.5 flex-wrap">
  <span>{row.first_name} {row.last_name}</span>
  {row.subject && (
- <span className="text-black dark:text-white font-bold ml-1">
+ <span className="text-black dark:text-white font-bold">
  - {row.subject}
  </span>
  )}
+ {(row.red_escalation_count || 0) > 0 && (
+ <span 
+ className="inline-flex items-center px-1.5 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-bold text-[10px] rounded-full border border-red-200 dark:border-red-800"
+ title={`${row.red_escalation_count} Red Escalation${row.red_escalation_count === 1 ? '' : 's'}`}
+ >
+ +{row.red_escalation_count}
+ </span>
+ )}
+ </div>
  </td>
  <td className="px-3 py-2 text-gray-500 dark:text-gray-400">Gr {row.grade_level}</td>
  <td className="px-3 py-2">
@@ -493,10 +503,20 @@ export default function PrincipalDashboard() {
 
  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
  {displayedTiles.map(tile => {
- const c = bandColors[tile.band];
+      let tileBand: HeatmapBand = tile.band;
+      if (tile.active_enrollments === 0 || tile.band === 'no_data') {
+        tileBand = 'no_data';
+      } else if ((tile.red_count || 0) > 0) {
+        tileBand = 'red';
+      } else if ((tile.yellow_count || 0) > 0) {
+        tileBand = 'yellow';
+      } else {
+        tileBand = 'green';
+      }
+      const c = bandColors[tileBand];
  return (
  <div key={tile.class_id}
- onClick={() => router.push(`/principal-classes/${(tile as any).slug || tile.class_id}`)}
+ onClick={() => router.push(`/principal-classes/${(tile as any).slug || tile.class_id}?from=heatmap`)}
  className={`fade-up ${c.bg} border-2 ${c.border} rounded-xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-0.5`}>
  <div className="flex items-start justify-between mb-3">
  <div>
@@ -513,7 +533,7 @@ export default function PrincipalDashboard() {
  <span className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" title="Teacher observation flag" />
  )}
  <div className={`px-2 py-0.5 rounded-full text-xs font-bold ${c.badge} text-white`}>
- {tile.band === 'no_data' ? '—' : `${Math.round((tile.flag_percentage || 0) * 100)}%`}
+ {tileBand === 'no_data' ? '—' : `${Math.round((tile.flag_percentage || 0) * 100)}%`}
  </div>
  </div>
  </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
  ArrowLeft, AlertCircle, AlertTriangle, Shield, BookOpen, Clock,
  FileText, ChevronRight, RefreshCw, Activity, Calendar, UserMinus, Mail
@@ -48,6 +48,8 @@ function CountsCard({ label, counts }: { label: string; counts: SignalCountsByTy
 
 export default function AdminStudentProfile({ studentId }: { studentId: string }) {
  const router = useRouter();
+ const searchParams = useSearchParams();
+ const fromSource = searchParams ? searchParams.get('from') : null;
  const [profile, setProfile] = useState<AdminStudentProfileBlock | null>(null);
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState<string | null>(null);
@@ -117,7 +119,15 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
  <div className="flex items-start gap-4">
  <button 
- onClick={() => router.back()} 
+ onClick={() => {
+ if (typeof window !== 'undefined' && window.history.length > 1) {
+ router.back();
+ } else if (fromSource === 'heatmap') {
+ router.push('/principal-dashboard');
+ } else {
+ router.push('/principal-students');
+ }
+ }} 
  className="mt-1 flex items-center justify-center p-2 text-gray-500 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 dark:bg-[#1b1e2c] dark:text-gray-400 dark:hover:text-white dark:hover:bg-[#262a3d] rounded-lg transition-colors border border-transparent dark:border-[#262a3d]"
  title="Go Back"
  >

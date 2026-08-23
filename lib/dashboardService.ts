@@ -52,6 +52,7 @@ export interface YellowWatchListRow {
   yellow_academic_count: number;
   yellow_behavioral_count: number;
   yellow_total: number;
+  red_escalation_count?: number;
   unresolved_alert_max_severity?: string | null;
   alert_category?: 'academic' | 'behavioral';
   subject?: string;
