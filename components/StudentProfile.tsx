@@ -1,78 +1,102 @@
 'use client';
 
-import { ArrowLeft, Mail, MessageSquare, Edit, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
-import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { 
+  ArrowLeft, Mail, MessageSquare, Edit, AlertCircle, CheckCircle, 
+  AlertTriangle, Download, Loader2 
+} from 'lucide-react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { getStudentHistory, updateStudentProfile } from '@/lib/studentService';
 import { getCategoryStyle } from '@/lib/categoryColors';
 import EditStudentProfileModal from '@/components/EditStudentProfileModal';
 import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
 import SendAdminModal from '@/components/SendAdminModal';
 import { useAuth } from '@/app/providers';
+import { logger } from '@/lib/logger';
 
-export default function StudentProfile() {
- const params = useParams();
- const pathname = usePathname();
- const studentId = (params.studentId || params.studentSlug) as string;
- const classId = (params.classId || params.classSlug) as string;
+interface StudentProfileProps {
+  studentId?: string;
+  classId?: string;
+  onBack?: () => void;
+}
+
+export default function StudentProfile({ studentId: propStudentId, classId: propClassId, onBack }: StudentProfileProps = {}) {
+  const params = useParams();
+  const pathname = usePathname();
+  const studentId = (propStudentId || params?.studentId || params?.studentSlug) as string;
+  const classId = (propClassId || params?.classId || params?.classSlug) as string;
  
- const [loading, setLoading] = useState(true);
- const [error, setError] = useState<string | null>(null);
- const [history, setHistory] = useState<any>(null);
- const [isEditModalOpen, setIsEditModalOpen] = useState(false);
- const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
- const [emailCategoryState, setEmailCategoryState] = useState<'red' | 'yellow' | 'super_green' | 'absent' | null>(null);
- const [isSendAdminModalOpen, setIsSendAdminModalOpen] = useState(false);
- const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailCategoryState, setEmailCategoryState] = useState<'red' | 'yellow' | 'super_green' | 'absent' | null>(null);
+  const [isSendAdminModalOpen, setIsSendAdminModalOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const profileContentRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
 
- useEffect(() => {
- const loadStudent = async () => {
- try {
- setLoading(true);
- setError(null);
- 
- // Fetch student history which contains signal data
- const historyData = await getStudentHistory(studentId);
- setHistory(historyData);
- } catch (err: any) {
- const message = err?.response?.data?.detail?.[0]?.msg || 'Failed to load student data';
- setError(message);
- console.error('Error loading student:', err);
- } finally {
- setLoading(false);
- }
- };
+  const loadStudent = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch student history which contains signal data
+      const historyData = await getStudentHistory(studentId);
+      setHistory(historyData);
+    } catch (err: any) {
+      const message = err?.response?.data?.detail?.[0]?.msg || 'Failed to load student data';
+      setError(message);
+      console.error('Error loading student:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
- if (studentId) {
- loadStudent();
- }
- }, [studentId]);
+  useEffect(() => {
+    if (studentId) {
+      loadStudent();
+    }
+  }, [studentId]);
 
- if (loading) {
- return (
- <div className="flex items-center justify-center h-screen">
- <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
- </div>
- );
- }
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
- if (error) {
- return (
- <div className="space-y-6">
- <Link 
- href={pathname.startsWith('/reports') ? '/reports' : `/classes/${classId}`}
- className="inline-flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
- >
- <ArrowLeft className="w-4 h-4 mr-1" />
- {pathname.startsWith('/reports') ? 'Back to Reports' : 'Back to Roster'}
- </Link>
- <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
- <p className="text-red-700">{error}</p>
- </div>
- </div>
- );
- }
+  if (error) {
+    return (
+      <div className="space-y-6">
+        {onBack ? (
+          <button
+            onClick={onBack}
+            className="inline-flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            Back to Reports
+          </button>
+        ) : (
+          <Link 
+            href={pathname.startsWith('/reports') ? '/reports' : `/classes/${classId}`}
+            className="inline-flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            {pathname.startsWith('/reports') ? 'Back to Reports' : 'Back to Roster'}
+          </Link>
+        )}
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   // Calculate stats from history data
   const rawSignals = history?.signals || [];
@@ -95,7 +119,34 @@ export default function StudentProfile() {
     };
   });
 
-  const signals = [...rawSignals, ...mappedReferrals].sort((a, b) => new Date(b.signal_date || b.created_at).getTime() - new Date(a.signal_date || a.created_at).getTime());
+  const SEVERITY_ORDER: Record<string, number> = {
+    red: 0,
+    yellow: 1,
+    super_green: 2,
+    green: 2,
+    absent: 3,
+    present: 4,
+  };
+
+  const signals = [...rawSignals, ...mappedReferrals].sort((a, b) => {
+    const parseDateOnly = (item: any) => {
+      const d = item.signal_date || item.created_at;
+      if (!d) return 0;
+      return new Date(d.includes('T') ? d.split('T')[0] + 'T00:00:00Z' : d + 'T00:00:00Z').getTime();
+    };
+
+    const dateA = parseDateOnly(a);
+    const dateB = parseDateOnly(b);
+    if (dateB !== dateA) return dateB - dateA;
+
+    const sevA = SEVERITY_ORDER[String(a.signal_type || '').toLowerCase()] ?? 99;
+    const sevB = SEVERITY_ORDER[String(b.signal_type || '').toLowerCase()] ?? 99;
+    if (sevA !== sevB) return sevA - sevB;
+
+    const timeA = new Date(a.created_at || a.signal_date || 0).getTime();
+    const timeB = new Date(b.created_at || b.signal_date || 0).getTime();
+    return timeB - timeA;
+  });
  
   const isSuperGreenOrGeneral = (s: any): boolean => {
     if (!s) return false;
@@ -119,27 +170,25 @@ export default function StudentProfile() {
   : statusText === 'Super Green' ? 'super_green' as const
   : null;
 
-   // Calculate absences per class to ensure they aren't cumulative across different classes
-   const classAbsenceCounts = signals.reduce((acc: Record<string, number>, s: any) => {
-     if (s.signal_type === 'absent') {
-       if (classId) {
-         // If viewing within a class context, only count absences for this class
-         if (s.class_id === classId || s.class_slug === classId) {
-           acc['current'] = (acc['current'] || 0) + 1;
-         }
-       } else if (user && s.teacher_id === user.id) {
-         // If viewing globally, count absences per class for this teacher
-         acc[s.class_id] = (acc[s.class_id] || 0) + 1;
-       }
-     }
-     return acc;
-   }, {});
+  // Calculate absences per class to ensure they aren't cumulative across different classes
+  const classAbsenceCounts = signals.reduce((acc: Record<string, number>, s: any) => {
+    if (s.signal_type === 'absent') {
+      if (classId) {
+        if (s.class_id === classId || s.class_slug === classId) {
+          acc['current'] = (acc['current'] || 0) + 1;
+        }
+      } else if (user && s.teacher_id === user.id) {
+        acc[s.class_id] = (acc[s.class_id] || 0) + 1;
+      }
+    }
+    return acc;
+  }, {});
 
-   const maxAbsencesInSingleClass = classId 
-     ? (classAbsenceCounts['current'] || 0)
-     : Math.max(0, ...(Object.values(classAbsenceCounts) as number[]));
+  const maxAbsencesInSingleClass = classId 
+    ? (classAbsenceCounts['current'] || 0)
+    : Math.max(0, ...(Object.values(classAbsenceCounts) as number[]));
 
-   const meetsAbsenceThreshold = maxAbsencesInSingleClass >= 3;
+  const meetsAbsenceThreshold = maxAbsencesInSingleClass >= 3;
 
   const teacherFullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Your Teacher';
   const studentFullName = [history?.first_name, history?.last_name].filter(Boolean).join(' ') || 'Student';
@@ -176,304 +225,401 @@ export default function StudentProfile() {
   const yellowPercent = Math.round((yellowFlags.length / totalSummaryFlags) * 100);
   const greenPercent = Math.round((greenFlags.length / totalSummaryFlags) * 100);
 
- // Notes
- const notes = signals.filter((s: any) => s.note && s.note.trim() !== '');
+  // Notes
+  const notes = signals.filter((s: any) => s.note && s.note.trim() !== '');
 
- return (
- <div className="max-w-6xl mx-auto space-y-6 pb-12" >
- {/* Top Bar: Back Button and Actions */}
- <div className="flex items-center justify-between">
- <Link
- href={pathname.startsWith('/reports') ? '/reports' : `/classes/${classId}`}
- className="inline-flex items-center text-sm text-blue-500 bg-white dark:bg-[#151722] border border-blue-100 px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition-colors shadow-sm font-medium"
- >
- <ArrowLeft className="w-4 h-4 mr-2" />
- {pathname.startsWith('/reports') ? 'Back to Reports' : 'Back to Students Roster'}
- </Link>
- 
- <div className="flex items-center space-x-3">
- <button
- onClick={() => setIsSendAdminModalOpen(true)}
- className="inline-flex items-center space-x-2 px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-bold shadow-sm"
- >
- <AlertCircle className="w-4 h-4" />
- <span>Send to Admin</span>
- </button>
+  const handleExportPDF = async () => {
+    if (!profileContentRef.current) return;
+    logger.buttonClick('Export as PDF', 'StudentProfile');
+    setExporting(true);
+    try {
+      const canvas = await html2canvas(profileContentRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#f9fafb',
+        windowWidth: 1200,
+        onclone: (clonedDoc) => {
+          const scrollables = clonedDoc.querySelectorAll('.overflow-y-auto, [class*="max-h-"]');
+          scrollables.forEach((el: any) => {
+            el.style.maxHeight = 'none';
+            el.style.overflow = 'visible';
+            el.style.height = 'auto';
+          });
+          const hiddenWrappers = clonedDoc.querySelectorAll('.overflow-hidden');
+          hiddenWrappers.forEach((el: any) => {
+            el.style.overflow = 'visible';
+          });
+        },
+      });
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const usableWidth = pageWidth - margin * 2;
+      const imgWidth = usableWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const usableHeight = pageHeight - margin * 2;
 
- {emailCategory && emailCategory !== 'super_green' && (
- <button
- onClick={() => {
- setEmailCategoryState(emailCategory);
- setIsEmailModalOpen(true);
- }}
- className={`inline-flex items-center space-x-2 px-5 py-2 rounded-lg transition-colors text-sm font-bold shadow-sm text-white ${
- emailCategory === 'red' ? 'bg-red-600 hover:bg-red-700'
- : emailCategory === 'yellow' ? 'bg-amber-500 hover:bg-amber-600'
- : 'bg-emerald-600 hover:bg-emerald-700'
- }`}
- title="Email Parent (Performance)"
- >
- <Mail className="w-4 h-4" />
- <span>Email Parent</span>
- </button>
- )}
+      let yOffset = 0;
+      let page = 0;
 
- {meetsAbsenceThreshold && (
- <button
- onClick={() => {
- setEmailCategoryState('absent');
- setIsEmailModalOpen(true);
- }}
- className="inline-flex items-center space-x-2 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-bold shadow-sm"
- title="Email Parent (Absence)"
- >
- <Mail className="w-4 h-4" />
- <span>Absence Notice</span>
- </button>
- )}
+      while (yOffset < imgHeight) {
+        if (page > 0) pdf.addPage();
+        const sourceY = (yOffset / imgHeight) * canvas.height;
+        const sourceH = (usableHeight / imgHeight) * canvas.height;
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = Math.min(sourceH, canvas.height - sourceY);
+        const ctx = pageCanvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(
+            canvas,
+            0, sourceY, canvas.width, pageCanvas.height,
+            0, 0, canvas.width, pageCanvas.height,
+          );
+          const pageImg = pageCanvas.toDataURL('image/png');
+          const drawHeight = (pageCanvas.height * imgWidth) / canvas.width;
+          pdf.addImage(pageImg, 'PNG', margin, margin, imgWidth, drawHeight);
+        }
+        yOffset += usableHeight;
+        page++;
+      }
 
- <button 
- onClick={() => setIsEditModalOpen(true)}
- className="inline-flex items-center space-x-2 px-5 py-2 bg-gray-50 dark:bg-[#1b1e2c] border border-gray-200 dark:border-[#262a3d] text-slate-700 dark:text-slate-300 rounded-lg hover:bg-gray-100 dark:hover:bg-[#262a3d] transition-colors text-sm font-bold shadow-sm"
- >
- <Edit className="w-4 h-4" />
- <span>Edit Profile</span>
- </button>
- </div>
- </div>
+      const safeName = studentFullName.replace(/[^a-zA-Z0-9]/g, '_');
+      pdf.save(`${safeName}_Report.pdf`);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+    } finally {
+      setExporting(false);
+    }
+  };
 
- {/* Profile Header Card */}
- <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm p-8 flex items-center justify-between">
- <div className="flex items-center space-x-6">
- {/* Avatar */}
- <div className="w-24 h-24 rounded-full bg-slate-100 dark:bg-[#1b1e2c] flex items-center justify-center border-4 border-white dark:border-[#262a3d] shadow-md text-3xl font-bold text-slate-400 dark:text-slate-300 overflow-hidden">
- {history?.first_name ? `${history.first_name[0]}${history.last_name[0]}` : '??'}
- </div>
- 
- <div>
- <div className="flex items-center mb-1">
- {statusText === 'Red' && <span className="px-2.5 py-0.5 bg-red-400 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Red</span>}
- {statusText === 'Yellow' && <span className="px-2.5 py-0.5 bg-amber-400 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Yellow</span>}
- {statusText === 'Super Green' && <span className="px-2.5 py-0.5 bg-emerald-500 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Super Green</span>}
- </div>
- <h1 className="text-3xl font-bold text-slate-800 dark:text-white ">
- {history?.first_name} {history?.last_name}
- </h1>
- <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
- {history?.grade_level ? `${history.grade_level}th Grade` : 'Unknown Grade'}
- </p>
- </div>
- </div>
+  return (
+    <div ref={profileContentRef} className="max-w-6xl mx-auto space-y-6 pb-12">
+      {/* Top Bar: Back Button and Actions */}
+      <div className="flex items-center justify-between">
+        {onBack ? (
+          <button
+            onClick={onBack}
+            className="inline-flex items-center text-sm text-blue-500 bg-white dark:bg-[#151722] border border-blue-100 px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm font-medium"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Reports
+          </button>
+        ) : (
+          <Link
+            href={pathname.startsWith('/reports') ? '/reports' : `/classes/${classId}`}
+            className="inline-flex items-center text-sm text-blue-500 bg-white dark:bg-[#151722] border border-blue-100 px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm font-medium"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            {pathname.startsWith('/reports') ? 'Back to Reports' : 'Back to Students Roster'}
+          </Link>
+        )}
+        
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={handleExportPDF}
+            disabled={exporting}
+            className="inline-flex items-center space-x-2 px-5 py-2 bg-gray-50 dark:bg-[#1b1e2c] border border-gray-200 dark:border-[#262a3d] text-slate-700 dark:text-slate-300 rounded-lg hover:bg-gray-100 dark:hover:bg-[#262a3d] transition-colors text-sm font-bold shadow-sm disabled:opacity-50"
+            title="Export Student Report as PDF"
+          >
+            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            <span>Export PDF</span>
+          </button>
 
- <div className="flex items-center gap-3">
- <div className={`px-4 py-2 text-xs font-bold rounded-lg border shadow-sm ${
- statusText === 'Red' ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50' :
- statusText === 'Yellow' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50' :
- 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'
- }`}>
- Status : {statusText} Active
- </div>
- </div>
- </div>
+          <button
+            onClick={() => setIsSendAdminModalOpen(true)}
+            className="inline-flex items-center space-x-2 px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-bold shadow-sm"
+          >
+            <AlertCircle className="w-4 h-4" />
+            <span>Send to Admin</span>
+          </button>
 
- {/* Middle Grid */}
- <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
- {/* Left Column: Last 7-Day Summary */}
- <div className="space-y-4">
- <div className="flex items-center gap-2 mb-2">
- <div className="p-1.5 bg-blue-50 text-blue-500 rounded-lg">
- <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
- </div>
- <div>
- <h2 className="text-[15px] font-bold text-slate-800 dark:text-white">Last 7-Day</h2>
- <p className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Incidents Summary</p>
- </div>
- </div>
+          {emailCategory && emailCategory !== 'super_green' && (
+            <button
+              onClick={() => {
+                setEmailCategoryState(emailCategory);
+                setIsEmailModalOpen(true);
+              }}
+              className={`inline-flex items-center space-x-2 px-5 py-2 rounded-lg transition-colors text-sm font-bold shadow-sm text-white ${
+                emailCategory === 'red' ? 'bg-red-600 hover:bg-red-700'
+                : emailCategory === 'yellow' ? 'bg-amber-500 hover:bg-amber-600'
+                : 'bg-emerald-600 hover:bg-emerald-700'
+              }`}
+              title="Email Parent (Performance)"
+            >
+              <Mail className="w-4 h-4" />
+              <span>Email Parent</span>
+            </button>
+          )}
 
- <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm p-6 space-y-4">
- {/* Red Incidents */}
- <div className="bg-red-50 dark:bg-[#1b1e2c] rounded-xl p-4 relative border border-red-100 dark:border-[#262a3d]">
- <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-2 shadow-sm">
- <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
- </div>
- <div className="text-3xl font-bold text-red-600 dark:text-red-400 mb-1">{redFlags.length}</div>
- <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Red Incidents (7 Days)</h3>
- <p className="text-xs text-red-400/80 mt-1">Urgent interventions</p>
- </div>
+          {meetsAbsenceThreshold && (
+            <button
+              onClick={() => {
+                setEmailCategoryState('absent');
+                setIsEmailModalOpen(true);
+              }}
+              className="inline-flex items-center space-x-2 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-bold shadow-sm"
+              title="Email Parent (Absence)"
+            >
+              <Mail className="w-4 h-4" />
+              <span>Absence Notice</span>
+            </button>
+          )}
 
- {/* Yellow Incidents */}
- <div className="bg-amber-50 dark:bg-[#1b1e2c] rounded-xl p-4 relative border border-amber-100 dark:border-[#262a3d]">
- <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-2 shadow-sm">
- <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
- </div>
- <div className="text-3xl font-bold text-amber-600 dark:text-amber-400 mb-1">{yellowFlags.length}</div>
- <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Yellow Incidents (7 Days)</h3>
- <p className="text-xs text-amber-500/80 mt-1">Moderate concerns</p>
- </div>
+          <button 
+            onClick={() => setIsEditModalOpen(true)}
+            className="inline-flex items-center space-x-2 px-5 py-2 bg-gray-50 dark:bg-[#1b1e2c] border border-gray-200 dark:border-[#262a3d] text-slate-700 dark:text-slate-300 rounded-lg hover:bg-gray-100 dark:hover:bg-[#262a3d] transition-colors text-sm font-bold shadow-sm"
+          >
+            <Edit className="w-4 h-4" />
+            <span>Edit Profile</span>
+          </button>
+        </div>
+      </div>
 
- {/* Super Green */}
- <div className="bg-emerald-50 dark:bg-[#1b1e2c] rounded-xl p-4 relative border border-emerald-100 dark:border-[#262a3d]">
- <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] flex items-center justify-center mb-2 shadow-sm">
- <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
- </div>
- <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">{greenFlags.length}</div>
- <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Super Green (7 Days)</h3>
- <p className="text-xs text-emerald-500/80 mt-1">Positive recognitions</p>
- </div>
- </div>
- </div>
+      {/* Profile Header Card */}
+      <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm p-8 flex items-center justify-between">
+        <div className="flex items-center space-x-6">
+          {/* Avatar */}
+          <div className="w-24 h-24 rounded-full bg-slate-100 dark:bg-[#1b1e2c] flex items-center justify-center border-4 border-white dark:border-[#262a3d] shadow-md text-3xl font-bold text-slate-400 dark:text-slate-300 overflow-hidden">
+            {history?.first_name ? `${history.first_name[0]}${history.last_name[0]}` : '??'}
+          </div>
+          
+          <div>
+            <div className="flex items-center mb-1">
+              {statusText === 'Red' && <span className="px-2.5 py-0.5 bg-red-400 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Red</span>}
+              {statusText === 'Yellow' && <span className="px-2.5 py-0.5 bg-amber-400 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Yellow</span>}
+              {statusText === 'Super Green' && <span className="px-2.5 py-0.5 bg-emerald-500 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Super Green</span>}
+            </div>
+            <h1 className="text-3xl font-bold text-slate-800 dark:text-white ">
+              {history?.first_name} {history?.last_name}
+            </h1>
+            <p className="text-sm font-semibold text-slate-400 dark:text-slate-400 mt-1">
+              {history?.grade_level ? `${history.grade_level}th Grade` : 'Unknown Grade'}
+            </p>
+          </div>
+        </div>
 
- {/* Right Column: Student History */}
- <div className="space-y-4">
- <div className="flex items-center gap-2 mb-2">
- <div className="p-1.5 bg-amber-50 text-amber-500 rounded-lg">
- <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path></svg>
- </div>
- <div>
- <h2 className="text-[15px] font-bold text-slate-800 dark:text-white">Student History</h2>
- <p className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Last 30 days</p>
- </div>
- </div>
+        {/* Status Badge */}
+        <div className="flex items-center space-x-3">
+          <span className={`px-4 py-2 rounded-xl text-xs font-bold ${
+            statusText === 'Red' ? 'bg-red-50 text-red-500 border border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50'
+            : statusText === 'Yellow' ? 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50'
+            : statusText === 'Super Green' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'
+            : 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'
+          }`}>
+            Status : {statusText} Active
+          </span>
+        </div>
+      </div>
 
- <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm p-6 h-[460px] overflow-y-auto">
- {recentSignals.length > 0 ? (
- <div className="space-y-5">
- {recentSignals.map((signal: any, idx: number) => {
- const dateToUse = signal.signal_date ? signal.signal_date : signal.created_at;
- const dateString = new Date(dateToUse + (dateToUse.includes('T') ? '' : 'T12:00:00Z')).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
- 
- let lineColor = 'bg-gray-400';
- let pillClass = 'bg-gray-50 text-gray-600 border-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
- 
- if (signal.signal_type === 'red') {
- lineColor = 'bg-red-400';
- pillClass = 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50';
- } else if (signal.signal_type === 'yellow') {
- lineColor = 'bg-amber-400';
- pillClass = 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50';
- } else if (signal.signal_type === 'green' || signal.signal_type === 'super_green' || signal.signal_type === 'present') {
- lineColor = 'bg-emerald-400';
- pillClass = 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50';
- } else if (signal.signal_type === 'absent') {
- lineColor = 'bg-blue-400';
- pillClass = 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50';
- }
+      {/* Main Content Grid: 2 Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Left Column: Incidents Summary */}
+        <div className="lg:col-span-5 space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 bg-blue-50 text-blue-500 rounded-lg">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            </div>
+            <div>
+              <h2 className="text-[15px] font-bold text-slate-800 dark:text-white">Last 7-Day</h2>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Incidents Summary</p>
+            </div>
+          </div>
 
- return (
- <div key={idx} className="flex items-center space-x-4 group">
- <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 w-12 shrink-0">{dateString}</span>
- 
- {/* Status Line */}
- <div className={`w-3 h-1 rounded-full ${lineColor}`}></div>
- 
- <div className={`px-3 py-1.5 rounded-lg text-xs font-bold ${pillClass} border`}>
- {signal.signal_type === 'present' ? 'Present' : signal.signal_type === 'absent' ? 'Absent' : (signal.category || 'General')}
- </div>
- 
- <div className="flex-1 px-4 py-1.5 bg-gray-50 dark:bg-[#1b1e2c] rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 border border-gray-100 dark:border-[#262a3d] truncate flex justify-between items-center gap-2">
- <span className="truncate">
- {signal.signal_type === 'present' ? '' : (signal.reason_description || signal.note || 'No reason provided')}
- </span>
- {signal.class_name && (
- <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium shrink-0 bg-white dark:bg-[#262a3d] px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700">
- Class {signal.class_name}
- </span>
- )}
- </div>
- </div>
- );
- })}
- </div>
- ) : (
- <div className="flex flex-col items-center justify-center h-full text-gray-400">
- <AlertCircle className="w-8 h-8 mb-2 opacity-50" />
- <p className="text-sm font-medium">No flags in the last 30 days</p>
- </div>
- )}
- </div>
- </div>
- </div>
+          <div className="space-y-4">
+            {/* Red Incidents */}
+            <div className="bg-red-50/50 dark:bg-red-950/20 rounded-2xl p-6 border border-red-100 dark:border-red-900/40 relative overflow-hidden">
+              <div className="flex justify-between items-start mb-2">
+                <span className="w-8 h-8 rounded-full border border-red-200 dark:border-red-800 flex items-center justify-center text-red-500">
+                  <AlertCircle className="w-4 h-4" />
+                </span>
+              </div>
+              <p className="text-4xl font-extrabold text-red-500">{redFlags.length}</p>
+              <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Red Incidents (7 Days)</h3>
+              <p className="text-xs text-red-500/80 mt-1">Urgent interventions</p>
+            </div>
 
- {/* Teachers Notes */}
- <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm overflow-hidden">
- <div className="p-6 border-b border-gray-100 dark:border-[#262a3d] bg-gray-50 dark:bg-[#1b1e2c]/50">
- <h2 className="text-lg font-bold text-slate-800 dark:text-white">Teachers Notes</h2>
- </div>
- <div className="p-6 space-y-6">
- {notes.length > 0 ? (
- notes.map((signal: any, idx: number) => (
- <div key={idx} className="border-b border-gray-100 dark:border-[#262a3d] last:border-0 pb-6 last:pb-0">
- <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-2">
- {new Date((signal.signal_date || signal.created_at) + ((signal.signal_date || signal.created_at).includes('T') ? '' : 'T12:00:00Z')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
- </h3>
- <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
- {signal.note}
- </p>
- </div>
- ))
- ) : (
- <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
- No notes available for this student.
- </div>
- )}
- </div>
- </div>
+            {/* Yellow Incidents */}
+            <div className="bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl p-6 border border-amber-100 dark:border-amber-900/40 relative overflow-hidden">
+              <div className="flex justify-between items-start mb-2">
+                <span className="w-8 h-8 rounded-full border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-500">
+                  <AlertTriangle className="w-4 h-4" />
+                </span>
+              </div>
+              <p className="text-4xl font-extrabold text-amber-500">{yellowFlags.length}</p>
+              <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Yellow Incidents (7 Days)</h3>
+              <p className="text-xs text-amber-500/80 mt-1">Moderate concerns</p>
+            </div>
 
+            {/* Super Green */}
+            <div className="bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl p-6 border border-emerald-100 dark:border-emerald-900/40 relative overflow-hidden">
+              <div className="flex justify-between items-start mb-2">
+                <span className="w-8 h-8 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-500">
+                  <CheckCircle className="w-4 h-4" />
+                </span>
+              </div>
+              <p className="text-4xl font-extrabold text-emerald-500">{greenFlags.length}</p>
+              <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Super Green (7 Days)</h3>
+              <p className="text-xs text-emerald-500/80 mt-1">Positive recognitions</p>
+            </div>
+          </div>
+        </div>
 
+        {/* Right Column: Student History */}
+        <div className="lg:col-span-7 space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 bg-amber-50 text-amber-500 rounded-lg">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path></svg>
+            </div>
+            <div>
+              <h2 className="text-[15px] font-bold text-slate-800 dark:text-white">Student History</h2>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Last 30 days</p>
+            </div>
+          </div>
 
- <EditStudentProfileModal 
- isOpen={isEditModalOpen} 
- onClose={() => setIsEditModalOpen(false)} 
- student={{
- firstName: history?.first_name || "Unknown",
- lastName: history?.last_name || "",
- grade: history?.grade_level || 9,
- studentId: studentId
- }}
- onSave={async (data) => {
- try {
- const payload = {
- first_name: data.firstName,
- last_name: data.lastName,
- grade_level: data.grade,
- gender: data.gender,
- date_of_birth: data.dateOfBirth ? data.dateOfBirth : null
- };
- await updateStudentProfile(studentId, payload);
- 
- // update local state
- setHistory((prev: any) => ({
- ...prev,
- first_name: data.firstName,
- last_name: data.lastName,
- grade_level: data.grade,
- gender: data.gender,
- date_of_birth: data.dateOfBirth
- }));
- } catch(err) {
- console.error("Failed to update student", err);
- }
- }}
- />
+          <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm p-6 h-[460px] overflow-y-auto">
+            {recentSignals.length > 0 ? (
+              <div className="space-y-5">
+                {recentSignals.map((signal: any, idx: number) => {
+                  const dateToUse = signal.signal_date ? signal.signal_date : signal.created_at;
+                  const dateString = new Date(dateToUse + (dateToUse.includes('T') ? '' : 'T12:00:00Z')).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  
+                  let lineColor = 'bg-gray-400';
+                  let pillClass = 'bg-gray-50 text-gray-600 border-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
+                  
+                  if (signal.signal_type === 'red') {
+                    lineColor = 'bg-red-400';
+                    pillClass = 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50';
+                  } else if (signal.signal_type === 'yellow') {
+                    lineColor = 'bg-amber-400';
+                    pillClass = 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50';
+                  } else if (signal.signal_type === 'green' || signal.signal_type === 'super_green' || signal.signal_type === 'present') {
+                    lineColor = 'bg-emerald-400';
+                    pillClass = 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50';
+                  } else if (signal.signal_type === 'absent') {
+                    lineColor = 'bg-blue-400';
+                    pillClass = 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50';
+                  }
 
- {(emailCategoryState || emailCategory) && (
- <ParentEmailTemplateModal
- isOpen={isEmailModalOpen}
- onClose={() => setIsEmailModalOpen(false)}
- studentName={studentFullName}
- teacherName={teacherFullName}
- flagCategory={emailCategoryState || emailCategory!}
- studentId={studentId}
- classId={classId}
- />
- )}
+                  return (
+                    <div key={idx} className="flex items-center space-x-3 group">
+                      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 w-14 shrink-0">{dateString}</span>
+                      
+                      {/* Status Line */}
+                      <div className={`w-2.5 h-1 rounded-full ${lineColor} shrink-0`}></div>
+                      
+                      {/* Fixed width category pill for perfect vertical alignment */}
+                      <div className={`w-24 shrink-0 text-center py-1.5 rounded-lg text-xs font-bold ${pillClass} border truncate`}>
+                        {signal.signal_type === 'present' ? 'Present' : signal.signal_type === 'absent' ? 'Absent' : (signal.category || 'General')}
+                      </div>
+                      
+                      {/* Content box with min-w-0 for proper truncate */}
+                      <div className="flex-1 min-w-0 px-3.5 py-1.5 bg-gray-50 dark:bg-[#1b1e2c] rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 border border-gray-100 dark:border-[#262a3d] flex justify-between items-center gap-2">
+                        <span className="truncate flex-1">
+                          {signal.signal_type === 'present' ? '' : (signal.reason_description || signal.note || 'No reason provided')}
+                        </span>
+                        {signal.class_name && (
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium shrink-0 bg-white dark:bg-[#262a3d] px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 whitespace-nowrap">
+                            {signal.class_name.startsWith('Manual Referral') ? signal.class_name : `Class ${signal.class_name}`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                <AlertCircle className="w-8 h-8 mb-2 opacity-50" />
+                <p className="text-sm font-medium">No flags in the last 30 days</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
- <SendAdminModal
- isOpen={isSendAdminModalOpen}
- onClose={() => setIsSendAdminModalOpen(false)}
- studentId={history?.student_id || studentId}
- studentName={studentFullName}
- />
- </div>
- );
+      {/* Teachers Notes */}
+      <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-gray-100 dark:border-[#262a3d] bg-gray-50 dark:bg-[#1b1e2c]/50">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-white">Teachers Notes</h2>
+        </div>
+        
+        <div className="p-6">
+          {notes.length > 0 ? (
+            <div className="space-y-4">
+              {notes.map((signal: any, idx: number) => {
+                const dateToUse = signal.signal_date ? signal.signal_date : signal.created_at;
+                const dateString = new Date(dateToUse + (dateToUse.includes('T') ? '' : 'T12:00:00Z')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                return (
+                  <div key={idx} className="p-4 rounded-xl border border-gray-100 dark:border-[#262a3d] bg-slate-50/50 dark:bg-[#1b1e2c]/30 space-y-1">
+                    <p className="text-xs font-semibold text-slate-400">{dateString}</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">{signal.note}</p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400 italic">No notes recorded for this student.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Modals */}
+      <EditStudentProfileModal
+        isOpen={isEditModalOpen}
+        student={{
+          firstName: history?.first_name || "Unknown",
+          lastName: history?.last_name || "",
+          grade: history?.grade_level || 9,
+          studentId: history?.student_id || studentId,
+          gender: history?.gender || "",
+          dateOfBirth: history?.date_of_birth || "",
+        }}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={async (updatedData) => {
+          try {
+            await updateStudentProfile(history?.student_id || studentId, {
+              first_name: updatedData.firstName,
+              last_name: updatedData.lastName,
+              grade_level: updatedData.grade,
+              gender: updatedData.gender,
+              date_of_birth: updatedData.dateOfBirth,
+            });
+            await loadStudent();
+            setIsEditModalOpen(false);
+          } catch (err) {
+            console.error("Failed to update profile", err);
+          }
+        }}
+      />
+
+      <ParentEmailTemplateModal
+        isOpen={isEmailModalOpen}
+        onClose={() => {
+          setIsEmailModalOpen(false);
+          setEmailCategoryState(null);
+        }}
+        studentId={history?.student_id || studentId}
+        flagCategory={emailCategoryState || emailCategory || 'red'}
+        studentName={studentFullName}
+        teacherName={teacherFullName}
+        classId={classId}
+      />
+
+      <SendAdminModal
+        isOpen={isSendAdminModalOpen}
+        onClose={() => setIsSendAdminModalOpen(false)}
+        studentId={history?.student_id || studentId}
+        studentName={studentFullName}
+        onSubmitSuccess={loadStudent}
+      />
+    </div>
+  );
 }

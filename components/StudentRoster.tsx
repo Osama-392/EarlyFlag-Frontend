@@ -244,14 +244,11 @@ export default function StudentRoster() {
   let statusColor = "bg-gray-400 text-white";
   let statusText: string | null = null;
   if (todaySig?.signal_type === 'green' || todaySig?.signal_type === 'super_green') {
-  statusColor = "bg-emerald-500 text-white";
-  statusText = "Super Green";
+    statusColor = "bg-emerald-500 text-white";
+    statusText = "Super Green";
   } else if (todaySig?.signal_type === 'red') {
-  statusColor = "bg-red-400 text-white";
-  statusText = "Red Incident";
-  } else if (todaySig?.signal_type === 'yellow') {
-  statusColor = "bg-amber-400 text-white";
-  statusText = "Yellow Incident";
+    statusColor = "bg-red-400 text-white";
+    statusText = "Red Incident";
   }
 
   // Mockup counts (using static or extracted if available)

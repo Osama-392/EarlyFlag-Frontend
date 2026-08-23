@@ -281,8 +281,6 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
  </div>
  )}
 
- {/* Two-column: Alerts + Referrals */}
- <div className="grid lg:grid-cols-2 gap-6">
  {/* Unresolved Alerts */}
  <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden">
  <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex items-center gap-2">
@@ -306,33 +304,6 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
  ))}
  </div>
  )}
- </div>
-
- {/* Recent Referrals */}
- <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden">
- <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex items-center gap-2">
- <FileText size={16} className="text-blue-500" />
- <h3 className="text-sm font-bold text-gray-900 dark:text-white">Recent Referrals</h3>
- <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">{profile.recent_referrals.length}</span>
- </div>
- {profile.recent_referrals.length === 0 ? (
- <div className="p-8 text-center text-gray-400 text-sm">No recent referrals</div>
- ) : (
- <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
- {profile.recent_referrals.map(ref => (
- <div key={ref.referral_id} className="p-3 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
- <div className="flex items-center gap-2 mb-1">
- <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${priorityStyles[ref.priority] || 'bg-gray-100 dark:bg-[#1b1e2c] text-gray-700 dark:text-gray-300'}`}>{ref.priority}</span>
- <span className="text-xs text-gray-500 dark:text-gray-400">{ref.referral_type}</span>
- <span className="ml-auto text-xs text-gray-400">{formatDate(ref.created_at)}</span>
- </div>
- <p className="text-xs text-gray-600 dark:text-gray-400">By {ref.referred_by_first_name} {ref.referred_by_last_name} · Status: {ref.email_status}</p>
- {ref.follow_up_needed && <p className="text-xs text-orange-600 mt-1">⚡ Follow-up needed{ref.follow_up_date ? ` by ${formatDate(ref.follow_up_date)}` : ''}</p>}
- </div>
- ))}
- </div>
- )}
- </div>
  </div>
 
  <ConfirmDeleteModal
