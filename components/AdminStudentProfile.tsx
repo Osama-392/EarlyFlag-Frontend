@@ -306,6 +306,51 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
  )}
  </div>
 
+
+        {/* Referrals */}
+        <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden mb-6">
+          <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex items-center gap-2">
+            <Shield size={16} className="text-red-500" />
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white">Counselor / Admin Referrals</h3>
+            <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">{profile.recent_referrals?.length || 0}</span>
+          </div>
+          {(!profile.recent_referrals || profile.recent_referrals.length === 0) ? (
+            <div className="p-8 text-center text-gray-400 text-sm">No referrals recorded for this student</div>
+          ) : (
+            <div className="divide-y divide-gray-100 dark:divide-[#262a3d] max-h-72 overflow-y-auto">
+              {profile.recent_referrals.map((ref: any, idx: number) => {
+                const refType = ref.referral_type ? String(ref.referral_type).replace('manual_', '').toUpperCase() : 'REFERRAL';
+                const isAuto = String(ref.referral_type || '').includes('auto');
+                const teacherName = `${ref.referred_by_first_name || ''} ${ref.referred_by_last_name || ''}`.trim() || 'Teacher';
+                const displayClass = ref.class_name || ref.subject || 'Cross-Class';
+
+                return (
+                  <div key={ref.referral_id || idx} className="p-4 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition flex items-start gap-4">
+                    <div className="shrink-0 pt-0.5">
+                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30">
+                        {isAuto ? 'Auto Escalation' : `${refType} Referral`}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{ref.note || 'No notes provided'}</p>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-2">
+                        <span>By {teacherName}</span>
+                        <span>•</span>
+                        <span>{displayClass}</span>
+                        {ref.created_at && (
+                          <>
+                            <span>•</span>
+                            <span>{formatDate(ref.created_at)}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
  <ConfirmDeleteModal
  isOpen={isDeactivateModalOpen}
  onClose={() => setIsDeactivateModalOpen(false)}
