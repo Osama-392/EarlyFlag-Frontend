@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Search, FileText, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import CreateReportModal from '@/components/CreateReportModal';
-import StudentProfile from '@/components/StudentProfile';
+import ReportView from '@/components/ReportView';
 import { logger } from '@/lib/logger';
 import { useStudentRoster } from '@/lib/useStudentRoster';
 import { Student } from '@/lib/studentService';
@@ -29,7 +29,10 @@ export default function StudentReportsView({
   const [searchTerm, setSearchTerm] = useState('');
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [generatedReport, setGeneratedReport] = useState<any>(null);
+  const [generatedReport, setGeneratedReport] = useState<{
+    student: Student;
+    reportData: any;
+  } | null>(null);
 
   const { students, loading, error, loadStudents } = useStudentRoster();
 
@@ -40,20 +43,22 @@ export default function StudentReportsView({
     }
   }, [classData, loadStudents]);
 
-  // Filter students based on search
+  // Filter students based on search term
   const filteredStudents = useMemo(() => {
-    if (!Array.isArray(students)) return [];
     if (!searchTerm.trim()) return students;
-    return students.filter((student) =>
-      `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
+    const term = searchTerm.toLowerCase();
+    return students.filter(
+      (s) =>
+        s.first_name.toLowerCase().includes(term) ||
+        s.last_name.toLowerCase().includes(term)
     );
-  }, [searchTerm, students]);
+  }, [students, searchTerm]);
 
-  const isGlobalAutoEscalation = (s: any): boolean => {
+  const isGlobalAutoEscalation = (s: any) => {
     if (!s) return false;
     const reasonCode = String(s.reason_code || '').toLowerCase();
-    const reasonDesc = String(s.reason_description || s.reason || s.title || '').toLowerCase();
-    const note = String(s.note || s.description || '').toLowerCase();
+    const reasonDesc = String(s.reason_description || s.reason || '').toLowerCase();
+    const note = String(s.note || '').toLowerCase();
     const alertRule = String(s.triggered_by_rule || s.rule || '').toLowerCase();
     if (alertRule.includes('global') || alertRule.includes('cross-class') || alertRule.includes('cross_class')) return true;
     if (reasonDesc.includes('(global)') || reasonDesc.includes('global') || reasonDesc.includes('cross-class') || reasonDesc.includes('across all classes')) return true;
@@ -86,7 +91,7 @@ export default function StudentReportsView({
 
     // Store report data and show report view
     setGeneratedReport({
-      student: selectedStudent,
+      student: selectedStudent!,
       reportData: filteredReportData,
     });
     setIsReportModalOpen(false);
@@ -101,9 +106,16 @@ export default function StudentReportsView({
   // Show report view if a report has been generated
   if (generatedReport) {
     return (
-      <StudentProfile
-        studentId={generatedReport.student.id}
-        classId={classData?.id}
+      <ReportView
+        student={{
+          id: generatedReport.student.id,
+          name: `${generatedReport.student.first_name} ${generatedReport.student.last_name}`,
+          gradeLevel: Number(generatedReport.student.grade_level) || 6,
+          initial: `${generatedReport.student.first_name.charAt(0)}${generatedReport.student.last_name.charAt(0)}`.toUpperCase(),
+          bgColor: 'from-blue-400 to-blue-600',
+        }}
+        reportData={generatedReport.reportData}
+        variant="teacher"
         onBack={handleBackFromReport}
       />
     );
@@ -189,7 +201,6 @@ export default function StudentReportsView({
                     {/* Student Details */}
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900 dark:text-white">{student.first_name} {student.last_name}</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Grade {student.grade_level || 6}</p>
                     </div>
                   </div>
 

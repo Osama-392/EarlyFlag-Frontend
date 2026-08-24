@@ -406,6 +406,7 @@ export default function PrincipalReportsPage() {
  bgColor: 'from-blue-400 to-blue-600'
  }}
  reportData={generatedStudentReport.reportData}
+ variant="admin"
  onBack={() => {
  setGeneratedStudentReport(null);
  setSelectedStudentForReport(null);

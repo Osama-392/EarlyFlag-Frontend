@@ -198,8 +198,8 @@ export default function Dashboard() {
  };
 
  // ── End-of-Day QuickLog Reminder Logic ─────────────────────────────
- const { isEndOfDay, unloggedSessionsGrouped, totalUnlogged, currentHour } = useMemo(() => {
- if (!dashboardData) return { isEndOfDay: false, unloggedSessionsGrouped: {}, totalUnlogged: 0, currentHour: 0 };
+  const { isEndOfDay, unloggedSessionsGrouped, totalUnlogged, currentHour, todayStr, unloggedTodayCount } = useMemo(() => {
+    if (!dashboardData) return { isEndOfDay: false, unloggedSessionsGrouped: {} as Record<string, any[]>, totalUnlogged: 0, currentHour: 0, todayStr: '', unloggedTodayCount: 0 };
 
  const tz = dashboardData.school_timezone || 'America/New_York';
  let hour = new Date().getHours(); // fallback to local time
@@ -235,6 +235,8 @@ export default function Dashboard() {
  isEndOfDay: total > 0,
  unloggedSessionsGrouped: sortedGrouped,
  totalUnlogged: total,
+      todayStr,
+      unloggedTodayCount: (sortedGrouped[todayStr] || []).length,
  currentHour: hour,
  };
  }, [dashboardData]);
@@ -471,7 +473,7 @@ export default function Dashboard() {
  name={user?.first_name || 'Teacher'}
  metric1={<>You have <span className="text-orange-600 dark:text-orange-500 font-bold">{dashboardData?.yellow_watch_list?.length || 0}</span> students on your watch list</>}
  metric2={<><span className="text-emerald-600 dark:text-emerald-500 font-bold">{dashboardData?.super_green_highlights?.length || 0}</span> students showing exceptional growth</>}
- metric3={<><span className="text-orange-600 dark:text-orange-500 font-bold">{dashboardData?.classes?.filter((c: any) => !c.logged_today).length || 0}</span> classes that still need logging today</>}
+        metric3={<><span className="text-orange-600 dark:text-orange-500 font-bold">{unloggedTodayCount}</span> {unloggedTodayCount === 1 ? 'class that still needs' : 'classes that still need'} logging today</>}
  recommendation={dashboardData?.recommendations?.[0]}
  />
 
@@ -514,7 +516,7 @@ export default function Dashboard() {
  
  <div className="space-y-6 mt-6">
  {Object.keys(unloggedSessionsGrouped).map((dateKey) => {
- const classes = unloggedSessionsGrouped[dateKey];
+            const classes = (unloggedSessionsGrouped as Record<string, any[]>)[dateKey] || [];
  
  // Format the header: "TODAY - JULY 14", "YESTERDAY - JULY 13", or "FRIDAY - JULY 10"
  const dateObj = new Date(dateKey + 'T12:00:00'); // Use noon to avoid timezone shift
