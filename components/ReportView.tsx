@@ -3,12 +3,11 @@
 import { useRef, useState } from 'react';
 import { 
   Download, ArrowLeft, Loader2, AlertCircle, AlertTriangle, 
-  CheckCircle, Mail, Shield, BookOpen, Clock, Activity, FileText
+  CheckCircle, Shield, BookOpen, Clock, Activity, FileText
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
 import { useAuth } from '@/app/providers';
 
 interface ReportViewProps {
@@ -76,9 +75,7 @@ export default function ReportView({
 }: ReportViewProps) {
   const reportContentRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
-  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const { user } = useAuth();
-  const teacherOrAdminName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Staff' : 'Staff';
 
   // Determine active variant (default based on user role if not specified)
   const isTeacherView = variant === 'teacher' || (!variant && user?.role !== 'principal' && user?.role !== 'admin');
@@ -171,17 +168,6 @@ export default function ReportView({
   const unresolvedAlerts = report?.unresolved_alerts || [];
   const recentReferrals = report?.recent_referrals || [];
   const recommendations = report?.talking_points || [];
-
-  const teacherEmailCategory = statusText === 'Red' ? ('red' as const)
-    : statusText === 'Yellow' ? ('yellow' as const)
-    : statusText === 'Super Green' ? ('super_green' as const)
-    : null;
-
-  const adminEmailCategory = counts7d.red > 0 ? ('admin_concern' as const) 
-    : (counts7d.super_green >= 5 ? ('admin_commendation' as const) 
-    : (counts7d.yellow > 0 ? ('yellow' as const) : ('super_green' as const)));
-
-  const activeEmailCategory = isTeacherView ? (teacherEmailCategory || 'red') : adminEmailCategory;
 
   // Notes
   const notes = report?.recent_notes && report.recent_notes.length > 0 
@@ -310,21 +296,6 @@ export default function ReportView({
               {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               <span>Export PDF</span>
             </button>
-
-            {teacherEmailCategory && teacherEmailCategory !== 'super_green' && (
-              <button
-                onClick={() => setIsEmailModalOpen(true)}
-                className={`inline-flex items-center space-x-2 px-5 py-2 rounded-lg transition-colors text-sm font-bold shadow-sm text-white ${
-                  teacherEmailCategory === 'red' ? 'bg-red-600 hover:bg-red-700'
-                  : teacherEmailCategory === 'yellow' ? 'bg-amber-500 hover:bg-amber-600'
-                  : 'bg-emerald-600 hover:bg-emerald-700'
-                }`}
-                title="Email Parent"
-              >
-                <Mail className="w-4 h-4" />
-                <span>Email Parent</span>
-              </button>
-            )}
           </div>
         </div>
       ) : (
@@ -374,13 +345,6 @@ export default function ReportView({
             >
               {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               <span>Export PDF</span>
-            </button>
-            <button
-              onClick={() => setIsEmailModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-semibold transition-colors border border-blue-200 dark:border-blue-900/50 shadow-sm"
-            >
-              <Mail size={16} />
-              <span>Email Parent</span>
             </button>
           </div>
         </div>
@@ -829,20 +793,6 @@ export default function ReportView({
           </>
         )}
       </div>
-
-      {/* Parent Email Modal */}
-      {isEmailModalOpen && (
-        <ParentEmailTemplateModal
-          isOpen={isEmailModalOpen}
-          onClose={() => setIsEmailModalOpen(false)}
-          studentName={student.name}
-          teacherName={teacherOrAdminName}
-          flagCategory={activeEmailCategory}
-          studentId={student.id}
-          adminEmailReason={report?.admin_email_reason}
-          adminEmailConcerns={report?.admin_email_concerns}
-        />
-      )}
     </div>
   );
 }
