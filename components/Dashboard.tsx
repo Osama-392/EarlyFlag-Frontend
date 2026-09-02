@@ -30,6 +30,7 @@ import {
  Award
 } from 'lucide-react';
 import { useProtectedRoute } from '@/lib/useProtectedRoute';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/app/providers';
 import { getMultiWindowStats, SignalStats } from '@/lib/analyticsService';
@@ -85,6 +86,7 @@ function pct(value: number, total: number): number {
 }
 
 export default function Dashboard() {
+ const router = useRouter();
  const { loading: authLoading } = useProtectedRoute();
  const [dashboardData, setDashboardData] = useState<TeacherDashboardResponse | null>(null);
  const [loading, setLoading] = useState(true);
@@ -628,7 +630,15 @@ export default function Dashboard() {
  </thead>
  <tbody>
  {yellow_watch_list.map((row) => (
- <tr key={row.student_id} className="border-b border-gray-100 dark:border-[#2e3240] hover:bg-gray-50 dark:hover:bg-[#202330] transition">
+ <tr 
+   key={row.student_id} 
+   onClick={(e) => {
+     if ((e.target as HTMLElement).closest('button')) return;
+     const classId = getClassIdByName(row.class_name || row.subject_breakdown?.[0]?.subject_name) || dashboardData?.classes?.[0]?.class_id;
+     if (classId) router.push(`/classes/${classId}/${row.student_id}`);
+   }}
+   className="border-b border-gray-100 dark:border-[#2e3240] hover:bg-gray-50 dark:hover:bg-[#202330] transition cursor-pointer"
+ >
  <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">{row.first_name} {row.last_name}</td>
  <td className="px-3 py-2 text-gray-500 dark:text-gray-400">Gr {row.grade_level}</td>
  <td className="px-3 py-2">
@@ -676,11 +686,29 @@ export default function Dashboard() {
  {red_urgent.length > 0 ? (
  <div className="space-y-2">
  {red_urgent.map((item) => (
- <div key={item.alert_id} className="bg-white dark:bg-[#151722] rounded-lg p-3 border border-red-100 dark:border-red-900/30 shadow-sm">
+ <div 
+   key={item.alert_id} 
+   onClick={(e) => {
+     if ((e.target as HTMLElement).closest('button')) return;
+     const classId = getClassIdByName(item.recent_flags?.[0]?.class_name || item.class_name) || dashboardData?.classes?.[0]?.class_id;
+     if (classId) router.push(`/classes/${classId}/${item.student.student_id}`);
+   }}
+   className="bg-white dark:bg-[#151722] rounded-lg p-3 border border-red-100 dark:border-red-900/30 shadow-sm cursor-pointer hover:border-red-200 dark:hover:border-red-900/50 transition-colors"
+ >
  <div className="flex items-start justify-between mb-1.5">
   <div>
-  <div className="flex items-center gap-1.5">
-  <p className="font-bold text-gray-900 dark:text-white text-sm">{item.student.first_name} {item.student.last_name}</p>
+  <div className="flex items-center gap-2">
+  <p className="font-bold text-gray-900 dark:text-white text-sm">
+  {item.student.first_name} {item.student.last_name}
+  </p>
+  <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-red-50 text-red-600 border border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50">
+  {item.class_name || item.recent_flags?.[0]?.class_name || 'Urgent'}
+  </span>
+  {item.alert_category && (
+  <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-red-50 text-red-600 border border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50">
+  {item.alert_category}
+  </span>
+  )}
   </div>
   <p className="text-[11px] text-gray-500 dark:text-gray-400">
   Gr {item.student.grade_level}
@@ -719,29 +747,53 @@ export default function Dashboard() {
  {super_green_highlights.length > 0 ? (
  <div className="space-y-2">
  {super_green_highlights.map((item) => (
- <div key={item.signal_id} className="bg-white dark:bg-[#151722] rounded-lg p-2.5 border border-green-100 dark:border-green-900/30 shadow-sm">
- <p className="font-bold text-gray-900 dark:text-white text-xs">{item.first_name} {item.last_name}</p>
- <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-1 leading-tight">{item.reason_description || 'Positive Behavior'} • {new Date(item.signal_date).toLocaleDateString()}</p>
- <div className="flex justify-between items-center mt-1.5">
- {item.parent_email_on_file ? (
- <span className="text-[9px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded font-bold">Email Sent</span>
- ) : (
- <div />
- )}
- <button
- onClick={() => setTemplateModalData({
- studentName: `${item.first_name} ${item.last_name}`,
- flagCategory: 'super_green',
- reason: item.reason_description || 'Positive Behavior',
- studentId: item.student_id,
- classId: item.class_id ?? undefined,
- })}
- className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-bold rounded-full transition-colors shadow-sm"
+ <div 
+   key={item.signal_id} 
+   onClick={(e) => {
+     if ((e.target as HTMLElement).closest('button')) return;
+     const classId = getClassIdByName(item.class_name || undefined) || dashboardData?.classes?.[0]?.class_id;
+     if (classId) router.push(`/classes/${classId}/${item.student_id}`);
+   }}
+   className="bg-white dark:bg-[#151722] rounded-lg p-3 border border-green-100 dark:border-green-900/30 shadow-sm cursor-pointer hover:border-green-200 dark:hover:border-green-900/50 transition-colors"
  >
- <Mail className="w-2.5 h-2.5" />
- Email
- </button>
- </div>
+   <div className="flex items-start justify-between mb-1.5">
+     <div>
+       <div className="flex items-center gap-2">
+         <p className="font-bold text-gray-900 dark:text-white text-sm">
+           {item.first_name} {item.last_name}
+         </p>
+         <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-green-50 text-green-600 border border-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-900/50">
+           {item.class_name || 'Positive'}
+         </span>
+       </div>
+       <p className="text-[11px] text-gray-500 dark:text-gray-400">
+         Gr {item.grade_level || 'N/A'} • {new Date(item.signal_date).toLocaleDateString()}
+       </p>
+     </div>
+   </div>
+   <p className="text-xs text-gray-700 dark:text-gray-300 mb-2 bg-green-50 dark:bg-green-900/10 p-1.5 rounded border border-green-100 dark:border-green-900/20 leading-tight">
+     {item.reason_description || 'Positive Behavior'}
+   </p>
+   <div className="flex justify-between items-center mt-2">
+     {item.parent_email_on_file ? (
+       <span className="text-[9px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded font-bold">Email Sent</span>
+     ) : (
+       <div />
+     )}
+     <button
+       onClick={() => setTemplateModalData({
+         studentName: `${item.first_name} ${item.last_name}`,
+         flagCategory: 'super_green',
+         reason: item.reason_description || 'Positive Behavior',
+         studentId: item.student_id,
+         classId: item.class_id ?? undefined,
+       })}
+       className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-semibold rounded transition-colors shadow-sm"
+     >
+       <Mail className="w-3 h-3" />
+       Email
+     </button>
+   </div>
  </div>
  ))}
  </div>
@@ -772,7 +824,15 @@ export default function Dashboard() {
  {dashboardData.absent_students && dashboardData.absent_students.length > 0 ? (
  <div className="flex flex-wrap gap-4">
  {dashboardData.absent_students.map((student: any) => (
- <div key={student.student_id} className="flex-1 min-w-[200px] flex items-center justify-between p-3 border border-gray-100 dark:border-gray-800 rounded-lg">
+ <div 
+   key={student.student_id} 
+   onClick={(e) => {
+     if ((e.target as HTMLElement).closest('button')) return;
+     const classId = getClassIdByName(student.class_name) || dashboardData?.classes?.[0]?.class_id;
+     if (classId) router.push(`/classes/${classId}/${student.student_id}`);
+   }}
+   className="flex-1 min-w-[200px] flex items-center justify-between p-3 border border-gray-100 dark:border-gray-800 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#202330] transition-colors"
+ >
  <div>
  <p className="font-bold text-sm flex items-center gap-1.5 text-gray-900 dark:text-white">
  <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>

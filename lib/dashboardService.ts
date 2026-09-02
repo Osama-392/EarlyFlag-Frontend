@@ -44,6 +44,12 @@ export interface StudentRecognitionRow {
   total_recognitions: number;
 }
 
+export interface SubjectBreakdown {
+  subject_name: string;
+  yellow_academic: number;
+  yellow_behavioral: number;
+}
+
 export interface YellowWatchListRow {
   student_id: string;
   first_name: string;
@@ -56,6 +62,7 @@ export interface YellowWatchListRow {
   alert_category?: 'academic' | 'behavioral';
   subject?: string;
   class_name?: string;
+  subject_breakdown?: SubjectBreakdown[];
 }
 
 export interface RedUrgentStudentSummary {
@@ -87,6 +94,8 @@ export interface SuperGreenHighlightRow {
   reason_code?: string | null;
   reason_description?: string | null;
   class_id?: string | null;
+  grade_level?: number | null;
+  class_name?: string | null;
   parent_email_on_file: boolean;
 }
 

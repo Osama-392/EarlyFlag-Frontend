@@ -20,6 +20,7 @@ export default function SendAdminModal({
  studentName,
 }: SendAdminModalProps) {
  const [reason, setReason] = useState('');
+ const [category, setCategory] = useState<'academic' | 'behavioral'>('behavioral');
  const [isSubmitting, setIsSubmitting] = useState(false);
  const [error, setError] = useState<string | null>(null);
  const { showToast } = useToast();
@@ -40,7 +41,8 @@ export default function SendAdminModal({
  student_id: studentId,
  referral_type: 'manual_admin',
  note: reason,
- priority: 'normal'
+ priority: 'normal',
+ category: category
  }).catch(err => {
  console.error(err);
  showToast('Failed to send to admin. Please try again.', 'error');
@@ -79,6 +81,34 @@ export default function SendAdminModal({
  Sending <span className="font-semibold text-gray-900 dark:text-white">{studentName}</span> to admin will create a referral in the Admin Dashboard for review.
  </p>
  
+ <div>
+ <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+ Category <span className="text-red-500">*</span>
+ </label>
+ <div className="flex gap-3 mb-4">
+ <button
+ onClick={() => setCategory('behavioral')}
+ className={`flex-1 py-2.5 px-4 rounded-xl border text-sm font-medium transition-all duration-200 ${
+ category === 'behavioral'
+ ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 ring-2 ring-red-500/20'
+ : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-[#1b1e2c] dark:border-slate-700 dark:text-gray-400 dark:hover:bg-slate-800'
+ }`}
+ >
+ Behavioral
+ </button>
+ <button
+ onClick={() => setCategory('academic')}
+ className={`flex-1 py-2.5 px-4 rounded-xl border text-sm font-medium transition-all duration-200 ${
+ category === 'academic'
+ ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 ring-2 ring-red-500/20'
+ : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-[#1b1e2c] dark:border-slate-700 dark:text-gray-400 dark:hover:bg-slate-800'
+ }`}
+ >
+ Academic
+ </button>
+ </div>
+ </div>
+
  <div>
  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
  Reason <span className="text-red-500">*</span>

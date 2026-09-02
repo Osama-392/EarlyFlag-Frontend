@@ -7,9 +7,9 @@ import { getAdminClassDrilldown, AdminClassDrilldownBlock, unenrollStudentAdmin 
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import { useToast } from '@/components/Toast';
 
-const getStatusFromScore = (score: number): 'critical' | 'at-risk' | 'on-track' => {
- if (score >= 6) return 'critical';
- if (score >= 2) return 'at-risk';
+const getStatusFromFlags = (redCount: number, yellowCount: number): 'critical' | 'at-risk' | 'on-track' => {
+ if (redCount > 0) return 'critical';
+ if (yellowCount > 0) return 'at-risk';
  return 'on-track';
 };
 
@@ -127,6 +127,10 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
  const name = `${s.first_name} ${s.last_name}`.toLowerCase();
  const extId = (s.external_student_id || s.student_id || '').toString().toLowerCase();
  return name.includes(searchTerm.toLowerCase()) || extId.includes(searchTerm.toLowerCase());
+ }).sort((a, b) => {
+   const nameA = `${a.first_name} ${a.last_name}`.toLowerCase();
+   const nameB = `${b.first_name} ${b.last_name}`.toLowerCase();
+   return nameA.localeCompare(nameB);
  });
 
  const stats = {
@@ -215,7 +219,7 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
  {/* Student Cards */}
  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
  {filteredStudents.map(student => {
- const status = getStatusFromScore(student.weighted_score);
+ const status = getStatusFromFlags(student.red_count || 0, student.yellow_count || 0);
  const cfg = statusConfig[status];
  const isGreen = student.yellow_count === 0 && student.red_count === 0;
 

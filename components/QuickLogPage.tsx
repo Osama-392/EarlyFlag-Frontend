@@ -122,7 +122,12 @@ export default function QuickLogPage({ onCancel, initialClassId, targetDate }: Q
  try {
  const targetDate = selectedDate || new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
  const data = await getClassStudents(activeClassId, targetDate);
- setApiStudents(data);
+ const sortedData = [...data].sort((a, b) => {
+   const nameA = `${a.first_name} ${a.last_name}`.toLowerCase();
+   const nameB = `${b.first_name} ${b.last_name}`.toLowerCase();
+   return nameA.localeCompare(nameB);
+ });
+ setApiStudents(sortedData);
  } catch (err) {
  console.error('Failed to load students', err);
  } finally {

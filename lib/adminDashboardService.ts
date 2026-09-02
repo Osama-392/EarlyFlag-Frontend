@@ -272,6 +272,11 @@ export interface MostFlaggedStudentRow {
   absent_count: number;
   open_referrals: number;
   last_flag_date?: string | null;
+  subject_breakdown?: {
+    subject_name: string;
+    yellow_academic: number;
+    yellow_behavioral: number;
+  }[];
 }
 
 export interface MostFlaggedBlock {

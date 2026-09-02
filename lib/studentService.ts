@@ -190,7 +190,7 @@ export const createEnrollment = async (studentId: string, classId: string): Prom
 };
 
 // Send a counselor referral
-export const sendCounselorReferral = async (payload: { student_id: string; referral_type: string; note: string; priority?: string }): Promise<any> => {
+export const sendCounselorReferral = async (payload: { student_id: string; referral_type: string; note: string; priority?: string; category?: 'academic' | 'behavioral' }): Promise<any> => {
   try {
     const response = await api.post('/api/v1/teacher/referrals', payload);
     return response.data;

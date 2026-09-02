@@ -131,7 +131,11 @@ export default function StudentRoster() {
  `${student.first_name} ${student.last_name}`
  .toLowerCase()
  .includes(searchTerm.toLowerCase())
- )
+ ).sort((a, b) => {
+   const nameA = `${a.first_name} ${a.last_name}`.toLowerCase();
+   const nameB = `${b.first_name} ${b.last_name}`.toLowerCase();
+   return nameA.localeCompare(nameB);
+ })
  : [];
 
 
