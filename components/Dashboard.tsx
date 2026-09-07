@@ -30,8 +30,10 @@ import {
  Award
 } from 'lucide-react';
 import { useProtectedRoute } from '@/lib/useProtectedRoute';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/providers';
+import { useToast } from '@/components/Toast';
 import { getMultiWindowStats, SignalStats } from '@/lib/analyticsService';
 import EmailCounselorModal from '@/components/EmailCounselorModal';
 import ParentNotifyModal from '@/components/ParentNotifyModal';
@@ -45,7 +47,9 @@ import {
  getUnfinishedAlerts,
  dismissUnfinishedAlert,
  getTeacherRecognitions,
- StudentRecognitionRow
+ StudentRecognitionRow,
+ acknowledgeRed,
+ AcknowledgeRedResponse
 } from '@/lib/dashboardService';
 
 const formatRelativeTime = (dateStr?: string): string => {
@@ -85,6 +89,7 @@ function pct(value: number, total: number): number {
 }
 
 export default function Dashboard() {
+ const router = useRouter();
  const { loading: authLoading } = useProtectedRoute();
  const [dashboardData, setDashboardData] = useState<TeacherDashboardResponse | null>(null);
  const [loading, setLoading] = useState(true);
@@ -94,6 +99,8 @@ export default function Dashboard() {
  const [notifyModalStudent, setNotifyModalStudent] = useState<RedUrgentRow | null>(null);
  const [unfinishedAlerts, setUnfinishedAlerts] = useState<UnfinishedLogRow[]>([]);
  const [recognitions, setRecognitions] = useState<StudentRecognitionRow[]>([]);
+ const [acknowledgingEscalations, setAcknowledgingEscalations] = useState<Set<string>>(new Set());
+ const acknowledgingEscalationsRef = useRef<Set<string>>(new Set());
  const [templateModalData, setTemplateModalData] = useState<{
  studentName: string;
  flagCategory: 'red' | 'yellow' | 'super_green' | 'absent';
@@ -107,6 +114,7 @@ export default function Dashboard() {
  const [activeWindow, setActiveWindow] = useState<TimeWindow>('today');
 
  const { user } = useAuth();
+ const { showToast } = useToast();
 
  const getClassIdByName = useCallback((className?: string) => {
    if (!className) return undefined;
@@ -194,6 +202,35 @@ export default function Dashboard() {
  setUnfinishedAlerts(prev => prev.filter(a => a.session_id !== sessionId));
  } catch (err) {
  console.error('Failed to dismiss alert:', err);
+ }
+ };
+
+ const handleAcknowledgeRed = async (escalationId: string) => {
+ if (acknowledgingEscalationsRef.current.has(escalationId)) return;
+
+ acknowledgingEscalationsRef.current.add(escalationId);
+ setAcknowledgingEscalations((previous) => new Set(previous).add(escalationId));
+ try {
+ const response: AcknowledgeRedResponse = await acknowledgeRed(escalationId);
+ const refreshedDashboard = await getTeacherDashboard();
+ setDashboardData(refreshedDashboard);
+
+ const statusMessage: Record<AcknowledgeRedResponse['display_status'], string> = {
+ red: 'Acknowledged. Another Red escalation is still pending.',
+ yellow_watch: 'Acknowledged. The student is now on Yellow Watch.',
+ engaging: 'Acknowledged. The student has no active flags remaining.',
+ };
+ showToast(statusMessage[response.display_status], 'success');
+ } catch (err: any) {
+ const detail = err?.response?.data?.detail;
+ showToast(typeof detail === 'string' ? detail : 'Failed to acknowledge the Red escalation. Please try again.', 'error');
+ } finally {
+ acknowledgingEscalationsRef.current.delete(escalationId);
+ setAcknowledgingEscalations((previous) => {
+ const next = new Set(previous);
+ next.delete(escalationId);
+ return next;
+ });
  }
  };
 
@@ -622,45 +659,52 @@ export default function Dashboard() {
  <tr>
  <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Student</th>
  <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Grade</th>
- <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Acd / Beh</th>
- <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Total</th>
+ <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Active Acd / Beh</th>
+ <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Active</th>
  <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Status</th>
  <th className="px-3 py-2 text-right font-semibold text-gray-600 dark:text-gray-400"></th>
  </tr>
  </thead>
  <tbody>
  {yellow_watch_list.map((row) => (
- <tr key={row.student_id} className="border-b border-gray-100 dark:border-[#2e3240] hover:bg-gray-50 dark:hover:bg-[#202330] transition">
+ <tr
+ key={row.student_id}
+ role="link"
+ tabIndex={0}
+ onClick={() => router.push(`/students/${row.student_id}`)}
+ onKeyDown={(event) => {
+ if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+ event.preventDefault();
+ router.push(`/students/${row.student_id}`);
+ }
+ }}
+ className={`border-b border-gray-100 dark:border-[#2e3240] transition ${
+ row.monitoring_after_red
+ ? 'bg-amber-100 dark:bg-amber-950/30 cursor-pointer'
+ : 'hover:bg-gray-50 dark:hover:bg-[#202330] cursor-pointer'
+ }`}
+ >
  <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span>{row.first_name} {row.last_name}</span>
-                        {(row.red_escalation_count || 0) > 0 && (
-                          <span 
-                            className="inline-flex items-center px-1.5 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-bold text-[10px] rounded-full border border-red-200 dark:border-red-800"
-                            title={`${row.red_escalation_count} Red Escalation${row.red_escalation_count === 1 ? '' : 's'}`}
-                          >
-                            +{row.red_escalation_count}
-                          </span>
-                        )}
                       </div>
                     </td>
  <td className="px-3 py-2 text-gray-500 dark:text-gray-400">Gr {row.grade_level}</td>
  <td className="px-3 py-2">
- <span className="text-blue-600 dark:text-blue-400 font-semibold">{row.yellow_academic_count}</span>
+ <span className="text-blue-600 dark:text-blue-400 font-semibold">{row.academic_flag_count}</span>
  <span className="text-gray-300 dark:text-gray-600 mx-1">/</span>
- <span className="text-purple-600 dark:text-purple-400 font-semibold">{row.yellow_behavioral_count}</span>
+ <span className="text-purple-600 dark:text-purple-400 font-semibold">{row.behavioral_flag_count}</span>
  </td>
- <td className="px-3 py-2 font-bold text-amber-600 dark:text-amber-500">{row.yellow_total}</td>
+ <td className="px-3 py-2 font-bold text-amber-600 dark:text-amber-500">{row.active_flag_count}</td>
  <td className="px-3 py-2">
- {row.unresolved_alert_max_severity ? (
- <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[10px] rounded font-medium">{row.unresolved_alert_max_severity.toUpperCase()}</span>
- ) : (
  <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[10px] rounded font-medium">WATCH</span>
- )}
  </td>
  <td className="px-3 py-2 text-right">
  <button
- onClick={() => setTemplateModalData({ studentName: `${row.first_name} ${row.last_name}`, flagCategory: 'yellow', reason: row.unresolved_alert_max_severity ? `frequent ${row.unresolved_alert_max_severity} level alerts` : undefined, studentId: row.student_id, classId: undefined })}
+ onClick={(event) => {
+ event.stopPropagation();
+ setTemplateModalData({ studentName: `${row.first_name} ${row.last_name}`, flagCategory: 'yellow', studentId: row.student_id, classId: undefined });
+ }}
  className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-semibold rounded-full transition-colors shadow-sm"
  >
  <Mail className="w-3.5 h-3.5" />
@@ -690,7 +734,23 @@ export default function Dashboard() {
  {red_urgent.length > 0 ? (
  <div className="space-y-2">
  {red_urgent.map((item) => (
- <div key={item.alert_id} className="bg-white dark:bg-[#151722] rounded-lg p-3 border border-red-100 dark:border-red-900/30 shadow-sm">
+ <div
+ key={item.escalation_id}
+ role="link"
+ tabIndex={0}
+ onClick={() => router.push(`/students/${item.student.student_id}`)}
+ onKeyDown={(event) => {
+ if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+ event.preventDefault();
+ router.push(`/students/${item.student.student_id}`);
+ }
+ }}
+ className={`rounded-lg p-3 border shadow-sm ${
+ item.is_repeat_escalation
+ ? 'border-red-400 bg-red-100 dark:border-red-600 dark:bg-red-950/40 cursor-pointer'
+ : 'border-red-100 bg-white dark:border-red-900/30 dark:bg-[#151722] cursor-pointer'
+ }`}
+ >
  <div className="flex items-start justify-between mb-1.5">
   <div>
   <div className="flex items-center gap-1.5">
@@ -700,17 +760,51 @@ export default function Dashboard() {
   Gr {item.student.grade_level}
   </p>
   </div>
+ <div className="flex items-center gap-1">
+ <span className="text-[9px] font-bold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded uppercase tracking-wider">{item.origin.replace(/_/g, ' ')}</span>
+ <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded uppercase tracking-wider">{item.category}</span>
  <span className="text-[9px] font-bold text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded uppercase tracking-wider">{item.severity}</span>
  </div>
+ </div>
  <p className="text-xs text-gray-700 dark:text-gray-300 mb-2 bg-red-50 dark:bg-red-900/10 p-1.5 rounded border dark:border-red-900/20 leading-tight">{item.rule_description}</p>
- <div className="flex justify-end">
+ {item.is_repeat_escalation && (
+ <span className="inline-flex mb-2 px-2 py-0.5 text-[11px] font-semibold text-red-800 dark:text-red-200 bg-red-200 dark:bg-red-900/60 rounded-full capitalize">
+ Repeat {item.category} Red · {item.same_category_red_count_7d}×
+ </span>
+ )}
+ <div className="flex items-center justify-between gap-2">
+ <span className="text-[10px] text-gray-500 dark:text-gray-400">
+ Active flags: <strong>{item.active_flag_count}</strong>
+ </span>
+ <div className="flex items-center gap-2">
+ {item.can_acknowledge && (
  <button
- onClick={() => setTemplateModalData({ studentName: `${item.student.first_name} ${item.student.last_name}`, flagCategory: 'red', reason: item.rule_description, studentId: item.student.student_id, recentFlags: item.recent_flags, classId: getClassIdByName(item.recent_flags?.[0]?.class_name) })}
+ onClick={(event) => {
+ event.stopPropagation();
+ handleAcknowledgeRed(item.escalation_id);
+ }}
+ disabled={acknowledgingEscalations.has(item.escalation_id)}
+ className="inline-flex items-center gap-1 px-2 py-1 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 text-[10px] font-semibold rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+ >
+ {acknowledgingEscalations.has(item.escalation_id) ? (
+ <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+ ) : (
+ <CheckCircle2 className="w-3.5 h-3.5" />
+ )}
+ {acknowledgingEscalations.has(item.escalation_id) ? 'Acknowledging...' : 'Acknowledge'}
+ </button>
+ )}
+ <button
+ onClick={(event) => {
+ event.stopPropagation();
+ setTemplateModalData({ studentName: `${item.student.first_name} ${item.student.last_name}`, flagCategory: 'red', reason: item.rule_description, studentId: item.student.student_id, recentFlags: item.recent_flags, classId: item.student.class_id || getClassIdByName(item.recent_flags?.[0]?.class_name) });
+ }}
  className="inline-flex items-center gap-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-[10px] font-semibold rounded-full transition-colors shadow-sm"
  >
  <Mail className="w-3.5 h-3.5" />
  Email
  </button>
+ </div>
  </div>
  </div>
  ))}

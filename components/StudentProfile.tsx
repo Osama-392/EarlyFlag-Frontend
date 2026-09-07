@@ -5,15 +5,19 @@ import { useParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
   ArrowLeft, Mail, MessageSquare, Edit, AlertCircle, CheckCircle, 
-  AlertTriangle 
+  AlertTriangle, FileText
 } from 'lucide-react';
 import { getStudentHistory, updateStudentProfile } from '@/lib/studentService';
+import { getClass, Class } from '@/lib/classService';
 import { getCategoryStyle } from '@/lib/categoryColors';
 import EditStudentProfileModal from '@/components/EditStudentProfileModal';
 import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
 import SendAdminModal from '@/components/SendAdminModal';
+import CreateReportModal from '@/components/CreateReportModal';
+import ReportView from '@/components/ReportView';
 import { useAuth } from '@/app/providers';
 import { logger } from '@/lib/logger';
+import { filterGlobalEscalationsFromReportData } from '@/lib/reportUtils';
 
 interface StudentProfileProps {
   studentId?: string;
@@ -30,10 +34,13 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<any>(null);
+  const [profileClass, setProfileClass] = useState<Class | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [emailCategoryState, setEmailCategoryState] = useState<'red' | 'yellow' | 'super_green' | 'absent' | null>(null);
   const [isSendAdminModalOpen, setIsSendAdminModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [generatedReport, setGeneratedReport] = useState<any | null>(null);
   const { user } = useAuth();
 
   const loadStudent = async () => {
@@ -42,8 +49,12 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
       setError(null);
       
       // Fetch student history which contains signal data
-      const historyData = await getStudentHistory(studentId);
+      const [historyData, classData] = await Promise.all([
+        getStudentHistory(studentId),
+        classId ? getClass(classId).catch(() => null) : Promise.resolve(null),
+      ]);
       setHistory(historyData);
+      setProfileClass(classData);
     } catch (err: any) {
       const message = err?.response?.data?.detail?.[0]?.msg || 'Failed to load student data';
       setError(message);
@@ -57,7 +68,7 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
     if (studentId) {
       loadStudent();
     }
-  }, [studentId]);
+  }, [studentId, classId]);
 
   if (loading) {
     return (
@@ -76,7 +87,7 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
             className="inline-flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-1" />
-            Back to Reports
+            {pathname.startsWith('/students') ? 'Back to Dashboard' : 'Back to Reports'}
           </button>
         ) : (
           <Link 
@@ -91,6 +102,26 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
           <p className="text-red-700">{error}</p>
         </div>
       </div>
+    );
+  }
+
+  if (generatedReport) {
+    const firstName = history?.first_name || 'Student';
+    const lastName = history?.last_name || '';
+    return (
+      <ReportView
+        student={{
+          id: history?.student_id || studentId,
+          name: [firstName, lastName].filter(Boolean).join(' '),
+          gradeLevel: Number(history?.grade_level) || 0,
+          initial: `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase(),
+          bgColor: 'from-blue-400 to-blue-600',
+        }}
+        reportData={generatedReport}
+        variant="teacher"
+        onBack={() => setGeneratedReport(null)}
+        backLabel="Back to Student Profile"
+      />
     );
   }
 
@@ -234,7 +265,7 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
             className="inline-flex items-center text-sm text-blue-500 bg-white dark:bg-[#151722] border border-blue-100 px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm font-medium"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Reports
+            {pathname.startsWith('/students') ? 'Back to Dashboard' : 'Back to Reports'}
           </button>
         ) : (
           <Link
@@ -286,6 +317,17 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
               <span>Absence Notice</span>
             </button>
           )}
+
+          <button
+            onClick={() => {
+              logger.buttonClick(`Export Report for ${studentFullName}`, 'StudentProfile');
+              setIsReportModalOpen(true);
+            }}
+            className="inline-flex items-center space-x-2 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-bold shadow-sm"
+          >
+            <FileText className="w-4 h-4" />
+            <span>Export Report</span>
+          </button>
 
           <button 
             onClick={() => setIsEditModalOpen(true)}
@@ -487,6 +529,25 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
       </div>
 
       {/* Modals */}
+      <CreateReportModal
+        isOpen={isReportModalOpen}
+        student={{
+          id: history?.student_id || studentId,
+          name: studentFullName,
+          status: statusText.toLowerCase(),
+          initial: `${history?.first_name?.charAt(0) || ''}${history?.last_name?.charAt(0) || ''}`.toUpperCase(),
+          bgColor: 'from-blue-400 to-blue-600',
+        }}
+        defaultSubject={profileClass?.subject || profileClass?.name || 'All Subjects'}
+        gradeSubjects={profileClass ? [profileClass.subject || profileClass.name] : []}
+        onClose={() => setIsReportModalOpen(false)}
+        onGenerate={(reportData) => {
+          logger.reportGeneration(studentFullName, reportData);
+          setGeneratedReport(filterGlobalEscalationsFromReportData(reportData));
+          setIsReportModalOpen(false);
+        }}
+      />
+
       <EditStudentProfileModal
         isOpen={isEditModalOpen}
         student={{

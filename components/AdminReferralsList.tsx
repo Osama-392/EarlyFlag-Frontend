@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAdminReferrals, acknowledgeReferral, AdminReferral } from '@/lib/adminService';
-import { Bell, Check, Clipboard, Clock, Mail } from 'lucide-react';
+import { Bell, Check, Clipboard, Mail } from 'lucide-react';
 import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
 
-type TabType = 'all' | 'red_flag' | 'manual' | 'resolved';
+type TabType = 'all' | 'academic' | 'behavioral' | 'resolved';
 
 export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '30d' | 'all' }) {
  const router = useRouter();
@@ -42,10 +42,8 @@ export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '3
  
  // Frontend filtering to match the tabs
  let filtered = res.referrals || [];
- if (activeTab === 'red_flag') {
- filtered = filtered.filter(r => r.referral_type === 'auto_red');
- } else if (activeTab === 'manual') {
- filtered = filtered.filter(r => r.referral_type === 'manual');
+ if (activeTab === 'academic' || activeTab === 'behavioral') {
+ filtered = filtered.filter(r => r.category === activeTab);
  } else if (activeTab === 'resolved') {
  filtered = filtered.filter(r => r.acknowledged_at !== null);
  }
@@ -105,6 +103,8 @@ export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '3
 
  const tabs = [
  { id: 'all', label: `Referrals & Follow ups (${referrals.length})` },
+ { id: 'academic', label: 'Academic' },
+ { id: 'behavioral', label: 'Behavioral' },
  { id: 'resolved', label: 'Resolved' }
  ];
 
@@ -140,8 +140,8 @@ export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '3
  : 'border-transparent text-gray-400 hover:text-gray-600'
  }`}
  >
- {tab.id === 'red_flag' && <div className={`w-2.5 h-2.5 rounded-full ${activeTab === tab.id ? 'bg-red-500' : 'bg-gray-300'}`}></div>}
- {tab.id === 'manual' && <Clipboard className="w-3.5 h-3.5" />}
+ {tab.id === 'academic' && <div className={`w-2.5 h-2.5 rounded-full ${activeTab === tab.id ? 'bg-amber-500' : 'bg-gray-300'}`}></div>}
+ {tab.id === 'behavioral' && <div className={`w-2.5 h-2.5 rounded-full ${activeTab === tab.id ? 'bg-purple-500' : 'bg-gray-300'}`}></div>}
  {tab.id === 'resolved' && <Check className="w-3.5 h-3.5" />}
  {tab.label}
  </button>
@@ -157,15 +157,20 @@ export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '3
  <div className="p-8 text-center text-sm text-gray-400 font-medium">No referrals found in this category.</div>
  ) : (
  referrals.map((referral) => {
- const isRedFlag = referral.referral_type === 'auto_red';
+ const isManual = referral.origin === 'manual_send';
+ const originLabel: Record<AdminReferral['origin'], string> = {
+ automatic_threshold: 'Auto threshold',
+ direct_red: 'Direct Red',
+ manual_send: 'Manual referral',
+ };
  
  return (
  <div 
  key={referral.referral_id} 
- className={`p-5 flex items-start justify-between transition-colors hover:bg-gray-50 dark:hover:bg-[#1b1e2c] ${isRedFlag ? '' : 'bg-yellow-50/30 dark:bg-yellow-950/10'}`}
+ className={`p-5 flex items-start justify-between transition-colors hover:bg-gray-50 dark:hover:bg-[#1b1e2c] ${isManual ? 'bg-yellow-50/30 dark:bg-yellow-950/10' : ''}`}
  >
  <div className="flex items-start gap-4">
- <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm text-white ${isRedFlag ? 'bg-red-500' : 'bg-blue-500'}`}>
+ <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm text-white ${isManual ? 'bg-blue-500' : 'bg-red-500'}`}>
  {referral.student_first_name[0]}{referral.student_last_name[0]}
  </div>
  <div>
@@ -176,25 +181,23 @@ export default function AdminReferralsList({ range }: { range?: '1d' | '7d' | '3
  <span className="text-black dark:text-white font-bold"> - {referral.subject}</span>
  )}
  </h3>
- {isRedFlag ? (
- <>
- <span className="px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-[10px] font-bold flex items-center gap-1">
- <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
- Red Flag
- </span>
- <span className="px-2 py-0.5 rounded-md bg-[#1e293b] dark:bg-gray-700 text-white text-[10px] font-bold">Auto-sent</span>
- </>
- ) : (
- <>
+ {isManual ? (
  <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 text-[10px] font-bold flex items-center gap-1">
  <Clipboard className="w-2.5 h-2.5" />
  Manual Referral
  </span>
- <span className="px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 text-[10px] font-bold">
- Send to Admin
+ ) : (
+ <span className="px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-[10px] font-bold flex items-center gap-1">
+ <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+ Red Flag
  </span>
- </>
  )}
+ <span className="px-2 py-0.5 rounded-md bg-[#1e293b] dark:bg-gray-700 text-white text-[10px] font-bold">
+ {originLabel[referral.origin]}
+ </span>
+ <span className="px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 text-[10px] font-bold capitalize">
+ {referral.category}
+ </span>
  </div>
  <p className="text-gray-600 dark:text-gray-300 text-sm font-medium mb-1.5">
  {referral.note.split('\n').pop()?.replace(/\[auto\]\s*/i, 'Notes: ')}

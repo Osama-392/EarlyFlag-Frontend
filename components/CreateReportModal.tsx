@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { generateStudentReport } from '@/lib/studentService';
@@ -35,9 +35,9 @@ export default function CreateReportModal({
  // Calculate dynamic dates
  const today = new Date();
  const thirtyDaysAgo = new Date();
- thirtyDaysAgo.setDate(today.getDate() - 30);
+ thirtyDaysAgo.setDate(today.getDate() - 29);
  const ninetyDaysAgo = new Date();
- ninetyDaysAgo.setDate(today.getDate() - 90);
+ ninetyDaysAgo.setDate(today.getDate() - 89);
 
  const formatDate = (d: Date) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
  const formatLabel = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -49,6 +49,19 @@ export default function CreateReportModal({
 
  const [loading, setLoading] = useState(false);
  const [error, setError] = useState<string | null>(null);
+
+ const subjectOptions = useMemo(
+ () => Array.from(new Set(
+ (gradeSubjects?.length ? gradeSubjects : [defaultSubject]).filter(
+ (item) => item && item !== 'All Subjects',
+ ),
+ )),
+ [defaultSubject, gradeSubjects],
+ );
+
+ useEffect(() => {
+ if (isOpen) setSubject(defaultSubject || 'All Subjects');
+ }, [defaultSubject, isOpen]);
 
  const handleGenerateReport = async () => {
  setLoading(true);
@@ -194,8 +207,8 @@ export default function CreateReportModal({
  className="w-full px-3 py-2 border dark:bg-[#1b1e2c] dark:text-white border-gray-300 dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white text-gray-900 dark:text-white"
  >
  <option value="All Subjects">All Subjects</option>
- {(gradeSubjects?.length ? gradeSubjects : [defaultSubject]).map((subj, idx) => (
- <option key={idx} value={subj}>{subj}</option>
+ {subjectOptions.map((subj) => (
+ <option key={subj} value={subj}>{subj}</option>
  ))}
  </select>
  </div>

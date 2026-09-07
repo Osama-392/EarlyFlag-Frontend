@@ -27,6 +27,8 @@ export const rejectTeacher = async (teacherId: string) => {
 export interface AdminReferral {
   referral_id: string;
   referral_type: string;
+  category: 'academic' | 'behavioral';
+  origin: 'automatic_threshold' | 'direct_red' | 'manual_send';
   priority: string;
   email_status: string;
   sent_at: string | null;
