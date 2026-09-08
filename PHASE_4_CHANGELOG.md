@@ -1,6 +1,7 @@
 # Phase 4 Frontend Changelog
 
 **Date:** September 7, 2026  
+**Last updated:** September 9, 2026<br>
 **Project:** EarlyFlag Frontend  
 **Phase:** Phase 4  
 **Status:** Implemented in the local frontend working tree
@@ -278,3 +279,117 @@ Teacher Dashboard
   -> Return to the same Student Profile
 ```
 
+---
+
+## September 8, 2026
+
+### Admin referral category rendering
+
+- Removed the implicit fallback that displayed every non-`academic` referral category as **Behavioral**.
+- The category badge now renders **Academic** only when the API explicitly returns `academic` and **Behavioral** only when it explicitly returns `behavioral`.
+- Missing or unexpected category values no longer receive an incorrect Behavioral label.
+- Updated `components/AdminReferralsList.tsx`.
+
+### Admin Student Profile seven-day category breakdown
+
+- Expanded the **7-Day Category Breakdown** from four cards to five cards using the response from `GET /api/v1/admin/students/{student_id}`.
+- Added **Red Cross-Class** after **Red Behavioral**, using the same red styling as the other Red cards.
+- The Cross-Class count is read directly from `category_7d.red_cross_class`; it is not calculated from or included in the Academic and Behavioral Red counts.
+- Retained `cross_class_red_count_7d` only as a backward-compatible fallback. The value resolution order is:
+  1. `category_7d.red_cross_class`
+  2. `cross_class_red_count_7d`
+  3. `0`
+- Added null-safe `0` defaults for all five category-breakdown values.
+- Updated the responsive layout to show four columns on desktop and two columns on smaller screens. The Cross-Class card spans the centered two columns on desktop and returns to a normal grid cell on smaller screens.
+- Extended the frontend API response types with optional nullable definitions for `red_cross_class` and the legacy `cross_class_red_count_7d` field.
+- Updated `components/AdminStudentProfile.tsx` and `lib/adminDashboardService.ts`.
+
+### Validation
+
+- TypeScript validation completed successfully with `npx tsc --noEmit`.
+- Targeted ESLint validation completed successfully for `components/AdminStudentProfile.tsx` and `lib/adminDashboardService.ts`.
+
+---
+
+## September 9, 2026
+
+### Unified Admin Referrals & Follow-Ups
+
+- Replaced the principal dashboard's separate **Yellow Watch List** and **Red Urgent** sections with one unified **Admin Referrals & Follow-Ups** table.
+- Removed frontend admin-dashboard response usage and typings for:
+  - `yellow_watch_list`
+  - `red_urgent`
+  - `urgent_alerts`
+- Updated the principal dashboard greeting banner to display the server-provided active-referral total instead of the removed urgent-alert count.
+- Retained the separate **Absent This Week** supporting widget.
+
+### Canonical Red Flags data source
+
+- Replaced client-side referral filtering with the canonical endpoint:
+  - `GET /api/v1/admin/red-flags?tab={tab}&range=all&limit=10&offset={offset}`
+- Added strongly typed frontend models for Red rows, students, tabs, Red types, and the paginated response.
+- Added the supported server-filtered tabs:
+  - **All Reds**
+  - **Academic**
+  - **Behavioral**
+  - **Cross-Class**
+  - **Resolved**
+- Reset pagination to page 1 whenever the selected tab changes.
+- Used the response's server totals directly for every tab and for the active-referrals badge:
+  - `all_total`
+  - `academic_total`
+  - `behavioral_total`
+  - `cross_class_total`
+  - `resolved_total`
+  - `active_referrals_total`
+- No frontend totals are added together, preserving the overlapping Cross-Class classification.
+
+### Red row rendering
+
+- Updated each row to use the canonical nested `student` object and Red event fields.
+- Displayed `category` independently as **Academic** or **Behavioral**.
+- Added the required `red_type` labels:
+  - `escalated` → **Escalated**
+  - `direct_red` → **Direct Red**
+  - `manual_send` → **Manual Send**
+  - `cross_class` → **Cross-Class**
+- Added class, subject, primary concern, occurrence date, latest activity, follow-up status, and follow-up date presentation.
+- Added student-profile navigation using the server-provided student slug with the student ID as a fallback.
+- Showed the **Repeat Offender** banner only when `repeat_offender === true`.
+- Used `red_events_7d` only as display data and removed any frontend repeat-window calculation.
+
+### Acknowledge workflow
+
+- Acknowledgements use:
+  - `PUT /api/v1/admin/referrals/{referral_id}/acknowledge`
+- The **Acknowledge** action is hidden when a row has no `referral_id`.
+- Added a row-level in-progress state to prevent duplicate acknowledgement requests.
+- After success, only the acknowledged row is removed immediately from the current active page.
+- The current tab, rows, and all server totals are then refreshed in the background so the event appears under **Resolved** without a full table reset.
+- When the acknowledged row was the final entry on a later page, pagination moves back to the previous valid page.
+- Added inline error feedback when an acknowledgement or data refresh fails.
+
+### Server-side pagination and interaction improvements
+
+- Changed the page size from 50 rows to 10 rows per request.
+- Added server-side pagination using the response's `total`, `limit`, and `offset` contract.
+- Added **Previous** and **Next** controls, the current page indicator, and a **Showing X–Y of Z** summary.
+- Kept the table and pagination controls mounted while changing tabs or pages to avoid disruptive layout shifts and blank states.
+- Added a compact **Updating…** indicator and temporarily dimmed the existing rows while replacement data loads.
+- Disabled stale row and pagination interactions during an in-flight page or tab request.
+- Added request sequencing protection so a slower earlier response cannot overwrite a newer tab or page selection.
+
+### Files changed
+
+- `components/AdminReferralsList.tsx`
+- `components/PrincipalDashboard.tsx`
+- `lib/adminService.ts`
+- `lib/adminDashboardService.ts`
+
+### Validation
+
+- Production build completed successfully with `npm run build`.
+- TypeScript validation completed successfully with `npx tsc --noEmit`.
+- Targeted ESLint validation completed successfully for the changed referral and dashboard files.
+- `git diff --check` completed successfully.
+- The repository-wide lint command continues to report pre-existing lint errors in unrelated screens; no new lint errors were introduced by this work.

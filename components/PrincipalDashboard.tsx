@@ -4,10 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
- BarChart3, TrendingUp, AlertTriangle, CheckCircle, Zap, Shield,
- AlertCircle, RefreshCw, Sparkles, ChevronRight, Clock, X, FileText,
- Users, Activity, User, Star, ClipboardList, Building2, Palette, BookOpen,
- Landmark, Calculator, FlaskConical, ArrowUp, ArrowDown, Minus, Info, Globe,
+ AlertCircle, RefreshCw, ChevronRight, Clock, X,
+ Users, Activity, Building2, Palette, BookOpen,
+ Calculator, FlaskConical, ArrowUp, ArrowDown, Minus, Info, Globe,
  BookMarked, Languages, Music, Code
 } from 'lucide-react';
 import {
@@ -18,8 +17,6 @@ import { getPendingTeachers } from '@/lib/adminService';
 import { useAuth } from '@/app/providers';
 import GoodMorningBanner from '@/components/GoodMorningBanner';
 import AdminReferralsList from '@/components/AdminReferralsList';
-import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
-import { Mail } from 'lucide-react';
 
 // ─── Predefined Subjects (from Create Class dropdown) ─────────────
 const PREDEFINED_SUBJECTS = [
@@ -44,22 +41,6 @@ const bandColors: Record<HeatmapBand, { bg: string; border: string; badge: strin
  green: { bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-200 dark:border-green-900/50', badge: 'bg-green-500', text: 'text-green-700 dark:text-green-400' },
  no_data: { bg: 'bg-gray-50 dark:bg-[#1b1e2c]', border: 'border-gray-200 dark:border-[#262a3d]', badge: 'bg-gray-400', text: 'text-gray-500 dark:text-gray-400' },
 };
-
-const severityStyles: Record<string, string> = {
- critical: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50',
- high: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-900/50',
- medium: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900/50',
- low: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-900/50',
-};
-
-function timeAgo(dateStr: string): string {
- const diff = Date.now() - new Date(dateStr).getTime();
- const mins = Math.floor(diff / 60000);
- if (mins < 60) return `${mins}m ago`;
- const hrs = Math.floor(mins / 60);
- if (hrs < 24) return `${hrs}h ago`;
- return `${Math.floor(hrs / 24)}d ago`;
-}
 
 const getDepartmentBadge = (name: string) => {
  const lower = name.toLowerCase().trim();
@@ -108,17 +89,8 @@ export default function PrincipalDashboard() {
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState<string | null>(null);
  const [refreshing, setRefreshing] = useState(false);
- const [templateModalData, setTemplateModalData] = useState<{
-    studentName: string;
-    teacherName: string;
-    flagCategory: 'red' | 'yellow' | 'super_green' | 'absent' | 'admin_concern';
-    reason?: string;
-    studentId?: string;
-    classId?: string;
-    adminEmailReason?: string;
-    adminEmailConcerns?: string;
-    recentFlags?: any[];
-  } | null>(null);
+ const [activeRedTotal, setActiveRedTotal] = useState(0);
+ const [referralsRefreshKey, setReferralsRefreshKey] = useState(0);
 
  // Pending teachers state
  const [pendingCount, setPendingCount] = useState<number>(0);
@@ -135,9 +107,11 @@ export default function PrincipalDashboard() {
  getPendingTeachers().catch(() => []),
  ]);
  setDashboard(dashData);
+ setActiveRedTotal(dashData.red_flags?.active_referrals_total ?? 0);
  setHeatmap(heatData);
  setPendingCount(pendingData.length);
  setShowPendingAlert(pendingData.length > 0);
+ setReferralsRefreshKey(key => key + 1);
  } catch (err: any) {
  console.error('Admin dashboard fetch failed:', err);
  setError(err?.response?.data?.detail || 'Failed to load dashboard data.');
@@ -149,9 +123,12 @@ export default function PrincipalDashboard() {
 
  useEffect(() => { fetchData(); }, [fetchData]);
 
-
-
- const kpis = dashboard?.kpis;
+ const handleReferralTotalsChange = useCallback(
+   (totals: { active_referrals_total: number }) => {
+     setActiveRedTotal(totals.active_referrals_total);
+   },
+   [],
+ );
  const allTiles = heatmap?.grade_buckets?.flatMap(b => b.tiles) || [];
  const totalClasses = allTiles.length;
 
@@ -218,19 +195,10 @@ export default function PrincipalDashboard() {
  .fade-up:nth-child(5){animation-delay:.25s} .fade-up:nth-child(6){animation-delay:.3s}
  `}</style>
 
- {/* Parent Email Template Modal */}
- {templateModalData && (
-   <ParentEmailTemplateModal
-     isOpen={!!templateModalData}
-     onClose={() => setTemplateModalData(null)}
-     {...templateModalData}
-   />
- )}
-
  {/* Good Morning Banner */}
  <GoodMorningBanner
  name={user?.first_name || 'Admin'}
- metric1={<>You have <span className="text-orange-600 dark:text-orange-500 font-bold">{dashboard?.urgent_alerts?.length || 0}</span> urgent alerts needing attention</>}
+ metric1={<>You have <span className="text-orange-600 dark:text-orange-500 font-bold">{activeRedTotal}</span> active referrals needing attention</>}
  metric2={<><span className="text-emerald-600 dark:text-emerald-500 font-bold">{dashboard?.kpis?.super_green_total || 0}</span> students showing exceptional growth school-wide</>}
  />
 
@@ -291,143 +259,14 @@ export default function PrincipalDashboard() {
  {/* KPI Stats Cards removed per request */}
 
  {/* Admin Referrals List */}
- <AdminReferralsList />
+ <AdminReferralsList
+   refreshKey={referralsRefreshKey}
+   onTotalsChange={handleReferralTotalsChange}
+ />
 
- {/* ── Action Lists (Yellow Watch List, Red Urgent, Absent) ── */}
+ {/* Absent students */}
  {dashboard && (
- <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
- {/* Yellow Watch List */}
- <div className="space-y-6">
- <div className="bg-white dark:bg-[#1a1d27] rounded-xl border border-gray-200 dark:border-[#2e3240] overflow-hidden shadow-sm transition-colors flex flex-col h-[450px]">
- <div className="p-5 border-b border-gray-100 dark:border-[#2e3240] flex items-center justify-between shrink-0">
- <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center space-x-2 ">
- <span>🟡</span><span>Yellow Watch List</span>
- </h3>
- <span className="text-xs font-bold text-amber-700 dark:text-amber-500 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-full">{dashboard.yellow_watch_list?.length || 0}</span>
- </div>
- {dashboard.yellow_watch_list && dashboard.yellow_watch_list.length > 0 ? (
- <div className="overflow-x-auto overflow-y-auto custom-scrollbar flex-1">
- <table className="w-full text-xs">
- <thead className="bg-gray-50/50 dark:bg-[#151722]/50">
- <tr>
- <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Student</th>
- <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Grade</th>
- <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Active Acd / Beh</th>
- <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Active</th>
- <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Status</th>
- </tr>
- </thead>
- <tbody>
- {dashboard.yellow_watch_list.map((row) => (
- <tr
- key={row.student_id}
- className={`border-b border-gray-100 dark:border-[#2e3240] transition ${
- row.monitoring_after_red
- ? 'bg-amber-100 dark:bg-amber-950/30'
- : 'hover:bg-gray-50 dark:hover:bg-[#202330]'
- }`}
- >
- <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">
- <div className="flex items-center gap-1.5 flex-wrap">
- <span>{row.first_name} {row.last_name}</span>
- {row.subject && (
- <span className="text-black dark:text-white font-bold">
- - {row.subject}
- </span>
- )}
- </div>
- </td>
- <td className="px-3 py-2 text-gray-500 dark:text-gray-400">Gr {row.grade_level}</td>
- <td className="px-3 py-2">
- <span className="text-blue-600 dark:text-blue-400 font-semibold">{row.academic_flag_count}</span>
- <span className="text-gray-300 dark:text-gray-600 mx-1">/</span>
- <span className="text-purple-600 dark:text-purple-400 font-semibold">{row.behavioral_flag_count}</span>
- </td>
- <td className="px-3 py-2 font-bold text-amber-600 dark:text-amber-500">{row.active_flag_count}</td>
- <td className="px-3 py-2">
- <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[10px] rounded font-medium">WATCH</span>
- </td>
- </tr>
- ))}
- </tbody>
- </table>
- </div>
- ) : (
- <div className="p-8 text-center text-gray-500 dark:text-gray-400">No students on the yellow watch list right now.</div>
- )}
- </div>
- </div>
- {/* Yellow Watch List Ends */}
-
- {/* Red Urgent */}
- <div className="space-y-6">
- <div className="bg-white dark:bg-[#1a1d27] rounded-xl border border-red-200 dark:border-red-900/50 shadow-sm overflow-hidden transition-colors flex flex-col h-[450px]">
- <div className="bg-red-50 dark:bg-red-900/20 p-5 border-b border-red-100 dark:border-red-900/50 flex items-center justify-between shrink-0">
- <h3 className="text-lg font-bold text-red-900 dark:text-red-400 ">🔴 Red Urgent</h3>
- <span className="text-xs font-bold text-red-700 dark:text-red-300 bg-red-200 dark:bg-red-900/50 px-2 py-1 rounded-full">{dashboard.red_urgent?.length || 0}</span>
- </div>
- <div className="p-3 overflow-y-auto custom-scrollbar flex-1">
- {dashboard.red_urgent && dashboard.red_urgent.length > 0 ? (
- <div className="space-y-2">
- {dashboard.red_urgent.map((item) => (
- <div key={item.alert_id} className="bg-white dark:bg-[#151722] rounded-lg p-3 border border-red-100 dark:border-red-900/30 shadow-sm">
- <div className="flex items-start justify-between mb-1.5">
-  <div>
-    <p className="font-bold text-gray-900 dark:text-white text-sm">
-    {item.student.first_name} {item.student.last_name}
-    {(item.subject || (item as any).student?.subject) && (
-    <span className="text-black dark:text-white font-bold">
-    {" "} - {item.subject || (item as any).student?.subject}
-    </span>
-    )}
-    </p>
-  <p className="text-[11px] text-gray-500 dark:text-gray-400">
-  Gr {item.student.grade_level}
-  </p>
-  </div>
- <div className="flex items-center gap-2">
-   <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded uppercase tracking-wider">
-     {item.category}
-   </span>
-   <span className="text-[9px] font-bold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded uppercase tracking-wider">
-     {item.origin.replace(/_/g, ' ')}
-   </span>
-   <button
-     onClick={() => {
-       const concerns = item.recent_flags
-       ?.filter((f: any) => f.signal_type === 'red' || f.signal_type === 'yellow')
-       ?.map((f: any) => `- ${f.class_name || 'Class'}: ${f.rule_description || f.description || f.note || 'Concern logged'}`)
-       ?.join('\n');
-
-       setTemplateModalData({ 
-         studentName: `${item.student.first_name} ${item.student.last_name}`, 
-         teacherName: 'Administration',
-         flagCategory: 'admin_concern', 
-         adminEmailReason: item.rule_description, 
-         studentId: item.student.student_id,
-         adminEmailConcerns: concerns
-       })
-     }}
-     className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-600 hover:bg-red-700 text-white text-[9px] font-bold uppercase tracking-wider rounded transition-colors shadow-sm"
-   >
-     <Mail className="w-3 h-3" />
-     Email
-   </button>
-   <span className="text-[9px] font-bold text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded uppercase tracking-wider">{item.severity}</span>
- </div>
- </div>
- <p className="text-xs text-gray-700 dark:text-gray-300 mb-2 bg-red-50 dark:bg-red-900/10 p-1.5 rounded border dark:border-red-900/20 leading-tight">{item.rule_description}</p>
- </div>
- ))}
- </div>
- ) : (
- <div className="text-center py-4 text-gray-500 dark:text-gray-400">No urgent red alerts.</div>
- )}
- </div>
- </div>
- </div>
- {/* Red Urgent Ends */}
-
+ <div className="mb-8 max-w-xl">
  {/* Absent Students */}
  <div className="space-y-6">
  <div className="bg-white dark:bg-[#1a1d27] rounded-xl border border-gray-200 dark:border-[#2e3240] shadow-sm overflow-hidden transition-colors flex flex-col h-[450px]">
