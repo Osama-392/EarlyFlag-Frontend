@@ -6,11 +6,20 @@ import {
   ArrowLeft, AlertCircle, AlertTriangle, Shield, BookOpen, Clock,
   FileText, ChevronRight, RefreshCw, Activity, Calendar, UserMinus, Mail
 } from 'lucide-react';
-import { getAdminStudentProfile, AdminStudentProfileBlock, SignalCountsByType, deactivateStudentAdmin } from '@/lib/adminDashboardService';
+import {
+  getAdminStudentProfile,
+  AdminStudentProfileBlock,
+  SignalCountsByType,
+  deactivateStudentAdmin,
+  generateAdminStudentReport,
+} from '@/lib/adminDashboardService';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
+import CreateReportModal from '@/components/CreateReportModal';
+import ReportView from '@/components/ReportView';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/app/providers';
 import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
+import { logger } from '@/lib/logger';
 
 const severityStyles: Record<string, string> = {
   critical: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50',
@@ -54,6 +63,8 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [generatedReport, setGeneratedReport] = useState<any | null>(null);
   const { showToast } = useToast();
   const { user } = useAuth();
   const adminFullName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Admin' : 'Admin';
@@ -110,6 +121,26 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
   };
 
   const { student } = profile;
+
+  if (generatedReport) {
+    const studentName = `${student.first_name} ${student.last_name}`.trim();
+    return (
+      <ReportView
+        student={{
+          id: student.student_id,
+          name: studentName,
+          gradeLevel: Number(student.grade_level) || 0,
+          initial: `${student.first_name.charAt(0)}${student.last_name.charAt(0)}`.toUpperCase(),
+          bgColor: 'from-blue-400 to-blue-600',
+        }}
+        reportData={generatedReport}
+        variant="admin"
+        onBack={() => setGeneratedReport(null)}
+        backLabel="Back to Student Profile"
+      />
+    );
+  }
+
   const crossClassRed =
     profile.category_7d?.red_cross_class ??
     profile.cross_class_red_count_7d ??
@@ -150,6 +181,16 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
           </div>
         </div>
         <div className="flex items-center gap-2 pt-1 md:pt-0">
+          <button
+            onClick={() => {
+              logger.buttonClick(`Create Report for ${student.first_name} ${student.last_name}`, 'AdminStudentProfile');
+              setIsReportModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-[#1b1e2c] hover:bg-gray-100 dark:hover:bg-[#262a3d] text-gray-700 dark:text-gray-300 rounded-lg text-sm font-semibold transition-colors border border-gray-200 dark:border-[#262a3d]"
+          >
+            <FileText size={16} />
+            Create Report
+          </button>
           {(profile.counts_30d.red > 0 || profile.counts_30d.super_green >= 5) && (
             <button
               onClick={() => {
@@ -366,6 +407,28 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
         description={`Are you sure you want to deactivate ${student.first_name} ${student.last_name}? This will perform a global soft delete, making the student inactive across the entire school.`}
         confirmText="Deactivate"
         requireConfirmationText={`${student.first_name} ${student.last_name}`}
+      />
+
+      <CreateReportModal
+        isOpen={isReportModalOpen}
+        student={{
+          id: student.student_id,
+          name: `${student.first_name} ${student.last_name}`.trim(),
+          status: 'neutral',
+          initial: `${student.first_name.charAt(0)}${student.last_name.charAt(0)}`.toUpperCase(),
+          bgColor: 'from-blue-400 to-blue-600',
+          redCount: profile.counts_30d.red,
+          yellowCount: profile.counts_30d.yellow,
+        }}
+        defaultSubject="All Subjects"
+        gradeSubjects={[]}
+        onClose={() => setIsReportModalOpen(false)}
+        onGenerate={(reportData) => {
+          logger.reportGeneration(`${student.first_name} ${student.last_name}`.trim(), reportData);
+          setGeneratedReport(reportData);
+          setIsReportModalOpen(false);
+        }}
+        customGenerateFunction={generateAdminStudentReport}
       />
 
       {emailModalData && (

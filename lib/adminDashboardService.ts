@@ -45,6 +45,8 @@ export interface ReportRecentNoteRow {
   signal_date: string;
   class_name: string;
   excerpt: string;
+  note?: string | null;
+  description?: string | null;
 }
 
 // ─── 1. Admin Dashboard (Composite) ───────────────────────────────
@@ -100,22 +102,57 @@ export interface MondayRedFlagBlock {
   top_students: MondayRedFlagTopStudent[];
 }
 
-export interface TeacherObservationFlagRow {
+export interface TeacherEscalation {
   flag_id: string;
   class_id: string;
   class_name: string;
   grade_level: number;
+  class_period: number | null;
   teacher_id: string;
   teacher_first_name: string;
   teacher_last_name: string;
   triggered_at: string;
   threshold_percentage: number;
   yellow_count: number;
+  total_student_count: number;
+  severity: 'moderate' | 'high';
   red_count: number;
   is_acknowledged: boolean;
   acknowledged_by_id?: string | null;
   acknowledged_by_first_name?: string | null;
   acknowledged_by_last_name?: string | null;
+}
+
+export type TeacherObservationFlagRow = TeacherEscalation;
+
+export interface TeacherEscalationsBlock {
+  total: number;
+  limit: number;
+  escalations: TeacherEscalation[];
+}
+
+export interface InactiveTeacherClass {
+  teacher_id: string;
+  teacher_first_name: string;
+  teacher_last_name: string;
+  class_id: string;
+  class_name: string;
+  grade_level: number;
+  class_period: number | null;
+  last_login: string | null;
+  last_data_recorded_at: string | null;
+  last_activity_at: string;
+  days_since_activity: number;
+  days_since_recording: number;
+}
+
+export interface TeachersNotLoggingInBlock {
+  threshold_days: number;
+  total: number;
+  total_teachers: number;
+  limit: number;
+  offset: number;
+  teachers: InactiveTeacherClass[];
 }
 
 export interface SubjectPerformance {
@@ -145,12 +182,63 @@ export interface TeacherLeaderboardRow {
   super_green_count: number;
 }
 
+export interface AtRiskStudent {
+  student_id: string;
+  external_student_id: string;
+  first_name: string;
+  last_name: string;
+  grade_level: number;
+  academic_active_flags: number;
+  behavioral_active_flags: number;
+  active_flag_count: number;
+  red_count_7d: number;
+  academic_red_count_7d: number;
+  behavioral_red_count_7d: number;
+  cross_class_red_count_7d: number;
+  active_flag_change_7d: number;
+  last_activity_date: string;
+}
+
+export interface AtRiskStudentsBlock {
+  window_start: string;
+  window_end: string;
+  total: number;
+  limit: number;
+  offset: number;
+  students: AtRiskStudent[];
+}
+
+export interface ImprovingStudent {
+  student_id: string;
+  external_student_id: string;
+  first_name: string;
+  last_name: string;
+  grade_level: number;
+  previous_active_flag_count: number;
+  current_active_flag_count: number;
+  net_decrease: number;
+  last_activity_date: string | null;
+}
+
+export interface StudentsImprovingBlock {
+  previous_window_start: string;
+  previous_window_end: string;
+  current_window_start: string;
+  current_window_end: string;
+  total: number;
+  limit: number;
+  offset: number;
+  students: ImprovingStudent[];
+}
+
 export interface AdminDashboardResponse {
   school: AdminDashboardSchoolBlock;
   range: AdminDashboardRangeBlock;
   kpis: AdminKpiBlock;
   monday_red_flag: MondayRedFlagBlock;
   pending_teacher_flags: TeacherObservationFlagRow[];
+  teacher_escalations: TeacherEscalationsBlock;
+  teachers_not_logging_in: TeachersNotLoggingInBlock;
   departments: DepartmentOverviewBlock[];
   recommendations: string[];
   teacher_leaderboard: TeacherLeaderboardRow[];
@@ -158,6 +246,8 @@ export interface AdminDashboardResponse {
   school_timezone: string;
   red_flags: AdminRedFlagsResponse;
   absent_students: AbsentStudentRow[];
+  most_at_risk: AtRiskStudentsBlock;
+  students_improving: StudentsImprovingBlock;
 }
 
 // ─── 2. Heatmap ───────────────────────────────────────────────────
@@ -316,16 +406,17 @@ export interface AdminStudentProfileBlock {
 
 export interface AdminStudentReportPayload {
   student: ReportStudentHeader;
-  summary_counts?: {
-    total_signals: number;
-    super_green_count: number;
-    yellow_count: number;
-    red_count: number;
-    absent_count: number;
+  summary_counts: {
+    window_7d: SignalCountsByType;
+    window_30d: SignalCountsByType;
+    window_semester: SignalCountsByType;
   };
   counts_7d?: SignalCountsByType;
   counts_30d?: SignalCountsByType;
   counts_semester?: SignalCountsByType;
+  counts_selected_range?: SignalCountsByType;
+  selected_range_start?: string;
+  selected_range_end?: string;
   category_7d?: ReportCategoryBreakdown;
   category_breakdown?: ReportCategoryBreakdown;
   timeline_30d?: DailySignalBucket[];
@@ -348,6 +439,33 @@ export interface AdminStudentReportPayload {
   }>;
   admin_email_reason?: string | null;
   admin_email_concerns?: string | null;
+}
+
+export interface AdminStudentReportRedSummary {
+  range_start: string;
+  range_end: string;
+  red_count: number;
+  academic_red_count: number;
+  behavioral_red_count: number;
+  cross_class_red_count: number;
+}
+
+export interface AdminStudentReportRequest {
+  start_date?: string;
+  end_date?: string;
+  subject?: string;
+  include_teachers_notes?: boolean;
+  include_ai_recommendations?: boolean;
+  include_template?: boolean;
+}
+
+export interface AdminStudentReportResponse {
+  report: AdminStudentReportPayload;
+  red_summary: AdminStudentReportRedSummary;
+  template?: {
+    name: string;
+    template_data: Record<string, unknown>;
+  } | null;
 }
 
 // ─── 6. Teacher Observation Flags List ────────────────────────────
@@ -634,6 +752,28 @@ export const getAdminMostFlagged = async (
   return res.data;
 };
 
+/** GET /api/v1/admin/students/at-risk — backend-ranked rolling seven-day list. */
+export const getAdminAtRisk = async (
+  limit = 20,
+  offset = 0,
+): Promise<AtRiskStudentsBlock> => {
+  const res = await api.get('/api/v1/admin/students/at-risk', {
+    params: { limit, offset },
+  });
+  return res.data;
+};
+
+/** GET /api/v1/admin/students/improving — backend-ranked adjacent-window comparison. */
+export const getAdminImproving = async (
+  limit = 20,
+  offset = 0,
+): Promise<StudentsImprovingBlock> => {
+  const res = await api.get('/api/v1/admin/students/improving', {
+    params: { limit, offset },
+  });
+  return res.data;
+};
+
 /**
  * GET /api/v1/admin/students/{studentId}
  * Admin-scope student profile: signal tallies, timeline, alerts, referrals, notes.
@@ -653,6 +793,18 @@ export const getAdminTeacherFlags = async (
   status: 'open' | 'all' = 'open',
 ): Promise<TeacherObservationFlagListBlock> => {
   const res = await api.get('/api/v1/admin/teacher-flags', { params: { status } });
+  return res.data;
+};
+
+/** GET /api/v1/admin/teachers/inactive — teachers with stale login and data activity. */
+export const getAdminInactiveTeachers = async (
+  thresholdDays = 7,
+  limit = 50,
+  offset = 0,
+): Promise<TeachersNotLoggingInBlock> => {
+  const res = await api.get('/api/v1/admin/teachers/inactive', {
+    params: { threshold_days: thresholdDays, limit, offset },
+  });
   return res.data;
 };
 
@@ -841,7 +993,10 @@ export const getAdminTeacherSpecificReport = async (
  * POST /api/v1/admin/reports/students/{student_id}
  * Generate an admin-scoped individual student report.
  */
-export const generateAdminStudentReport = async (studentId: string, payload: any): Promise<any> => {
+export const generateAdminStudentReport = async (
+  studentId: string,
+  payload: AdminStudentReportRequest,
+): Promise<AdminStudentReportResponse> => {
   try {
     const response = await api.post(`/api/v1/admin/reports/students/${studentId}`, payload);
     return response.data;

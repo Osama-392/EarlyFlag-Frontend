@@ -311,7 +311,7 @@ Teacher Dashboard
 
 ---
 
-## September 9, 2026
+## September 8, 2026
 
 ### Unified Admin Referrals & Follow-Ups
 
@@ -393,3 +393,67 @@ Teacher Dashboard
 - Targeted ESLint validation completed successfully for the changed referral and dashboard files.
 - `git diff --check` completed successfully.
 - The repository-wide lint command continues to report pre-existing lint errors in unrelated screens; no new lint errors were introduced by this work.
+
+
+## September 9, 2026 (`2026-09-09`)
+
+### Frontend work completed
+
+#### Admin student report generation
+
+- Added report generation and export directly from the Admin Student Profile.
+- Added report-period selection and ensured the preview and exported PDF use the
+  backend-selected date range and canonical Red totals.
+- Included Academic, Behavioral, and Cross-Class Reds in the selected-period Red
+  total.
+- Removed the Repeat Offender indicator, fixed Last 7 Days/Last 30 Days/Semester
+  summary cards, Unresolved Alerts, and Counselor/Admin Referrals from generated
+  reports.
+- Removed the fixed-height Student History scrollbar so the complete history is
+  rendered in the report and export.
+- Made teacher-note inclusion follow the report option supplied by the Admin.
+
+#### Admin dashboard layout and student rankings
+
+- Moved the Most At-Risk, Absent Watch, and Students Improving cards below Admin
+  Referrals & Follow-Ups.
+- Integrated `most_at_risk` and `students_improving` from
+  `GET /api/v1/admin/dashboard?range=7d` without frontend re-sorting or expiry
+  calculations.
+- Added dedicated full-list views backed by
+  `GET /api/v1/admin/students/at-risk` and
+  `GET /api/v1/admin/students/improving`.
+- Added dashboard ranking refreshes after dashboard mutation events, when the
+  browser regains focus, and every 60 seconds while the dashboard is open.
+- Used backend totals for card badges and preserved the backend-provided row order.
+
+#### Teacher monitoring widgets
+
+- Added Teacher Escalations and Teachers Not Logging In cards in a responsive
+  two-column row directly below Department Overview.
+- Rendered Teacher Escalations from the dashboard composite response, including
+  class/period, rounded Yellow percentage, student denominator, and backend
+  Moderate/High severity styling.
+- Added loading skeletons, required empty states, total badges, and row navigation
+  to the Admin class detail.
+- Retained `pending_teacher_flags` as a temporary compatibility fallback for
+  Teacher Escalations during staggered deployments.
+- Updated Teachers Not Logging In to display stale teacher-class assignments rather
+  than grouping by teacher. The same teacher remains visible once for every stale
+  class.
+- Added the Class / Period, Last Recorded, and Days Since columns. Last Recorded
+  displays `Never` when no class data has been recorded, and Days Since uses the
+  backend `days_since_recording` value.
+- Used `teachers_not_logging_in.total` for stale class assignments and
+  `total_teachers` for the unique affected-teacher count.
+- Added the `/principal-inactive-teachers` full-list page backed by
+  `GET /api/v1/admin/teachers/inactive?threshold_days=7&limit=50&offset=0`.
+- Made inactive rows navigate by `class_id` and used combined teacher/class row keys
+  so duplicate teacher entries are preserved safely.
+
+#### Frontend verification
+
+- TypeScript validation completed successfully.
+- All 14 focused dashboard and report tests passed.
+- The optimized Next.js production build completed successfully, including the new
+  ranking and inactive-teacher routes.

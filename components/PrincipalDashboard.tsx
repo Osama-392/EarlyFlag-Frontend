@@ -17,6 +17,7 @@ import { getPendingTeachers } from '@/lib/adminService';
 import { useAuth } from '@/app/providers';
 import GoodMorningBanner from '@/components/GoodMorningBanner';
 import AdminReferralsList from '@/components/AdminReferralsList';
+import AdminTeacherMonitoringCards from '@/components/AdminTeacherMonitoringCards';
 
 // ─── Predefined Subjects (from Create Class dropdown) ─────────────
 const PREDEFINED_SUBJECTS = [
@@ -41,6 +42,15 @@ const bandColors: Record<HeatmapBand, { bg: string; border: string; badge: strin
  green: { bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-200 dark:border-green-900/50', badge: 'bg-green-500', text: 'text-green-700 dark:text-green-400' },
  no_data: { bg: 'bg-gray-50 dark:bg-[#1b1e2c]', border: 'border-gray-200 dark:border-[#262a3d]', badge: 'bg-gray-400', text: 'text-gray-500 dark:text-gray-400' },
 };
+
+const formatRankingDate = (value: string | null | undefined) => {
+ if (!value) return '—';
+ const parsed = new Date(`${value}T00:00:00`);
+ if (Number.isNaN(parsed.getTime())) return value;
+ return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+const riskTrendSymbol = (change: number) => change > 0 ? '↑' : change < 0 ? '↓' : '→';
 
 const getDepartmentBadge = (name: string) => {
  const lower = name.toLowerCase().trim();
@@ -81,7 +91,7 @@ const getDepartmentBadge = (name: string) => {
 
 export default function PrincipalDashboard() {
  const router = useRouter();
- const range = 'all' as any;
+ const range = '7d' as const;
  const [activeTab, setActiveTab] = useState<string>('All Subjects');
  const [showAllClasses, setShowAllClasses] = useState(false);
  const [dashboard, setDashboard] = useState<AdminDashboardResponse | null>(null);
@@ -122,6 +132,28 @@ export default function PrincipalDashboard() {
  }, [range]);
 
  useEffect(() => { fetchData(); }, [fetchData]);
+
+ const refreshDashboardRankings = useCallback(async () => {
+ try {
+ const dashData = await getAdminDashboard(range);
+ setDashboard(dashData);
+ setActiveRedTotal(dashData.red_flags?.active_referrals_total ?? 0);
+ } catch (err) {
+ console.error('Admin ranking refresh failed:', err);
+ }
+ }, [range]);
+
+ useEffect(() => {
+ const refresh = () => { void refreshDashboardRankings(); };
+ window.addEventListener('dashboard-refresh', refresh);
+ window.addEventListener('focus', refresh);
+ const interval = window.setInterval(refresh, 60_000);
+ return () => {
+ window.removeEventListener('dashboard-refresh', refresh);
+ window.removeEventListener('focus', refresh);
+ window.clearInterval(interval);
+ };
+ }, [refreshDashboardRankings]);
 
  const handleReferralTotalsChange = useCallback(
    (totals: { active_referrals_total: number }) => {
@@ -166,6 +198,7 @@ export default function PrincipalDashboard() {
  <div className="grid md:grid-cols-3 gap-5">
  {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-44 bg-gray-200 rounded-xl" />)}
  </div>
+ <AdminTeacherMonitoringCards loading />
  </div>
  );
  }
@@ -243,7 +276,7 @@ export default function PrincipalDashboard() {
  School Dashboard
  </h1>
  <p className="text-gray-500 dark:text-gray-400 mt-1">
- {dashboard?.school?.name || 'School Overview'} — All Time
+ {dashboard?.school?.name || 'School Overview'} — Last 7 Days
  </p>
  </div>
  <div className="flex items-center gap-3">
@@ -264,45 +297,81 @@ export default function PrincipalDashboard() {
    onTotalsChange={handleReferralTotalsChange}
  />
 
- {/* Absent students */}
+ {/* Rolling seven-day student rankings. Ordering comes directly from the backend. */}
  {dashboard && (
- <div className="mb-8 max-w-xl">
- {/* Absent Students */}
- <div className="space-y-6">
- <div className="bg-white dark:bg-[#1a1d27] rounded-xl border border-gray-200 dark:border-[#2e3240] shadow-sm overflow-hidden transition-colors flex flex-col h-[450px]">
- <div className="p-5 border-b border-gray-100 dark:border-[#2e3240] flex items-center justify-between shrink-0 bg-slate-50 dark:bg-[#151722]">
- <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center space-x-2 ">
- <span className="text-blue-500">🕒</span><span>Absent This Week</span>
- </h3>
- <span className="text-xs font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full">{dashboard.absent_students?.length || 0}</span>
+ <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+ {/* Most At-Risk Students */}
+ <section className="overflow-hidden rounded-xl border border-red-100 bg-gradient-to-br from-red-50/80 to-white shadow-sm dark:border-red-900/30 dark:from-red-950/20 dark:to-[#151722]">
+ <div className="flex items-start justify-between px-4 pb-3 pt-4">
+ <div className="flex items-start gap-2">
+ <AlertCircle className="mt-0.5 h-5 w-5 text-red-500" />
+ <div><h2 className="text-sm font-extrabold text-gray-900 dark:text-white">Most At-Risk Students</h2><p className="text-[10px] font-medium text-gray-500">Highest active flag counts in the last 7 days.</p></div>
  </div>
- <div className="p-3 overflow-y-auto custom-scrollbar flex-1">
- {dashboard.absent_students && dashboard.absent_students.length > 0 ? (
- <div className="flex flex-col gap-3">
- {dashboard.absent_students.map((student: any) => (
- <div key={student.student_id} className="flex-1 flex flex-col p-3 border border-gray-100 dark:border-gray-800 rounded-lg">
- <p className="font-bold text-sm flex items-center gap-1.5 text-gray-900 dark:text-white">
- <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>
- {student.first_name} {student.last_name}
- </p>
- <div className="mt-2 text-xs text-gray-500 flex items-center justify-between">
- <span>{student.class_name}</span>
- <span className={`font-bold px-2 py-0.5 rounded ${student.consecutive_absences >= 3 ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'}`}>
- {student.consecutive_absences} {student.consecutive_absences === 1 ? 'day' : 'days'}
- </span>
+ <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-600 dark:bg-red-950/50">{dashboard.most_at_risk.total}</span>
  </div>
- </div>
+ <div className="overflow-x-auto px-3">
+ <table className="w-full min-w-[420px] text-left text-[10px]">
+ <thead><tr className="border-b border-red-100 uppercase tracking-wide text-gray-400"><th className="px-2 py-2">Student</th><th className="px-2 py-2">Grade</th><th className="px-2 py-2">A / B</th><th className="px-2 py-2">Active Reds</th><th className="px-2 py-2">Trend</th></tr></thead>
+ <tbody className="divide-y divide-red-50 dark:divide-red-950/30">
+ {dashboard.most_at_risk.students.map(student => (
+ <tr key={student.student_id} onClick={() => router.push(`/principal-students/${student.student_id}`)} className="cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/20">
+ <td className="px-2 py-2.5 font-bold text-gray-900 dark:text-white">{student.first_name} {student.last_name}</td>
+ <td className="px-2 py-2.5 font-medium text-gray-600 dark:text-gray-300">{student.grade_level}</td>
+ <td className="px-2 py-2.5 whitespace-nowrap"><span className="rounded bg-amber-100 px-1.5 py-1 font-bold text-amber-700">A: {student.academic_active_flags}</span><span className="ml-1 rounded bg-red-100 px-1.5 py-1 font-bold text-red-700">B: {student.behavioral_active_flags}</span></td>
+ <td className="px-2 py-2.5 text-center font-extrabold text-red-600">{student.red_count_7d}</td>
+ <td className={`px-2 py-2.5 text-center text-base font-extrabold ${student.active_flag_change_7d > 0 ? 'text-red-500' : student.active_flag_change_7d < 0 ? 'text-emerald-500' : 'text-gray-400'}`}>{riskTrendSymbol(student.active_flag_change_7d)}</td>
+ </tr>
  ))}
+ {dashboard.most_at_risk.students.length === 0 && <tr><td colSpan={5} className="px-3 py-8 text-center text-xs text-gray-400">No students currently at risk.</td></tr>}
+ </tbody>
+ </table>
  </div>
- ) : (
- <div className="text-center py-6 text-sm text-gray-500 dark:text-gray-400">
- No students have been marked absent this week.
+ <Link href="/principal-at-risk" className="mt-2 flex items-center justify-center gap-2 border-t border-red-100 py-3 text-xs font-bold text-red-600 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-950/20">View full list <ChevronRight size={14} /></Link>
+ </section>
+
+ {/* Absent Watch */}
+ <section className="overflow-hidden rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/80 to-white shadow-sm dark:border-blue-900/30 dark:from-blue-950/20 dark:to-[#151722]">
+ <div className="flex items-start justify-between px-4 pb-3 pt-4">
+ <div className="flex items-start gap-2"><Users className="mt-0.5 h-5 w-5 text-blue-500" /><div><h2 className="text-sm font-extrabold text-gray-900 dark:text-white">Absent Watch</h2><p className="text-[10px] font-medium text-gray-500">Students with absences needing follow-up.</p></div></div>
+ <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:bg-blue-950/50">{dashboard.absent_students.length}</span>
  </div>
- )}
+ <div className="overflow-x-auto px-3">
+ <table className="w-full min-w-[360px] text-left text-[10px]">
+ <thead><tr className="border-b border-blue-100 uppercase tracking-wide text-gray-400"><th className="px-2 py-2">Student</th><th className="px-2 py-2">Class</th><th className="px-2 py-2">Days Absent</th></tr></thead>
+ <tbody className="divide-y divide-blue-50 dark:divide-blue-950/30">
+ {dashboard.absent_students.slice(0, 5).map(student => (
+ <tr key={`${student.student_id}-${student.class_name}`} onClick={() => router.push(`/principal-students/${student.student_id}`)} className="cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/20"><td className="px-2 py-2.5 font-bold text-gray-900 dark:text-white">{student.first_name} {student.last_name}</td><td className="px-2 py-2.5 text-gray-600 dark:text-gray-300">{student.class_name}</td><td className="px-2 py-2.5 text-center font-bold text-blue-600">{student.absent_days_count}</td></tr>
+ ))}
+ {dashboard.absent_students.length === 0 && <tr><td colSpan={3} className="px-3 py-8 text-center text-xs text-gray-400">No students on absent watch.</td></tr>}
+ </tbody>
+ </table>
  </div>
+ </section>
+
+ {/* Students Improving */}
+ <section className="overflow-hidden rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50/80 to-white shadow-sm dark:border-emerald-900/30 dark:from-emerald-950/20 dark:to-[#151722]">
+ <div className="flex items-start justify-between px-4 pb-3 pt-4">
+ <div className="flex items-start gap-2"><ArrowDown className="mt-0.5 h-5 w-5 text-emerald-500" /><div><h2 className="text-sm font-extrabold text-gray-900 dark:text-white">Students Improving</h2><p className="text-[10px] font-medium text-gray-500">Positive behavioral and academic improvement.</p></div></div>
+ <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:bg-emerald-950/50">{dashboard.students_improving.total}</span>
  </div>
+ <div className="overflow-x-auto px-3">
+ <table className="w-full min-w-[400px] text-left text-[10px]">
+ <thead><tr className="border-b border-emerald-100 uppercase tracking-wide text-gray-400"><th className="px-2 py-2">Student</th><th className="px-2 py-2">Grade</th><th className="px-2 py-2">Change (7 Days)</th><th className="px-2 py-2">Last Activity</th></tr></thead>
+ <tbody className="divide-y divide-emerald-50 dark:divide-emerald-950/30">
+ {dashboard.students_improving.students.map(student => (
+ <tr key={student.student_id} onClick={() => router.push(`/principal-students/${student.student_id}`)} className="cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/20"><td className="px-2 py-2.5 font-bold text-gray-900 dark:text-white">{student.first_name} {student.last_name}</td><td className="px-2 py-2.5 text-gray-600 dark:text-gray-300">{student.grade_level}</td><td className="px-2 py-2.5 whitespace-nowrap font-bold text-emerald-600">{student.previous_active_flag_count} → {student.current_active_flag_count} ↓{student.net_decrease}</td><td className="px-2 py-2.5 text-gray-500">{formatRankingDate(student.last_activity_date)}</td></tr>
+ ))}
+ {dashboard.students_improving.students.length === 0 && <tr><td colSpan={4} className="px-3 py-8 text-center text-xs text-gray-400">No improving students in this window.</td></tr>}
+ </tbody>
+ </table>
  </div>
- {/* Absent Students Ends */}
+ <Link href="/principal-improving" className="mt-2 flex items-center justify-center gap-2 border-t border-emerald-100 py-3 text-xs font-bold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900/30 dark:hover:bg-emerald-950/20">View full list <ChevronRight size={14} /></Link>
+ </section>
+ <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-gray-200 bg-white px-4 py-3 text-[11px] text-gray-500 shadow-sm dark:border-[#262a3d] dark:bg-[#151722] xl:col-span-3">
+ <span><strong className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">A</strong> = Academic active flags</span>
+ <span><strong className="rounded bg-red-100 px-1.5 py-0.5 text-red-700">B</strong> = Behavioral active flags</span>
+ <span><strong className="text-red-600">Active Reds</strong> = Intervention-level events in the current seven-day window</span>
+ </div>
  </div>
  )}
 
@@ -575,7 +644,13 @@ export default function PrincipalDashboard() {
  );
  })()}
 
-
+ <div className="mt-6">
+   <AdminTeacherMonitoringCards
+     escalations={dashboard?.teacher_escalations}
+     inactiveTeachers={dashboard?.teachers_not_logging_in}
+     pendingTeacherFlags={dashboard?.pending_teacher_flags}
+   />
+ </div>
 
  </div>
  </div>
