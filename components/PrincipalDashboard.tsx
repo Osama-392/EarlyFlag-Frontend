@@ -312,14 +312,21 @@ export default function PrincipalDashboard() {
  <tr>
  <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Student</th>
  <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Grade</th>
- <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Acd / Beh</th>
- <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Total</th>
+ <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Active Acd / Beh</th>
+ <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Active</th>
  <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">Status</th>
  </tr>
  </thead>
  <tbody>
  {dashboard.yellow_watch_list.map((row) => (
- <tr key={row.student_id} className="border-b border-gray-100 dark:border-[#2e3240] hover:bg-gray-50 dark:hover:bg-[#202330] transition">
+ <tr
+ key={row.student_id}
+ className={`border-b border-gray-100 dark:border-[#2e3240] transition ${
+ row.monitoring_after_red
+ ? 'bg-amber-100 dark:bg-amber-950/30'
+ : 'hover:bg-gray-50 dark:hover:bg-[#202330]'
+ }`}
+ >
  <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">
  <div className="flex items-center gap-1.5 flex-wrap">
  <span>{row.first_name} {row.last_name}</span>
@@ -328,29 +335,17 @@ export default function PrincipalDashboard() {
  - {row.subject}
  </span>
  )}
- {(row.red_escalation_count || 0) > 0 && (
- <span 
- className="inline-flex items-center px-1.5 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-bold text-[10px] rounded-full border border-red-200 dark:border-red-800"
- title={`${row.red_escalation_count} Red Escalation${row.red_escalation_count === 1 ? '' : 's'}`}
- >
- +{row.red_escalation_count}
- </span>
- )}
  </div>
  </td>
  <td className="px-3 py-2 text-gray-500 dark:text-gray-400">Gr {row.grade_level}</td>
  <td className="px-3 py-2">
- <span className="text-blue-600 dark:text-blue-400 font-semibold">{row.yellow_academic_count}</span>
+ <span className="text-blue-600 dark:text-blue-400 font-semibold">{row.academic_flag_count}</span>
  <span className="text-gray-300 dark:text-gray-600 mx-1">/</span>
- <span className="text-purple-600 dark:text-purple-400 font-semibold">{row.yellow_behavioral_count}</span>
+ <span className="text-purple-600 dark:text-purple-400 font-semibold">{row.behavioral_flag_count}</span>
  </td>
- <td className="px-3 py-2 font-bold text-amber-600 dark:text-amber-500">{row.yellow_total}</td>
+ <td className="px-3 py-2 font-bold text-amber-600 dark:text-amber-500">{row.active_flag_count}</td>
  <td className="px-3 py-2">
- {row.unresolved_alert_max_severity ? (
- <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[10px] rounded font-medium">{row.unresolved_alert_max_severity.toUpperCase()}</span>
- ) : (
  <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[10px] rounded font-medium">WATCH</span>
- )}
  </td>
  </tr>
  ))}
@@ -391,6 +386,12 @@ export default function PrincipalDashboard() {
   </p>
   </div>
  <div className="flex items-center gap-2">
+   <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded uppercase tracking-wider">
+     {item.category}
+   </span>
+   <span className="text-[9px] font-bold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded uppercase tracking-wider">
+     {item.origin.replace(/_/g, ' ')}
+   </span>
    <button
      onClick={() => {
        const concerns = item.recent_flags

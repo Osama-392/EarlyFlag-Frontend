@@ -1,5 +1,5 @@
 import api from './api';
-import { RedUrgentRow, YellowWatchListRow, AbsentStudentRow } from './dashboardService';
+import { YellowWatchListRow, AbsentStudentRow } from './dashboardService';
 
 // ═══════════════════════════════════════════════════════════════════
 // M8 Admin Dashboard — Types & API Service
@@ -114,6 +114,26 @@ export interface AdminUrgentAlertRow {
   student: AdminUrgentAlertStudent;
 }
 
+export interface AdminRedUrgentRow {
+  alert_id: string;
+  escalation_id?: string;
+  origin: 'automatic_threshold' | 'direct_red' | 'manual_send';
+  category: 'academic' | 'behavioral';
+  rule_description: string;
+  severity: string;
+  triggered_at: string;
+  student: {
+    student_id: string;
+    first_name: string;
+    last_name: string;
+    grade_level: number;
+    subject?: string;
+  };
+  recent_flags?: any[];
+  subject?: string;
+  class_name?: string;
+}
+
 export interface TeacherObservationFlagRow {
   flag_id: string;
   class_id: string;
@@ -171,7 +191,7 @@ export interface AdminDashboardResponse {
   teacher_leaderboard: TeacherLeaderboardRow[];
   generated_at: string;
   school_timezone: string;
-  red_urgent: RedUrgentRow[];
+  red_urgent: AdminRedUrgentRow[];
   yellow_watch_list: YellowWatchListRow[];
   absent_students: AbsentStudentRow[];
 }

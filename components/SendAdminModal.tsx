@@ -21,16 +21,31 @@ export default function SendAdminModal({
   studentName,
   onSubmitSuccess,
 }: SendAdminModalProps) {
-  const [category, setCategory] = useState<SignalCategory>('academic');
+  const [category, setCategory] = useState<SignalCategory | null>(null);
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
   const { showToast } = useToast();
+
+  const handleClose = () => {
+    if (isSubmitting) return;
+    setCategory(null);
+    setReason('');
+    setError(null);
+    setCategoryError(null);
+    onClose();
+  };
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+
+    if (!category) {
+      setCategoryError('Please select Academic or Behavioral.');
+      return;
+    }
 
     if (!reason.trim()) {
       setError('Please provide a reason / note before submitting.');
@@ -52,13 +67,23 @@ export default function SendAdminModal({
       logger.formSubmit('SendAdminModal', { studentId, category, hasReason: true });
       showToast('Successfully sent referral to admin', 'success');
       setReason('');
-      setCategory('academic');
+      setCategory(null);
+      setCategoryError(null);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('dashboard-refresh'));
+      }
       if (onSubmitSuccess) onSubmitSuccess();
       onClose();
     } catch (err: any) {
       console.error(err);
-      const errMsg = err?.response?.data?.detail || 'Failed to send to admin. Please try again.';
-      setError(errMsg);
+      const detail = err?.response?.data?.detail;
+      const categoryValidation = Array.isArray(detail)
+        ? detail.find((item: any) => Array.isArray(item?.loc) && item.loc.includes('category'))
+        : null;
+      const errMsg = categoryValidation?.msg
+        || (typeof detail === 'string' ? detail : 'Failed to send to admin. Please try again.');
+      if (categoryValidation) setCategoryError(errMsg);
+      else setError(errMsg);
       showToast(errMsg, 'error');
     } finally {
       setIsSubmitting(false);
@@ -78,7 +103,8 @@ export default function SendAdminModal({
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Send to Admin</h2>
           </div>
           <button 
-            onClick={onClose}
+            onClick={handleClose}
+            disabled={isSubmitting}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           >
             <X size={20} />
@@ -100,7 +126,10 @@ export default function SendAdminModal({
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setCategory('academic')}
+                  onClick={() => {
+                    setCategory('academic');
+                    setCategoryError(null);
+                  }}
                   className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-sm font-semibold transition-all ${
                     category === 'academic'
                       ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border-red-500 dark:border-red-500 ring-2 ring-red-500/20 shadow-sm'
@@ -113,7 +142,10 @@ export default function SendAdminModal({
 
                 <button
                   type="button"
-                  onClick={() => setCategory('behavioral')}
+                  onClick={() => {
+                    setCategory('behavioral');
+                    setCategoryError(null);
+                  }}
                   className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-sm font-semibold transition-all ${
                     category === 'behavioral'
                       ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border-red-500 dark:border-red-500 ring-2 ring-red-500/20 shadow-sm'
@@ -124,6 +156,11 @@ export default function SendAdminModal({
                   <span>Behavioral</span>
                 </button>
               </div>
+              {categoryError && (
+                <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                  <AlertCircle size={14} /> {categoryError}
+                </p>
+              )}
             </div>
             
             {/* Notes / Reason */}
@@ -153,7 +190,7 @@ export default function SendAdminModal({
           <div className="border-t border-gray-100 dark:border-[#262a3d] px-6 py-4 bg-gray-50 dark:bg-[#1b1e2c] flex justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isSubmitting}
               className="px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition-colors disabled:opacity-50"
             >
@@ -161,7 +198,7 @@ export default function SendAdminModal({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !reason.trim()}
+              disabled={isSubmitting || !reason.trim() || category === null}
               className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               {isSubmitting ? (

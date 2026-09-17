@@ -3,11 +3,12 @@
 import { useRef, useState } from 'react';
 import { 
   Download, ArrowLeft, Loader2, AlertCircle, AlertTriangle, 
-  CheckCircle, Shield, BookOpen, Clock, Activity, FileText
+  CheckCircle, Shield, BookOpen, Clock, Activity, Flag, CalendarDays
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { createTeacherReportPdf } from '@/lib/teacherReportPdf';
 import { useAuth } from '@/app/providers';
 
 interface ReportViewProps {
@@ -32,6 +33,7 @@ interface ReportViewProps {
   };
   variant?: 'admin' | 'teacher';
   onBack: () => void;
+  backLabel?: string;
 }
 
 const severityStyles: Record<string, string> = {
@@ -67,21 +69,58 @@ function CountsCard({ label, counts }: { label: string; counts?: { super_green: 
   );
 }
 
+function formatGrade(gradeLevel: number) {
+  if (!gradeLevel) return 'Grade not available';
+  const mod100 = gradeLevel % 100;
+  const suffix = mod100 >= 11 && mod100 <= 13
+    ? 'th'
+    : gradeLevel % 10 === 1
+      ? 'st'
+      : gradeLevel % 10 === 2
+        ? 'nd'
+        : gradeLevel % 10 === 3
+          ? 'rd'
+          : 'th';
+
+  return `${gradeLevel}${suffix} Grade`;
+}
+
+function getReportRangeDays(start?: string, end?: string): number | null {
+  if (!start || !end) return null;
+  // Count inclusive calendar days without daylight-saving offsets.
+  const startDate = new Date(`${start.slice(0, 10)}T00:00:00Z`);
+  const endDate = new Date(`${end.slice(0, 10)}T00:00:00Z`);
+  const inclusiveDays = Math.round((endDate.getTime() - startDate.getTime()) / 86400000) + 1;
+  return Number.isFinite(inclusiveDays) && inclusiveDays > 0 ? inclusiveDays : null;
+}
+
+function getReportPeriodLabel(start?: string, end?: string) {
+  const inclusiveDays = getReportRangeDays(start, end);
+  if (!inclusiveDays) return 'Selected Date Range';
+
+  if (inclusiveDays === 30) return 'Last 30 Days';
+  if (inclusiveDays === 90) return 'Last 90 Days';
+  return `${formatDate(start)} - ${formatDate(end)}`;
+}
+
+
 export default function ReportView({
   student,
   reportData,
   variant,
   onBack,
+  backLabel = 'Back to Reports',
 }: ReportViewProps) {
   const reportContentRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const { user } = useAuth();
 
   // Determine active variant (default based on user role if not specified)
   const isTeacherView = variant === 'teacher' || (!variant && user?.role !== 'principal' && user?.role !== 'admin');
 
   const report = reportData?.result?.report || reportData?.result;
-  const rawFlagLog = report?.flag_log || report?.signals || [];
+  const rawFlagLog = report?.flag_log || report?.signals || report?.recent_flags || [];
 
   const today = new Date();
   const d7 = new Date(today.getTime() - 7 * 86400000);
@@ -105,15 +144,23 @@ export default function ReportView({
     return new Date(raw);
   };
 
-  // Recent 7 days flags
-  const recent7Days = rawFlagLog.filter((s: any) => parseSignalDate(s) >= d7);
-  const redFlags7d = recent7Days.filter((s: any) => String(s.signal_type || '').toLowerCase() === 'red');
-  const yellowFlags7d = recent7Days.filter((s: any) => String(s.signal_type || '').toLowerCase() === 'yellow');
-  const greenFlags7d = recent7Days.filter(isSuperGreenOrGeneral);
+  const selectedRangeStart = report?.selected_range_start || reportData.start_date || reportData.startDate;
+  const selectedRangeEnd = report?.selected_range_end || reportData.end_date || reportData.endDate;
+  const selectedRangeSignals = rawFlagLog.filter((signal: any) => {
+    const signalDate = parseSignalDate(signal);
+    const startsInRange = !selectedRangeStart || signalDate >= new Date(`${selectedRangeStart}T00:00:00`);
+    const endsInRange = !selectedRangeEnd || signalDate <= new Date(`${selectedRangeEnd}T23:59:59`);
+    return startsInRange && endsInRange;
+  });
+  const redFlagsInRange = selectedRangeSignals.filter((s: any) => String(s.signal_type || '').toLowerCase() === 'red');
+  const yellowFlagsInRange = selectedRangeSignals.filter((s: any) => String(s.signal_type || '').toLowerCase() === 'yellow');
+  const greenFlagsInRange = selectedRangeSignals.filter(isSuperGreenOrGeneral);
 
-  const redCount = report?.counts_7d?.red ?? redFlags7d.length;
-  const yellowCount = report?.counts_7d?.yellow ?? yellowFlags7d.length;
-  const greenCount = (report?.counts_7d?.super_green || report?.counts_7d?.green) ?? greenFlags7d.length;
+  const redCount = report?.counts_selected_range?.red ?? redFlagsInRange.length;
+  const yellowCount = report?.counts_selected_range?.yellow ?? yellowFlagsInRange.length;
+  const greenCount = report?.counts_selected_range?.super_green
+    ?? report?.counts_selected_range?.green
+    ?? greenFlagsInRange.length;
 
   let statusText = 'Normal';
   if (redCount > 0) statusText = 'Red';
@@ -157,9 +204,11 @@ export default function ReportView({
     return res;
   };
 
-  const counts7d = report?.counts_7d || fallbackCounts(d7);
-  const counts30d = report?.counts_30d || fallbackCounts(d30);
-  const countsSemester = report?.counts_semester || fallbackCounts(new Date(today.getFullYear(), today.getMonth() > 6 ? 7 : 0, 1));
+  const counts7d = report?.counts_7d || report?.summary_counts?.window_7d || fallbackCounts(d7);
+  const counts30d = report?.counts_30d || report?.summary_counts?.window_30d || fallbackCounts(d30);
+  const countsSemester = report?.counts_semester
+    || report?.summary_counts?.window_semester
+    || fallbackCounts(new Date(today.getFullYear(), today.getMonth() > 6 ? 7 : 0, 1));
   const cat7d = report?.category_7d || report?.category_breakdown || fallbackCat7();
   const semesterStart = report?.semester_start || `${today.getFullYear()}-08-01`;
   const semesterEnd = report?.semester_end || `${today.getFullYear()}-12-31`;
@@ -175,12 +224,71 @@ export default function ReportView({
     : rawFlagLog.filter((s: any) => s.note && String(s.note).trim() !== '');
 
   const teachersNotes = report?.one_ask_for_parents;
+  const reportPeriodLabel = getReportPeriodLabel(selectedRangeStart, selectedRangeEnd);
+  const reportRangeDays = getReportRangeDays(selectedRangeStart, selectedRangeEnd);
+  const teacherCountPeriodLabel = reportRangeDays
+    ? `${reportRangeDays} ${reportRangeDays === 1 ? 'Day' : 'Days'}`
+    : 'Report Period';
+  // Use backend selected-range totals (including zero), not dashboard 7-day totals.
+  const teacherRedCount = redCount;
+  const teacherYellowCount = yellowCount;
+  const teacherGreenCount = greenCount;
+  const teacherStatusText = teacherRedCount > 0
+    ? 'Red'
+    : teacherYellowCount > 0
+      ? 'Yellow'
+      : teacherGreenCount > 0
+        ? 'Super Green'
+        : 'Normal';
+  const teacherHistory = [...selectedRangeSignals].sort(
+    (a: any, b: any) => parseSignalDate(b).getTime() - parseSignalDate(a).getTime(),
+  );
 
   const handleExportPDF = async () => {
     if (!reportContentRef.current) return;
     logger.buttonClick('Export as PDF', 'ReportView');
     setExporting(true);
+    setExportError(null);
     try {
+      if (isTeacherView) {
+        // Read the already-filtered report table, so export has exactly the same
+        // rows, descriptions and order as the official report preview.
+        const root = reportContentRef.current;
+        const history = Array.from(root.querySelectorAll<HTMLTableRowElement>('[data-pdf-history-row]')).map((row) => ({
+          date: row.cells[0].textContent?.trim() || '',
+          level: row.cells[1].textContent?.trim() || '',
+          signalType: row.dataset.signalType || '',
+          description: row.cells[2].textContent?.trim() || '',
+          className: row.cells[3].textContent?.trim() || '',
+        }));
+        const notesSection = root.querySelector('[data-pdf-section="notes"]');
+        const pdfNotes = notesSection ? Array.from(notesSection.querySelectorAll('[data-pdf-note]')).map((note) => ({
+          date: note.querySelector('[data-pdf-note-date]')?.textContent?.trim() || '',
+          className: note.querySelector('[data-pdf-note-class]')?.textContent?.trim() || '',
+          text: note.querySelector('[data-pdf-note-text]')?.textContent?.trim() || '',
+        })) : undefined;
+        if (pdfNotes && !pdfNotes.length && teachersNotes) {
+          pdfNotes.push({ date: '', className: '', text: String(teachersNotes) });
+        }
+        const nameParts = student.name.trim().split(/\s+/);
+        const initials = student.initial?.trim() || [nameParts[0], nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''].map((part) => part.charAt(0)).join('').toUpperCase();
+        const pdf = createTeacherReportPdf({
+          name: student.name,
+          initials,
+          grade: formatGrade(student.gradeLevel),
+          status: teacherStatusText,
+          period: reportPeriodLabel,
+          countPeriodLabel: teacherCountPeriodLabel,
+          subject: reportData.subject || 'All Subjects',
+          counts: { red: teacherRedCount, yellow: teacherYellowCount, superGreen: teacherGreenCount },
+          history,
+          notes: pdfNotes,
+        });
+        const safeName = (student.name || 'Student').replace(/[^a-zA-Z0-9]/g, '_');
+        pdf.save(`${safeName}_Report.pdf`);
+        return;
+      }
+
       const canvas = await html2canvas(reportContentRef.current, {
         scale: 2,
         useCORS: true,
@@ -242,6 +350,7 @@ export default function ReportView({
       pdf.save(`${safeName}_Report.pdf`);
     } catch (err) {
       console.error('PDF export failed:', err);
+      setExportError('The PDF could not be exported. Please try again.');
     } finally {
       setExporting(false);
     }
@@ -249,6 +358,7 @@ export default function ReportView({
 
   return (
     <div className={isTeacherView ? "max-w-6xl mx-auto space-y-6 pb-12" : "space-y-6 max-w-[1600px] mx-auto pb-12"}>
+      {exportError && <p role="alert" className="no-print rounded-lg bg-red-50 p-3 text-sm text-red-700">{exportError}</p>}
       {/* Print-friendly styles */}
       <style>{`
         @media print {
@@ -283,7 +393,7 @@ export default function ReportView({
             className="inline-flex items-center text-sm text-blue-500 bg-white dark:bg-[#151722] border border-blue-100 dark:border-[#262a3d] px-4 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors shadow-sm font-medium"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Reports
+            {backLabel}
           </button>
 
           <div className="flex items-center space-x-3">
@@ -357,97 +467,88 @@ export default function ReportView({
              TEACHER STUDENT REPORT (Identical layout to Teacher Student Profile)
              ========================================================================= */
           <>
-            {/* Profile Header Card */}
-            <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm p-8 flex items-center justify-between">
-              <div className="flex items-center space-x-6">
-                {/* Avatar */}
-                <div className="w-24 h-24 rounded-full bg-slate-100 dark:bg-[#1b1e2c] flex items-center justify-center border-4 border-white dark:border-[#262a3d] shadow-md text-3xl font-bold text-slate-400 dark:text-slate-300 overflow-hidden">
+            {/* Student identity */}
+            <section data-pdf-section="identity" className="flex items-center justify-between gap-6 rounded-2xl border border-slate-200 bg-white px-6 py-5 text-[#0b1f41] shadow-sm">
+              <div className="flex min-w-0 items-center gap-5">
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-4 border-white bg-slate-100 text-2xl font-bold text-slate-500 shadow-md">
                   {student.initial || (student.name ? student.name.charAt(0).toUpperCase() : '??')}
                 </div>
-                
-                <div>
-                  <div className="flex items-center mb-1">
-                    {statusText === 'Red' && <span className="px-2.5 py-0.5 bg-red-400 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Red</span>}
-                    {statusText === 'Yellow' && <span className="px-2.5 py-0.5 bg-amber-400 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Yellow</span>}
-                    {statusText === 'Super Green' && <span className="px-2.5 py-0.5 bg-emerald-500 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Super Green</span>}
-                  </div>
-                  <h1 className="text-3xl font-bold text-slate-800 dark:text-white capitalize">
+                <div className="min-w-0">
+                  {teacherStatusText !== 'Normal' && (
+                    <span className={`inline-flex rounded-full px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white ${
+                      teacherStatusText === 'Red' ? 'bg-red-400' : teacherStatusText === 'Yellow' ? 'bg-amber-400' : 'bg-emerald-500'
+                    }`}>
+                      {teacherStatusText}
+                    </span>
+                  )}
+                  <h1 className="mt-1 truncate text-3xl font-extrabold capitalize tracking-tight text-[#071b3c]">
                     {student.name}
                   </h1>
-                  <p className="text-sm font-semibold text-slate-400 dark:text-slate-400 mt-1">
-                    {student.gradeLevel ? `${student.gradeLevel}th Grade` : 'Grade 6'}
-                  </p>
+                  <p className="mt-1 text-sm font-bold text-slate-400">{formatGrade(student.gradeLevel)}</p>
                 </div>
               </div>
+              <span className={`shrink-0 rounded-xl border px-5 py-2.5 text-xs font-extrabold ${
+                teacherStatusText === 'Red'
+                  ? 'border-red-100 bg-red-50 text-red-500'
+                  : teacherStatusText === 'Yellow'
+                    ? 'border-amber-100 bg-amber-50 text-amber-600'
+                    : 'border-emerald-100 bg-emerald-50 text-emerald-600'
+              }`}>
+                Status : {teacherStatusText} Active
+              </span>
+            </section>
 
-              {/* Status Badge */}
-              <div className="flex items-center space-x-3">
-                <span className={`px-4 py-2 rounded-xl text-xs font-bold ${
-                  statusText === 'Red' ? 'bg-red-50 text-red-500 border border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50'
-                  : statusText === 'Yellow' ? 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50'
-                  : statusText === 'Super Green' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'
-                  : 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'
-                }`}>
-                  Status : {statusText} Active
-                </span>
-              </div>
-            </div>
-
-            {/* Main Content Grid: 2 Columns */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Selected report range summary */}
+            <div data-pdf-section="summary" className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {/* Left Column: Incidents Summary */}
-              <div className="lg:col-span-5 space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400 rounded-lg">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                  </div>
-                  <div>
-                    <h2 className="text-[15px] font-bold text-slate-800 dark:text-white">Last 7-Day</h2>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Incidents Summary</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
+              <div className="contents">
+                <div className="contents">
                   {/* Red Incidents */}
-                  <div className="bg-red-50/50 dark:bg-red-950/20 rounded-2xl p-6 border border-red-100 dark:border-red-900/40 relative overflow-hidden">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="w-8 h-8 rounded-full border border-red-200 dark:border-red-800 flex items-center justify-center text-red-500">
-                        <AlertCircle className="w-4 h-4" />
+                  <div className="flex min-h-28 items-center gap-5 rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-white px-5 py-4">
+                    <div className="shrink-0">
+                      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-500">
+                        <AlertCircle className="h-8 w-8" strokeWidth={2.2} />
                       </span>
                     </div>
-                    <p className="text-4xl font-extrabold text-red-500">{redCount}</p>
-                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Red Incidents (7 Days)</h3>
-                    <p className="text-xs text-red-500/80 mt-1">Urgent interventions</p>
+                    <div>
+                      <p className="text-3xl font-extrabold leading-none text-red-500">{teacherRedCount}</p>
+                      <h3 className="mt-1 text-sm font-extrabold text-[#0b1f41]">Red Incidents ({teacherCountPeriodLabel})</h3>
+                      <p className="mt-1 text-xs font-medium text-red-500">Urgent interventions</p>
+                    </div>
                   </div>
 
                   {/* Yellow Incidents */}
-                  <div className="bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl p-6 border border-amber-100 dark:border-amber-900/40 relative overflow-hidden">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="w-8 h-8 rounded-full border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-500">
-                        <AlertTriangle className="w-4 h-4" />
+                  <div className="flex min-h-28 items-center gap-5 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white px-5 py-4">
+                    <div className="shrink-0">
+                      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-500">
+                        <AlertTriangle className="h-8 w-8" strokeWidth={2.2} />
                       </span>
                     </div>
-                    <p className="text-4xl font-extrabold text-amber-500">{yellowCount}</p>
-                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Yellow Incidents (7 Days)</h3>
-                    <p className="text-xs text-amber-500/80 mt-1">Moderate concerns</p>
+                    <div>
+                      <p className="text-3xl font-extrabold leading-none text-amber-500">{teacherYellowCount}</p>
+                      <h3 className="mt-1 text-sm font-extrabold text-[#0b1f41]">Yellow Incidents ({teacherCountPeriodLabel})</h3>
+                      <p className="mt-1 text-xs font-medium text-amber-500">Moderate concerns</p>
+                    </div>
                   </div>
 
                   {/* Super Green */}
-                  <div className="bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl p-6 border border-emerald-100 dark:border-emerald-900/40 relative overflow-hidden">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="w-8 h-8 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-500">
-                        <CheckCircle className="w-4 h-4" />
+                  <div className="flex min-h-28 items-center gap-5 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white px-5 py-4">
+                    <div className="shrink-0">
+                      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-500">
+                        <CheckCircle className="h-8 w-8" strokeWidth={2.2} />
                       </span>
                     </div>
-                    <p className="text-4xl font-extrabold text-emerald-500">{greenCount}</p>
-                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Super Green (7 Days)</h3>
-                    <p className="text-xs text-emerald-500/80 mt-1">Positive recognitions</p>
+                    <div>
+                      <p className="text-3xl font-extrabold leading-none text-emerald-500">{teacherGreenCount}</p>
+                      <h3 className="mt-1 text-sm font-extrabold text-[#0b1f41]">Super Green ({teacherCountPeriodLabel})</h3>
+                      <p className="mt-1 text-xs font-medium text-emerald-500">Positive recognitions</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Right Column: Student History */}
-              <div className="lg:col-span-7 space-y-4">
+              <div className="hidden">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-1.5 bg-amber-50 dark:bg-amber-900/30 text-amber-500 dark:text-amber-400 rounded-lg">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path></svg>
@@ -526,37 +627,137 @@ export default function ReportView({
               </div>
             </div>
 
+            {/* Student history */}
+            <section data-pdf-section="history" className="overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 pb-4 pt-5 text-[#0b1f41] shadow-sm">
+              <div className="mb-4 flex items-center justify-between gap-4 px-1">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-500">
+                    <Flag className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h2 data-pdf-history-title className="text-base font-extrabold text-[#0b1f41]">Student History</h2>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{reportPeriodLabel}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-500 shadow-sm">
+                  <CalendarDays className="h-4 w-4 text-slate-400" />
+                  {reportPeriodLabel}
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[820px] table-fixed border-separate border-spacing-0 text-left">
+                  <thead>
+                    <tr className="bg-slate-50 text-[11px] font-bold text-slate-500">
+                      <th className="w-[12%] rounded-l-lg px-3 py-3">Date</th>
+                      <th className="w-[22%] px-3 py-3">Incident Level</th>
+                      <th className="w-[40%] px-3 py-3">Description</th>
+                      <th className="w-[26%] rounded-r-lg px-3 py-3">Category/Class</th>
+                    </tr>
+                  </thead>
+                  <tbody data-pdf-history-body>
+                    {teacherHistory.map((signal: any, idx: number) => {
+                      const signalType = String(signal.signal_type || '').toLowerCase();
+                      const isRed = signalType === 'red';
+                      const isYellow = signalType === 'yellow';
+                      const isPositive = ['green', 'super_green', 'present'].includes(signalType);
+                      const category = signalType === 'present'
+                        ? 'Present'
+                        : signalType === 'absent'
+                          ? 'Absent'
+                          : String(signal.category || (isPositive ? 'Super Green' : 'General')).replace(/_/g, ' ');
+                      const description = signalType === 'present'
+                        ? '—'
+                        : signal.title || signal.reason_description || signal.description || signal.note || 'Flag Logged';
+                      const className = signal.class_name || reportData.subject || 'All Subjects';
+                      const isReferral = Boolean(signal.referral_type)
+                        || String(signal.origin || '').includes('manual')
+                        || String(className).toLowerCase().includes('referral');
+                      const classDisplay = String(className) === 'All Subjects'
+                        ? className
+                        : isReferral
+                          ? String(className).toLowerCase().includes('referral')
+                            ? className
+                            : `Manual Referral - ${className}`
+                          : String(className).startsWith('Class ')
+                            ? className
+                            : `Class ${className}`;
+                      const colorClass = isRed
+                        ? 'bg-red-50 text-red-600 border-red-100'
+                        : isYellow
+                          ? 'bg-amber-50 text-amber-600 border-amber-100'
+                          : isPositive
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                            : 'bg-slate-100 text-slate-600 border-slate-200';
+                      const dotClass = isRed
+                        ? 'bg-red-400'
+                        : isYellow
+                          ? 'bg-amber-400'
+                          : isPositive
+                            ? 'bg-emerald-400'
+                            : 'bg-slate-400';
+
+                      return (
+                        <tr data-pdf-history-row data-signal-type={signalType} key={signal.id || `${signal.signal_date}-${idx}`} className="text-xs text-slate-600">
+                          <td className="border-b border-slate-100 px-3 py-2.5 font-medium">
+                            {formatDate(signal.signal_date || signal.created_at).replace(/, \d{4}$/, '')}
+                          </td>
+                          <td className="border-b border-slate-100 px-3 py-2.5">
+                            <div className="flex items-center gap-3">
+                              <span className={`h-1 w-2.5 shrink-0 rounded-full ${dotClass}`} />
+                              <span className={`inline-flex min-w-24 justify-center rounded-lg border px-3 py-1.5 font-bold capitalize ${colorClass}`}>
+                                {category}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="border-b border-slate-100 px-3 py-2.5 font-medium">{description}</td>
+                          <td className="border-b border-slate-100 px-3 py-2.5 font-medium">{classDisplay}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {teacherHistory.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                  <AlertCircle className="mb-2 h-8 w-8 opacity-50" />
+                  <p className="text-sm font-medium">No flags in the selected period</p>
+                </div>
+              )}
+            </section>
+
             {/* Teachers Notes */}
             {(reportData.includeTeachersNotes !== false && reportData.include_teachers_notes !== false) && (
-              <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-100 dark:border-[#262a3d] shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-gray-100 dark:border-[#262a3d] bg-gray-50 dark:bg-[#1b1e2c]/50">
-                  <h2 className="text-lg font-bold text-slate-800 dark:text-white">Teachers Notes</h2>
+              <section data-pdf-section="notes" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+                  <h2 data-pdf-notes-title className="text-base font-extrabold text-[#0b1f41]">Teachers Notes</h2>
                 </div>
                 
                 <div className="p-6">
                   {notes.length > 0 ? (
-                    <div className="space-y-4">
+                    <div data-pdf-notes-list className="space-y-4">
                       {notes.map((signal: any, idx: number) => {
                         const dateToUse = signal.signal_date ? signal.signal_date : signal.created_at;
                         const dateString = dateToUse ? new Date(dateToUse + (String(dateToUse).includes('T') ? '' : 'T12:00:00Z')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
                         return (
-                          <div key={idx} className="p-4 rounded-xl border border-gray-100 dark:border-[#262a3d] bg-slate-50/50 dark:bg-[#1b1e2c]/30 space-y-1">
+                          <div data-pdf-note key={idx} className="space-y-1 rounded-xl border border-slate-100 bg-slate-50/50 p-4">
                             <div className="flex items-center justify-between">
-                              <p className="text-xs font-semibold text-slate-400">{dateString}</p>
-                              {signal.class_name && <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{signal.class_name}</span>}
+                              <p data-pdf-note-date className="text-xs font-semibold text-slate-400">{dateString}</p>
+                              {signal.class_name && <span data-pdf-note-class className="text-xs font-medium text-slate-500">{signal.class_name}</span>}
                             </div>
-                            <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">{signal.note || signal.excerpt || signal.description}</p>
+                            <p data-pdf-note-text className="text-sm font-medium text-slate-700">{signal.note || signal.excerpt || signal.description}</p>
                           </div>
                         );
                       })}
                     </div>
                   ) : teachersNotes ? (
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{teachersNotes}</p>
+                    <p className="text-sm leading-relaxed text-slate-600">{teachersNotes}</p>
                   ) : (
                     <p className="text-sm text-slate-400 italic">No notes recorded for this student.</p>
                   )}
                 </div>
-              </div>
+              </section>
             )}
           </>
         ) : (

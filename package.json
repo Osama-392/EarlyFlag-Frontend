@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "clean": "node -e \"for (const dir of ['.next', '.next-dev']) require('fs').rmSync(dir, { recursive: true, force: true })\"",
     "start": "next start",
     "lint": "next lint"
   },

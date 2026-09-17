@@ -49,9 +49,20 @@ export interface YellowWatchListRow {
   first_name: string;
   last_name: string;
   grade_level: number;
+  yellow_total: number;
   yellow_academic_count: number;
   yellow_behavioral_count: number;
-  yellow_total: number;
+
+  active_flag_count: number;
+  academic_flag_count: number;
+  behavioral_flag_count: number;
+
+  monitoring_after_red: boolean;
+  monitoring_started_at: string | null;
+  last_acknowledged_escalation_id: string | null;
+  next_red_threshold: number | null;
+
+  // Legacy dashboard fields retained while older API responses are phased out.
   red_escalation_count?: number;
   unresolved_alert_max_severity?: string | null;
   alert_category?: 'academic' | 'behavioral';
@@ -64,11 +75,20 @@ export interface RedUrgentStudentSummary {
   first_name: string;
   last_name: string;
   grade_level: number;
+  class_id: string;
+  class_name?: string;
   subject?: string;
 }
 
 export interface RedUrgentRow {
-  alert_id: string;
+  escalation_id: string;
+  origin: 'automatic_threshold' | 'direct_red' | 'manual_send';
+  category: 'academic' | 'behavioral';
+  can_acknowledge: boolean;
+  acknowledged_at: string | null;
+  active_flag_count: number;
+  same_category_red_count_7d: number;
+  is_repeat_escalation: boolean;
   rule_description: string;
   severity: string;
   triggered_at: string;
@@ -77,6 +97,21 @@ export interface RedUrgentRow {
   alert_category?: 'academic' | 'behavioral';
   subject?: string;
   class_name?: string;
+}
+
+export interface AcknowledgeRedResponse {
+  escalation_id: string;
+  student_id: string;
+  class_id: string;
+  acknowledged_at: string;
+  acknowledged_by: string;
+  display_status: 'red' | 'yellow_watch' | 'engaging';
+  active_flag_count: number;
+  academic_flag_count: number;
+  behavioral_flag_count: number;
+  monitoring_after_red: boolean;
+  next_red_threshold: number | null;
+  pending_red_count: number;
 }
 
 export interface SuperGreenHighlightRow {
@@ -138,6 +173,18 @@ export const getTeacherDashboard = async (_forceRefresh = false): Promise<Teache
     return response.data;
   } catch (error: any) {
     console.error('Failed to fetch teacher dashboard:', error?.response?.status, error?.response?.data);
+    throw error;
+  }
+};
+
+export const acknowledgeRed = async (escalationId: string): Promise<AcknowledgeRedResponse> => {
+  try {
+    const response = await api.post<AcknowledgeRedResponse>(
+      `/api/v1/teacher/red-escalations/${escalationId}/acknowledge`,
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error(`Failed to acknowledge red escalation ${escalationId}:`, error?.response?.data);
     throw error;
   }
 };

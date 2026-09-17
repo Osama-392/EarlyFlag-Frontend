@@ -8,6 +8,7 @@ import ReportView from '@/components/ReportView';
 import { logger } from '@/lib/logger';
 import { useStudentRoster } from '@/lib/useStudentRoster';
 import { Student } from '@/lib/studentService';
+import { filterGlobalEscalationsFromReportData } from '@/lib/reportUtils';
 
 interface StudentReportsProps {
   classData: {
@@ -54,19 +55,6 @@ export default function StudentReportsView({
     );
   }, [students, searchTerm]);
 
-  const isGlobalAutoEscalation = (s: any) => {
-    if (!s) return false;
-    const reasonCode = String(s.reason_code || '').toLowerCase();
-    const reasonDesc = String(s.reason_description || s.reason || '').toLowerCase();
-    const note = String(s.note || '').toLowerCase();
-    const alertRule = String(s.triggered_by_rule || s.rule || '').toLowerCase();
-    if (alertRule.includes('global') || alertRule.includes('cross-class') || alertRule.includes('cross_class')) return true;
-    if (reasonDesc.includes('(global)') || reasonDesc.includes('global') || reasonDesc.includes('cross-class') || reasonDesc.includes('across all classes')) return true;
-    if (note.includes('across all classes') || note.includes('cross-class') || note.includes('auto-escalated to red') || note.includes('system auto-escalation (global)')) return true;
-    if (reasonCode === 'auto_escalation' && (note.includes('all classes') || note.includes('auto-escalat') || reasonDesc.includes('global'))) return true;
-    return false;
-  };
-
   const handleCreateReport = (student: Student) => {
     logger.buttonClick(`Create Report for ${student.first_name}`, 'StudentReportsView');
     setSelectedStudent(student);
@@ -76,18 +64,7 @@ export default function StudentReportsView({
   const handleGenerateReport = (reportData: any) => {
     logger.reportGeneration(`${selectedStudent?.first_name} ${selectedStudent?.last_name}`, reportData);
 
-    // Clone report data to avoid mutating original state if reused
-    const filteredReportData = { ...reportData };
-
-    // Exclude global escalations from flag_log (which is nested inside result.report)
-    if (filteredReportData.result?.report?.flag_log && Array.isArray(filteredReportData.result.report.flag_log)) {
-      filteredReportData.result.report.flag_log = filteredReportData.result.report.flag_log.filter((flag: any) => !isGlobalAutoEscalation(flag));
-    }
-
-    // Exclude global escalations from recent_flags if they exist
-    if (filteredReportData.result?.report?.recent_flags && Array.isArray(filteredReportData.result.report.recent_flags)) {
-      filteredReportData.result.report.recent_flags = filteredReportData.result.report.recent_flags.filter((flag: any) => !isGlobalAutoEscalation(flag));
-    }
+    const filteredReportData = filterGlobalEscalationsFromReportData(reportData);
 
     // Store report data and show report view
     setGeneratedReport({

@@ -71,6 +71,9 @@ export default function StudentRoster() {
  if (success) {
  showToast(`Signal logged for ${studentName}`, 'success');
  loadStudents(classId);
+ if (typeof window !== 'undefined') {
+ window.dispatchEvent(new Event('dashboard-refresh'));
+ }
  } else {
  showToast(`Failed to log signal for ${studentName}`, 'error');
  }
@@ -98,6 +101,9 @@ export default function StudentRoster() {
  });
  
  await loadStudents(classId);
+ if (typeof window !== 'undefined') {
+ window.dispatchEvent(new Event('dashboard-refresh'));
+ }
  setSelectedSignalToEdit(null);
  return true;
  } catch (err) {
