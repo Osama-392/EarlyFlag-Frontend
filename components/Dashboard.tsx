@@ -88,6 +88,89 @@ function pct(value: number, total: number): number {
  return Math.round((value / total) * 100);
 }
 
+const TeacherSkeletonLine = ({ className = '' }: { className?: string }) => (
+ <div className={`animate-pulse rounded bg-gray-200 dark:bg-[#2e3240] ${className}`} />
+);
+
+const TeacherListSkeleton = ({ title }: { title: string }) => (
+ <section className="flex h-[450px] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-[#2e3240] dark:bg-[#1a1d27]">
+ <div className="flex shrink-0 items-center justify-between border-b border-gray-100 p-5 dark:border-[#2e3240]">
+ <h3 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h3>
+ <TeacherSkeletonLine className="h-6 w-9 rounded-full" />
+ </div>
+ <div className="flex-1 p-3">
+ {[1, 2, 3, 4].map(row => (
+ <div key={row} className="mb-2 rounded-lg border border-gray-100 p-3 last:mb-0 dark:border-[#2e3240]">
+ <div className="flex items-center justify-between gap-4"><TeacherSkeletonLine className="h-3.5 w-28" /><TeacherSkeletonLine className="h-5 w-14 rounded-full" /></div>
+ <TeacherSkeletonLine className="mt-2 h-2.5 w-20" />
+ <TeacherSkeletonLine className="mt-3 h-3 w-full" />
+ </div>
+ ))}
+ </div>
+ </section>
+);
+
+const TeacherChartSkeleton = ({ title }: { title: string }) => (
+ <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-[#2e3240] dark:bg-[#1a1d27]">
+ <div className="flex items-center justify-between"><h3 className="text-base font-bold text-gray-900 dark:text-white">{title}</h3><TeacherSkeletonLine className="h-7 w-7 rounded-lg" /></div>
+ <div className="mt-6 space-y-5">
+ {[72, 48, 88, 58, 38].map((width, index) => (
+ <div key={index}>
+ <div className="mb-2 flex justify-between"><TeacherSkeletonLine className="h-3 w-24" /><TeacherSkeletonLine className="h-3 w-8" /></div>
+ <div className="h-2.5 overflow-hidden rounded-full bg-gray-100 dark:bg-[#151722]"><div className="h-full animate-pulse rounded-full bg-gray-200 dark:bg-[#2e3240]" style={{ width: `${width}%` }} /></div>
+ </div>
+ ))}
+ </div>
+ </section>
+);
+
+const TeacherDashboardSkeleton = () => (
+ <div className="mx-auto w-full max-w-[1600px] space-y-6 pb-12" aria-label="Loading teacher dashboard">
+ <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-[#2e3240] dark:bg-[#1a1d27]">
+ <div className="flex items-center gap-4"><TeacherSkeletonLine className="h-12 w-12 rounded-full" /><div className="flex-1"><TeacherSkeletonLine className="h-5 w-52" /><TeacherSkeletonLine className="mt-2 h-3 w-full max-w-2xl" /><TeacherSkeletonLine className="mt-2 h-3 w-4/5 max-w-xl" /></div></div>
+ </section>
+
+ <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+ <TeacherListSkeleton title="Yellow Watch List" />
+ <TeacherListSkeleton title="Red Urgent" />
+ <TeacherListSkeleton title="Super Green" />
+ </div>
+
+ <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-[#2e3240] dark:bg-[#1a1d27]">
+ <div className="flex items-center justify-between border-b border-gray-100 bg-slate-50 p-4 dark:border-[#2e3240] dark:bg-[#151722]"><h3 className="text-sm font-bold text-gray-900 dark:text-white">Absent Students This Week</h3><TeacherSkeletonLine className="h-6 w-28 rounded-full" /></div>
+ <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
+ {[1, 2, 3].map(card => <div key={card} className="rounded-lg border border-gray-100 p-3 dark:border-[#2e3240]"><TeacherSkeletonLine className="h-3.5 w-28" /><TeacherSkeletonLine className="mt-2 h-3 w-20" /><TeacherSkeletonLine className="mt-3 h-5 w-16 rounded-full" /></div>)}
+ </div>
+ </section>
+
+ <div className="border-t border-gray-200 pt-8 dark:border-[#262a3d]">
+ <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h2 className="text-2xl font-bold text-gray-900 dark:text-white">Analytics</h2><TeacherSkeletonLine className="mt-2 h-3 w-48" /></div><div className="flex gap-2">{[1, 2, 3].map(item => <TeacherSkeletonLine key={item} className="h-9 w-20 rounded-lg" />)}</div></div>
+ </div>
+
+ <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+ {['Total Signals', 'Yellow Flags', 'Red Flags', 'Super Greens'].map(label => (
+ <section key={label} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-[#2e3240] dark:bg-[#1a1d27]"><div className="flex justify-between"><p className="text-sm font-semibold text-gray-600 dark:text-gray-300">{label}</p><TeacherSkeletonLine className="h-9 w-9 rounded-lg" /></div><TeacherSkeletonLine className="mt-4 h-8 w-16" /><TeacherSkeletonLine className="mt-3 h-2.5 w-24" /></section>
+ ))}
+ </div>
+
+ <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+ <TeacherChartSkeleton title="Signal Distribution" />
+ <TeacherChartSkeleton title="Category Breakdown" />
+ </div>
+
+ <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-[#2e3240] dark:bg-[#1a1d27]">
+ <h3 className="text-base font-bold text-gray-900 dark:text-white">Trend Comparison</h3>
+ <div className="mt-5 grid grid-cols-4 gap-4 border-b border-gray-100 pb-3 dark:border-[#2e3240]">{[1, 2, 3, 4].map(item => <TeacherSkeletonLine key={item} className="h-2.5" />)}</div>
+ {[1, 2, 3, 4].map(row => <div key={row} className="grid grid-cols-4 gap-4 border-b border-gray-100 py-4 last:border-0 dark:border-[#2e3240]">{[1, 2, 3, 4].map(cell => <TeacherSkeletonLine key={cell} className="h-3" />)}</div>)}
+ </section>
+
+ <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-[#2e3240] dark:bg-[#1a1d27]">
+ <h3 className="text-base font-bold text-gray-900 dark:text-white">Recent Recognition Highlights</h3>
+ <div className="mt-5 grid gap-4 md:grid-cols-3">{[1, 2, 3].map(card => <div key={card} className="rounded-lg border border-gray-100 p-4 dark:border-[#2e3240]"><TeacherSkeletonLine className="h-3.5 w-28" /><TeacherSkeletonLine className="mt-2 h-3 w-20" /><TeacherSkeletonLine className="mt-4 h-3 w-full" /></div>)}</div>
+ </section>
+ </div>
+);
+
 export default function Dashboard() {
  const router = useRouter();
  const { loading: authLoading } = useProtectedRoute();
@@ -286,38 +369,7 @@ export default function Dashboard() {
  };
 
  if (authLoading || loading) {
- return (
- <div className="space-y-6">
- <style>{`
- @keyframes shimmer {
- 0% { background-position: -200% 0; }
- 100% { background-position: 200% 0; }
- }
- .skeleton {
- background: linear-gradient(90deg, var(--skel-color-1) 25%, var(--skel-color-2) 50%, var(--skel-color-1) 75%);
- background-size: 200% 100%;
- animation: shimmer 1.5s infinite;
- border-radius: 8px;
- }
- :root {
- --skel-color-1: #f0f0f0;
- --skel-color-2: #e0e0e0;
- }
- .dark {
- --skel-color-1: #1f2937;
- --skel-color-2: #374151;
- }
- `}</style>
- <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
- {[1, 2, 3, 4].map((i) => (
- <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] p-6">
- <div className="skeleton h-4 w-2/3 mb-3" />
- <div className="skeleton h-10 w-1/3 mb-2" />
- </div>
- ))}
- </div>
- </div>
- );
+ return <TeacherDashboardSkeleton />;
  }
 
  if (error && !dashboardData) {

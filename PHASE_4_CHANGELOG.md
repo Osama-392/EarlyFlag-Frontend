@@ -457,3 +457,127 @@ Teacher Dashboard
 - All 14 focused dashboard and report tests passed.
 - The optimized Next.js production build completed successfully, including the new
   ranking and inactive-teacher routes.
+
+---
+
+## September 17, 2026 (`2026-09-17`)
+
+### Frontend work completed
+
+#### Admin Referrals & Follow-Ups event-level rendering
+
+- Updated the Admin Referrals & Follow-Ups table to treat every canonical Red event
+  as an independent row from `GET /api/v1/admin/red-flags`.
+- Normalized the endpoint's top-level `events` collection and used
+  `escalation_id` as the React row key.
+- Removed the superseded student/class accumulation model and its grouped fields,
+  including `group_id`, accumulated Academic/Behavioral Red counts, event-detail
+  groups, and grouped referral actions.
+- Kept all tabs backend-driven (`all`, `academic`, `behavioral`, `cross_class`, and
+  `resolved`) and used the response's event totals and `total` pagination count
+  without client-side re-filtering or total arithmetic.
+- Removed the accumulated A/B Red breakdown column. The Status column now displays
+  one category badge for Academic, Behavioral, or Cross-Class events, while the Red
+  Type column displays the event origin label.
+- Removed internal/raw row details from the table, including external student IDs,
+  raw origin values such as `manual_send`, duplicated subject text, and the extra
+  occurrence-date line.
+- Kept acknowledgement at the individual referral level with
+  `PUT /api/v1/admin/referrals/{referral_id}/acknowledge`, followed by a refresh of
+  the active tab and server totals.
+
+#### Cross-Class class provenance
+
+- Added the `classes_involved`, `contributing_yellow_count`, and
+  `contribution_tracking_status` fields to the Admin Red event frontend model.
+- Cross-Class rows now display every contributing class as plain stacked text in
+  the **Classes Involved** column, using the class name and falling back to the
+  subject or `Unknown class` when needed.
+- Yellow Academic/Behavioral contribution counts remain hidden; they are not
+  presented as accumulated Red-event counts.
+- Added a subtle partial-history notice when
+  `contribution_tracking_status === "inferred_partial"`.
+
+#### Repeat-offender presentation
+
+- Restricted the Repeat Offender badge and medium-red row treatment to active Red
+  events in the current rolling seven-day window.
+- Resolved events and events outside the rolling window no longer display the
+  Repeat Offender treatment.
+- When a student has multiple qualifying events on the current page, only the
+  latest event receives the medium-red row background. Equal timestamps preserve
+  the first server-returned event.
+
+#### Admin report preview and PDF export
+
+- Removed the **7-Day Category Breakdown** section from the generated Admin report.
+- Replaced screenshot-based Admin PDF output with a native `jsPDF` renderer that
+  follows the Admin report preview rather than the Teacher report layout.
+- Preserved the preview's selected-period metrics, student history, alerts,
+  referrals, and optional notes in the exported PDF, including automatic page
+  continuation for long sections.
+- Used backend-selected report dates and canonical selected-range totals in both
+  preview and export, including correct zero-value handling and legacy response
+  fallbacks.
+
+#### Teacher Escalations event identity and dates
+
+- Updated the Teacher Escalation model with `escalation_date` and displayed that
+  field on both the Admin Dashboard card and the full Teacher Escalations list.
+- Continued rendering every escalation independently with `flag_id` as the React
+  key; records are not grouped or replaced by teacher, class, or display name.
+- The full list requests `GET /api/v1/admin/teacher-flags?status=open` for active
+  work and `status=all` for open plus acknowledged history.
+- Acknowledgement targets only the selected record through
+  `PUT /api/v1/admin/teacher-flags/{flag_id}/acknowledge`.
+- The Open view removes only the acknowledged `flag_id`; the All view refetches so
+  the same record remains visible with its acknowledged state. A dashboard refresh
+  event is dispatched after success.
+- Expanded the full-list cards to show class/period, escalation date, Yellow
+  students and denominator, threshold percentage, backend severity, and
+  acknowledgement details.
+- Applied the compatibility severity boundary of Moderate from 30% through 37.49%
+  and High from 37.5% upward. Teacher Escalations remain open until individually
+  acknowledged and do not use the student Red-alert seven-day resolution rule.
+
+#### Dashboard and referrals loading experience
+
+- Replaced the Admin Dashboard's obsolete solid gray placeholder blocks with
+  structured skeletons that preserve the real page hierarchy and card shells.
+- Added matching structured loading states for Admin Referrals, student-monitoring
+  tables, the School Wide Heat Map, Department Overview, Teacher Escalations, and
+  Teachers Not Logging In.
+- Replaced the Admin Referrals `Loading referrals…` message with animated table-row
+  placeholders.
+- Tab and pagination requests now replace stale referral rows with the same
+  skeleton effect instead of dimming the old rows and showing a floating
+  `Updating…` indicator.
+- Replaced the Teacher Dashboard's four-card-only loader with structured skeletons
+  for the greeting banner, Yellow Watch List, Red Urgent, Super Green, absences,
+  analytics summary cards, charts, trend comparison, and recognition highlights.
+
+### Files changed
+
+- `components/AdminReferralsList.tsx`
+- `components/AdminTeacherMonitoringCards.tsx`
+- `components/Dashboard.tsx`
+- `components/PrincipalDashboard.tsx`
+- `components/PrincipalTeachersPage.tsx`
+- `components/ReportView.tsx`
+- `lib/adminDashboardService.ts`
+- `lib/adminReportPdf.ts`
+- `lib/adminService.ts`
+- `tests/adminDashboardRankings.test.cjs`
+- `tests/adminReferralsGroups.test.cjs`
+- `tests/adminReportPdf.test.cjs`
+- `tests/reportView.test.cjs`
+- `tests/teacherDashboardLoading.test.cjs`
+
+### Validation
+
+- TypeScript validation completed successfully with `npx tsc --noEmit`.
+- Targeted ESLint validation completed successfully for the changed Admin referral,
+  dashboard, Teacher Escalation, report, service, and regression-test files.
+- All 23 frontend regression tests passed with `node --test tests/*.test.cjs`.
+- `git diff --check` completed successfully; only the repository's existing line
+  ending normalization warnings remain.

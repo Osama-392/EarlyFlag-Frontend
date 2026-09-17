@@ -23,6 +23,7 @@ function loadTypeScript(relativePath, overrides = {}) {
 }
 
 const { createTeacherReportPdf } = loadTypeScript('../lib/teacherReportPdf.ts');
+const { createAdminReportPdf } = loadTypeScript('../lib/adminReportPdf.ts');
 
 function findElement(tree, predicate) {
   if (!React.isValidElement(tree)) return undefined;
@@ -50,6 +51,7 @@ async function previewAndExport(report, settings = {}) {
         return { save: () => {} };
       },
     },
+    '@/lib/adminReportPdf': { createAdminReportPdf },
   }).default;
   const tree = ReportView({
     student: { id: 'test-student', name: 'Mateo Elijah', initial: 'ME', gradeLevel: 7, bgColor: '' },
@@ -116,19 +118,29 @@ test('legacy responses without selected totals count only history in the request
   ] }, { red: 1, yellow: 1, superGreen: 1 }, '30 Days');
 });
 
-test('admin report preview includes identity, configured range, and canonical Red summary', () => {
+test('admin preview and export use the native PDF renderer with canonical Red data', async () => {
+  let exported;
   const ReportView = loadTypeScript('../components/ReportView.tsx', {
     react: {
-      ...React, useState: (initial) => [initial, () => {}], useRef: () => ({ current: null }),
+      ...React, useState: (initial) => [initial, () => {}], useRef: () => ({ current: {} }),
     },
     '@/app/providers': { useAuth: () => ({ user: { role: 'admin' } }) },
     '@/lib/logger': { logger: { buttonClick: () => {} } },
-    '@/lib/teacherReportPdf': { createTeacherReportPdf },
+    '@/lib/teacherReportPdf': {
+      createTeacherReportPdf,
+    },
+    '@/lib/adminReportPdf': {
+      createAdminReportPdf: (data) => {
+        exported = { data, pdf: createAdminReportPdf(data) };
+        return { save: () => {} };
+      },
+    },
   }).default;
-  const html = renderToStaticMarkup(ReportView({
+  const tree = ReportView({
     student: { id: 'student-1', name: 'Arthur O’Connor', initial: 'AO', gradeLevel: 8, bgColor: '' },
     reportData: {
       start_date: '2026-08-09', end_date: '2026-09-07', subject: 'All Subjects',
+      includeTeachersNotes: true, includeAIRecommendations: true,
       result: {
         report: {
           student: { external_student_id: 'S-2042', iep_status: true, ell_status: false },
@@ -140,9 +152,12 @@ test('admin report preview includes identity, configured range, and canonical Re
           selected_range_start: '2026-08-09', selected_range_end: '2026-09-07',
           flag_log: [{
             signal_date: '2026-09-04', signal_type: 'yellow', category: 'academic',
-            title: 'Needs support', class_name: 'Religion 8A', teacher_name: 'Mark Twain',
+            title: 'Needs support', description: 'Missing assignments',
+            class_name: 'Religion 8A', teacher_name: 'Mark Twain',
           }],
-          unresolved_alerts: [], recent_referrals: [], recent_notes: [],
+          unresolved_alerts: [], recent_referrals: [],
+          talking_points: ['Schedule a family check-in.'],
+          recent_notes: [{ signal_date: '2026-09-03', class_name: 'Religion 8A', note: 'Reviewed the support plan.' }],
         },
         red_summary: {
           range_start: '2026-08-09', range_end: '2026-09-07', red_count: 4,
@@ -151,19 +166,54 @@ test('admin report preview includes identity, configured range, and canonical Re
       },
     },
     variant: 'admin', onBack: () => {}, backLabel: 'Back to Student Profile',
-  }));
+  });
+  const html = renderToStaticMarkup(tree);
 
   for (const expected of [
     'Arthur O’Connor', 'S-2042', 'Last 30 Days', 'All Subjects',
-    'Canonical Red Summary', 'Cross-Class', 'Back to Student Profile',
+    'Canonical Red Summary', 'Cross-Class', 'Student History',
+    'Recommended Next Steps', 'Schedule a family check-in.',
+    'Teachers Notes', 'Reviewed the support plan.', 'Back to Student Profile',
   ]) assert.ok(html.includes(expected), `admin preview includes ${expected}`);
   assert.match(html, /text-lg font-bold text-red-600">4<\/p><p[^>]*>Red<\/p>/);
   assert.ok(!html.includes('Last 7 Days'));
   assert.ok(!html.includes('Semester ('));
   assert.ok(!html.includes('Unresolved Alerts'));
   assert.ok(!html.includes('Counselor / Admin Referrals'));
+  assert.ok(!html.includes('7-Day Category Breakdown'));
+  assert.ok(!html.includes('Yellow Academic'));
+  assert.ok(!html.includes('Red Behavioral'));
   assert.ok(!html.includes('max-h-96'));
   assert.doesNotMatch(html, /class="[^"]*overflow-y-auto/);
   assert.ok(!html.includes('Repeat offender'));
   assert.ok(!html.includes('Red Events (7d)'));
+
+  const button = findElement(tree, (element) => element.props.title === 'Export Student Report as PDF');
+  assert.ok(button, 'Admin Export PDF action is available');
+  await button.props.onClick();
+  assert.ok(exported, 'Admin export action generates a native PDF');
+  assert.equal(exported.data.studentId, 'S-2042');
+  assert.deepEqual(JSON.parse(JSON.stringify(exported.data.counts)), {
+    superGreen: 2, present: 15, yellow: 3, red: 4, absent: 1,
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(exported.data.canonicalRed)), {
+    total: 4, academic: 2, behavioral: 1, crossClass: 1,
+    range: 'Aug 9, 2026 - Sep 7, 2026',
+  });
+  assert.equal(exported.data.history.length, 1);
+  const pdfText = exported.pdf.internal.pages.slice(1).map((page) => page.join('\n')).join('\n');
+  assert.ok(pdfText.includes('Canonical Red Summary'));
+  assert.ok(pdfText.includes('Cross-Class'));
+  assert.ok(pdfText.includes('Needs support'));
+  assert.ok(pdfText.includes('Missing assignments'));
+  assert.ok(pdfText.includes('Religion 8A'));
+  assert.ok(pdfText.includes('Mark Twain'));
+  assert.ok(pdfText.includes('Recommended Next Steps'));
+  assert.ok(pdfText.includes('Schedule a family check-in.'));
+  assert.ok(pdfText.includes('Teachers Notes'));
+  assert.ok(pdfText.includes('Reviewed the support plan.'));
+  for (const label of ['Super Green', 'Present', 'Yellow', 'Red', 'Absent']) {
+    assert.ok(pdfText.includes(label), `Admin PDF includes ${label} report-period metric`);
+  }
+  assert.doesNotMatch(exported.pdf.output(), /\/Subtype \/Image/);
 });

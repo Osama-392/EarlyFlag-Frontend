@@ -61,11 +61,17 @@ test('dashboard renders server ranking blocks and installs all refresh triggers'
     "window.addEventListener('dashboard-refresh'",
     "window.addEventListener('focus'",
     'window.setInterval(refresh, 60_000)',
+    '<AdminReferralsListSkeleton />',
+    '<SchoolHeatmapSkeleton />',
+    '<DepartmentOverviewSkeleton />',
+    '<AdminTeacherMonitoringCards loading />',
   ]) assert.ok(source.includes(token), `dashboard contains ${token}`);
 
   assert.ok(!source.includes('getAdminMostFlagged'));
   assert.ok(!source.includes('most_at_risk.students.sort'));
   assert.ok(!source.includes('students_improving.students.sort'));
+  assert.ok(!source.includes('h-28 bg-gray-200 rounded-xl'));
+  assert.ok(!source.includes('h-44 bg-gray-200 rounded-xl'));
 });
 
 test('inactive-teacher full list client uses the backend activity endpoint', async () => {
@@ -102,6 +108,8 @@ test('dashboard teacher monitoring uses composite blocks without frontend rankin
     'Math.round(escalation.threshold_percentage)',
     'escalation.yellow_count} / {escalation.total_student_count',
     "escalation.severity === 'high'",
+    'formatEscalationDate(escalation.escalation_date)',
+    'flag.threshold_percentage >= 37.5',
     'teacher.days_since_recording} days',
     'formatRecordedDate(teacher.last_data_recorded_at)',
     'teacher.class_name}{teacher.class_period != null',
@@ -113,4 +121,45 @@ test('dashboard teacher monitoring uses composite blocks without frontend rankin
 
   assert.ok(!cards.includes('.sort('));
   assert.ok(!cards.includes('Date.now()'));
+});
+
+test('teacher escalations preserve event identity, dates, and individual acknowledgements', () => {
+  const service = fs.readFileSync(path.join(__dirname, '../lib/adminDashboardService.ts'), 'utf8');
+  const dashboardCards = fs.readFileSync(path.join(__dirname, '../components/AdminTeacherMonitoringCards.tsx'), 'utf8');
+  const fullList = fs.readFileSync(path.join(__dirname, '../components/PrincipalTeachersPage.tsx'), 'utf8');
+
+  assert.ok(service.includes('escalation_date: string'));
+  assert.ok(dashboardCards.includes('key={escalation.flag_id}'));
+  assert.ok(fullList.includes('key={flag.flag_id}'));
+  assert.ok(fullList.includes('formatEscalationDate(flag.escalation_date)'));
+  assert.ok(fullList.includes('getAdminTeacherFlags(obsFlagStatus)'));
+  assert.ok(fullList.includes('setObsFlags(f => f.filter(fl => fl.flag_id !== flagId))'));
+  assert.ok(fullList.includes("if (obsFlagStatus === 'open')"));
+  assert.ok(fullList.includes("window.dispatchEvent(new Event('dashboard-refresh'))"));
+  assert.ok(!fullList.includes('new Date(flag.triggered_at)'));
+});
+
+test('teacher escalation clients request open/history records and acknowledge by flag id', async () => {
+  const calls = [];
+  const api = {
+    get: async (url, options) => {
+      calls.push({ method: 'get', url, options });
+      return { data: { flags: [] } };
+    },
+    put: async (url) => {
+      calls.push({ method: 'put', url });
+      return { data: { flag_id: 'flag-2', is_acknowledged: true } };
+    },
+  };
+  const service = loadAdminDashboardService(api);
+
+  await service.getAdminTeacherFlags('open');
+  await service.getAdminTeacherFlags('all');
+  await service.acknowledgeTeacherFlag('flag-2');
+
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)), [
+    { method: 'get', url: '/api/v1/admin/teacher-flags', options: { params: { status: 'open' } } },
+    { method: 'get', url: '/api/v1/admin/teacher-flags', options: { params: { status: 'all' } } },
+    { method: 'put', url: '/api/v1/admin/teacher-flags/flag-2/acknowledge' },
+  ]);
 });

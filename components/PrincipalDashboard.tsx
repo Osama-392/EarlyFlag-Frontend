@@ -16,7 +16,7 @@ import {
 import { getPendingTeachers } from '@/lib/adminService';
 import { useAuth } from '@/app/providers';
 import GoodMorningBanner from '@/components/GoodMorningBanner';
-import AdminReferralsList from '@/components/AdminReferralsList';
+import AdminReferralsList, { AdminReferralsListSkeleton } from '@/components/AdminReferralsList';
 import AdminTeacherMonitoringCards from '@/components/AdminTeacherMonitoringCards';
 
 // ─── Predefined Subjects (from Create Class dropdown) ─────────────
@@ -87,6 +87,91 @@ const getDepartmentBadge = (name: string) => {
  return { icon: <Building2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />, bg: 'bg-gray-100 dark:bg-[#1b1e2c]' };
 };
 
+const SkeletonLine = ({ className = '' }: { className?: string }) => (
+ <div className={`animate-pulse rounded bg-gray-200 dark:bg-[#262a3d] ${className}`} />
+);
+
+const DashboardTableSkeleton = ({
+ title,
+ subtitle,
+ columns,
+}: {
+ title: string;
+ subtitle: string;
+ columns: number;
+}) => (
+ <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-[#262a3d] dark:bg-[#151722]">
+ <div className="flex items-start justify-between px-4 pb-3 pt-4">
+ <div className="flex items-start gap-2">
+ <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 dark:bg-[#1b1e2c]">
+ <Activity className="h-4 w-4 text-gray-400" />
+ </div>
+ <div>
+ <h2 className="text-sm font-extrabold text-gray-900 dark:text-white">{title}</h2>
+ <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400">{subtitle}</p>
+ </div>
+ </div>
+ <SkeletonLine className="h-5 w-8 rounded-full" />
+ </div>
+ <div className="px-3 pb-4">
+ <div className="grid gap-3 border-b border-gray-100 px-2 py-2 dark:border-[#262a3d]" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+ {Array.from({ length: columns }, (_, index) => <SkeletonLine key={index} className="h-2.5" />)}
+ </div>
+ {[1, 2, 3].map(row => (
+ <div key={row} className="grid gap-3 border-b border-gray-100 px-2 py-3 last:border-0 dark:border-[#262a3d]" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+ {Array.from({ length: columns }, (_, index) => <SkeletonLine key={index} className="h-3" />)}
+ </div>
+ ))}
+ </div>
+ </section>
+);
+
+const SchoolHeatmapSkeleton = () => (
+ <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-[#262a3d] dark:bg-[#151722]">
+ <div className="flex items-center justify-between gap-4">
+ <div>
+ <h2 className="text-xl font-bold text-gray-900 dark:text-white">School Wide Heat Map</h2>
+ <SkeletonLine className="mt-2 h-3 w-28" />
+ </div>
+ <div className="hidden gap-3 md:flex">
+ {[1, 2, 3].map(item => <SkeletonLine key={item} className="h-5 w-16 rounded-full" />)}
+ </div>
+ </div>
+ <div className="mt-6 flex gap-5 border-b border-gray-200 pb-3 dark:border-[#262a3d]">
+ {['w-16', 'w-20', 'w-16', 'w-24'].map((widthClass, index) => <SkeletonLine key={index} className={`h-3 ${widthClass}`} />)}
+ </div>
+ <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+ {[1, 2, 3, 4, 5, 6].map(card => (
+ <div key={card} className="rounded-xl border border-gray-200 p-5 dark:border-[#262a3d]">
+ <div className="flex justify-between gap-4"><SkeletonLine className="h-4 w-28" /><SkeletonLine className="h-5 w-10 rounded-full" /></div>
+ <SkeletonLine className="mt-2 h-3 w-20" />
+ <SkeletonLine className="mt-5 h-3 w-24" />
+ <div className="mt-3 border-t border-gray-100 pt-3 dark:border-[#262a3d]"><SkeletonLine className="h-3 w-32" /></div>
+ </div>
+ ))}
+ </div>
+ </section>
+);
+
+const DepartmentOverviewSkeleton = () => (
+ <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-[#262a3d] dark:bg-[#151722] md:p-8">
+ <div className="mb-7 flex items-center gap-3.5">
+ <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500 dark:bg-blue-950/40"><Building2 className="h-6 w-6" /></div>
+ <div><h2 className="text-xl font-bold text-gray-900 dark:text-white">Department Overview</h2><p className="text-sm text-gray-500 dark:text-gray-400">Monitor overall risk across departments.</p></div>
+ </div>
+ <div className="grid grid-cols-3 gap-6 border-b border-gray-100 pb-3 dark:border-[#262a3d]">
+ {[1, 2, 3].map(item => <SkeletonLine key={item} className="h-2.5" />)}
+ </div>
+ {[1, 2, 3].map(row => (
+ <div key={row} className="grid grid-cols-3 items-center gap-6 border-b border-gray-100 py-4 last:border-0 dark:border-[#262a3d]">
+ <div className="flex items-center gap-3"><SkeletonLine className="h-9 w-9 rounded-full" /><SkeletonLine className="h-3 w-24" /></div>
+ <SkeletonLine className="h-3 w-32" />
+ <SkeletonLine className="ml-auto h-8 w-28 rounded-full" />
+ </div>
+ ))}
+ </section>
+);
+
 // ─── Component ────────────────────────────────────────────────────
 
 export default function PrincipalDashboard() {
@@ -117,7 +202,7 @@ export default function PrincipalDashboard() {
  getPendingTeachers().catch(() => []),
  ]);
  setDashboard(dashData);
- setActiveRedTotal(dashData.red_flags?.active_referrals_total ?? 0);
+ setActiveRedTotal(dashData.red_flags?.all_total ?? 0);
  setHeatmap(heatData);
  setPendingCount(pendingData.length);
  setShowPendingAlert(pendingData.length > 0);
@@ -137,7 +222,7 @@ export default function PrincipalDashboard() {
  try {
  const dashData = await getAdminDashboard(range);
  setDashboard(dashData);
- setActiveRedTotal(dashData.red_flags?.active_referrals_total ?? 0);
+ setActiveRedTotal(dashData.red_flags?.all_total ?? 0);
  } catch (err) {
  console.error('Admin ranking refresh failed:', err);
  }
@@ -156,8 +241,8 @@ export default function PrincipalDashboard() {
  }, [refreshDashboardRankings]);
 
  const handleReferralTotalsChange = useCallback(
-   (totals: { active_referrals_total: number }) => {
-     setActiveRedTotal(totals.active_referrals_total);
+   (totals: { all_total: number }) => {
+     setActiveRedTotal(totals.all_total);
    },
    [],
  );
@@ -190,14 +275,25 @@ export default function PrincipalDashboard() {
  // ─── Loading Skeleton ─────────────────────────────────────────
  if (loading) {
  return (
- <div className="space-y-6 animate-pulse">
- <div className="h-10 bg-gray-200 rounded-lg w-64" />
- <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
- {[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-gray-200 rounded-xl" />)}
+ <div className="space-y-6" aria-label="Loading school dashboard">
+ <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-[#262a3d] dark:bg-[#151722]">
+ <div className="flex items-center gap-4">
+ <SkeletonLine className="h-12 w-12 rounded-full" />
+ <div className="flex-1"><SkeletonLine className="h-5 w-52" /><SkeletonLine className="mt-2 h-3 w-full max-w-xl" /></div>
  </div>
- <div className="grid md:grid-cols-3 gap-5">
- {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-44 bg-gray-200 rounded-xl" />)}
+ </section>
+ <div className="flex items-end justify-between gap-4">
+ <div><h1 className="text-4xl font-bold text-gray-900 dark:text-white">School Dashboard</h1><SkeletonLine className="mt-2 h-3 w-44" /></div>
+ <SkeletonLine className="h-9 w-9 rounded-lg" />
  </div>
+ <AdminReferralsListSkeleton />
+ <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+ <DashboardTableSkeleton title="Most At-Risk Students" subtitle="Highest active flag counts in the last 7 days." columns={5} />
+ <DashboardTableSkeleton title="Absent Watch" subtitle="Students with absences needing follow-up." columns={3} />
+ <DashboardTableSkeleton title="Students Improving" subtitle="Positive behavioral and academic improvement." columns={4} />
+ </div>
+ <SchoolHeatmapSkeleton />
+ <DepartmentOverviewSkeleton />
  <AdminTeacherMonitoringCards loading />
  </div>
  );
