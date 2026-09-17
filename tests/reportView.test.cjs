@@ -115,3 +115,55 @@ test('legacy responses without selected totals count only history in the request
     { signal_type: 'yellow', signal_date: '2026-09-08' },
   ] }, { red: 1, yellow: 1, superGreen: 1 }, '30 Days');
 });
+
+test('admin report preview includes identity, configured range, and canonical Red summary', () => {
+  const ReportView = loadTypeScript('../components/ReportView.tsx', {
+    react: {
+      ...React, useState: (initial) => [initial, () => {}], useRef: () => ({ current: null }),
+    },
+    '@/app/providers': { useAuth: () => ({ user: { role: 'admin' } }) },
+    '@/lib/logger': { logger: { buttonClick: () => {} } },
+    '@/lib/teacherReportPdf': { createTeacherReportPdf },
+  }).default;
+  const html = renderToStaticMarkup(ReportView({
+    student: { id: 'student-1', name: 'Arthur O’Connor', initial: 'AO', gradeLevel: 8, bgColor: '' },
+    reportData: {
+      start_date: '2026-08-09', end_date: '2026-09-07', subject: 'All Subjects',
+      result: {
+        report: {
+          student: { external_student_id: 'S-2042', iep_status: true, ell_status: false },
+          counts_selected_range: { red: 3, yellow: 3, super_green: 2, present: 15, absent: 1 },
+          counts_7d: { red: 1, yellow: 1, super_green: 0, present: 4, absent: 0 },
+          counts_30d: { red: 4, yellow: 3, super_green: 2, present: 15, absent: 1 },
+          counts_semester: { red: 5, yellow: 4, super_green: 3, present: 20, absent: 2 },
+          category_7d: { yellow_academic: 1, yellow_behavioral: 0, red_academic: 1, red_behavioral: 0 },
+          selected_range_start: '2026-08-09', selected_range_end: '2026-09-07',
+          flag_log: [{
+            signal_date: '2026-09-04', signal_type: 'yellow', category: 'academic',
+            title: 'Needs support', class_name: 'Religion 8A', teacher_name: 'Mark Twain',
+          }],
+          unresolved_alerts: [], recent_referrals: [], recent_notes: [],
+        },
+        red_summary: {
+          range_start: '2026-08-09', range_end: '2026-09-07', red_count: 4,
+          academic_red_count: 2, behavioral_red_count: 1, cross_class_red_count: 1,
+        },
+      },
+    },
+    variant: 'admin', onBack: () => {}, backLabel: 'Back to Student Profile',
+  }));
+
+  for (const expected of [
+    'Arthur O’Connor', 'S-2042', 'Last 30 Days', 'All Subjects',
+    'Canonical Red Summary', 'Cross-Class', 'Back to Student Profile',
+  ]) assert.ok(html.includes(expected), `admin preview includes ${expected}`);
+  assert.match(html, /text-lg font-bold text-red-600">4<\/p><p[^>]*>Red<\/p>/);
+  assert.ok(!html.includes('Last 7 Days'));
+  assert.ok(!html.includes('Semester ('));
+  assert.ok(!html.includes('Unresolved Alerts'));
+  assert.ok(!html.includes('Counselor / Admin Referrals'));
+  assert.ok(!html.includes('max-h-96'));
+  assert.doesNotMatch(html, /class="[^"]*overflow-y-auto/);
+  assert.ok(!html.includes('Repeat offender'));
+  assert.ok(!html.includes('Red Events (7d)'));
+});

@@ -36,13 +36,6 @@ interface ReportViewProps {
   backLabel?: string;
 }
 
-const severityStyles: Record<string, string> = {
-  critical: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50',
-  high: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-900/50',
-  medium: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900/50',
-  low: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-900/50',
-};
-
 function formatDate(d: string | null | undefined) {
   if (!d) return '—';
   try {
@@ -119,7 +112,9 @@ export default function ReportView({
   // Determine active variant (default based on user role if not specified)
   const isTeacherView = variant === 'teacher' || (!variant && user?.role !== 'principal' && user?.role !== 'admin');
 
-  const report = reportData?.result?.report || reportData?.result;
+  const reportResponse = reportData?.result;
+  const report = reportResponse?.report || reportResponse;
+  const redSummary = reportResponse?.red_summary;
   const rawFlagLog = report?.flag_log || report?.signals || report?.recent_flags || [];
 
   const today = new Date();
@@ -161,6 +156,18 @@ export default function ReportView({
   const greenCount = report?.counts_selected_range?.super_green
     ?? report?.counts_selected_range?.green
     ?? greenFlagsInRange.length;
+  const selectedRangeCounts = {
+    ...(report?.counts_selected_range || {
+      super_green: greenCount,
+      present: 0,
+      yellow: yellowCount,
+      red: redCount,
+      absent: 0,
+    }),
+    // Admin Red totals come from canonical escalation events, including
+    // Cross-Class Reds that are intentionally absent from signal-log counts.
+    red: redSummary?.red_count ?? redCount,
+  };
 
   let statusText = 'Normal';
   if (redCount > 0) statusText = 'Red';
@@ -214,8 +221,6 @@ export default function ReportView({
   const semesterEnd = report?.semester_end || `${today.getFullYear()}-12-31`;
   const semesterAbsentCount = report?.semester_absent_count ?? countsSemester.absent;
 
-  const unresolvedAlerts = report?.unresolved_alerts || [];
-  const recentReferrals = report?.recent_referrals || [];
   const recommendations = report?.talking_points || [];
 
   // Notes
@@ -417,10 +422,11 @@ export default function ReportView({
                 logger.buttonClick('Back from Report', 'ReportView');
                 onBack();
               }}
-              className="mt-1 flex items-center justify-center p-2 text-gray-500 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 dark:bg-[#1b1e2c] dark:text-gray-400 dark:hover:text-white dark:hover:bg-[#262a3d] rounded-lg transition-colors border border-transparent dark:border-[#262a3d] no-print"
-              title="Go Back"
+              className="mt-1 flex items-center justify-center gap-2 px-3 py-2 text-gray-500 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 dark:bg-[#1b1e2c] dark:text-gray-400 dark:hover:text-white dark:hover:bg-[#262a3d] rounded-lg transition-colors border border-transparent dark:border-[#262a3d] no-print"
+              title={backLabel}
             >
               <ArrowLeft size={20} />
+              <span className="text-sm font-semibold">{backLabel}</span>
             </button>
             <div className="flex-1">
               <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight capitalize">
@@ -452,6 +458,7 @@ export default function ReportView({
               onClick={handleExportPDF}
               disabled={exporting}
               className="inline-flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1b1e2c] bg-white dark:bg-[#151722] border border-gray-200 dark:border-[#262a3d] rounded-lg transition-colors font-semibold text-sm shadow-sm disabled:opacity-50"
+              title="Export Student Report as PDF"
             >
               {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               <span>Export PDF</span>
@@ -765,15 +772,56 @@ export default function ReportView({
              ADMIN STUDENT REPORT (Identical layout to Admin Student Profile)
              ========================================================================= */
           <>
-            {/* Signal Count Windows (Row 1) */}
-            <div className="grid md:grid-cols-3 gap-4">
-              <CountsCard label="Last 7 Days" counts={counts7d} />
-              <CountsCard label="Last 30 Days" counts={counts30d} />
-              <CountsCard 
-                label={`Semester (${formatDate(semesterStart)} — ${formatDate(semesterEnd)})`} 
-                counts={countsSemester} 
-              />
-            </div>
+            {/* Identity and configured scope must live inside the exported content. */}
+            <section className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white px-6 py-5 text-[#0b1f41] shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-5">
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 text-2xl font-bold text-slate-500">
+                  {student.initial || student.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Student Report</p>
+                  <h1 className="truncate text-2xl font-extrabold text-[#0b1f41]">{student.name}</h1>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-sm font-medium text-slate-500">
+                    <span>{formatGrade(student.gradeLevel)}</span>
+                    {report?.student?.external_student_id && <span>• {report.student.external_student_id}</span>}
+                    {report?.student?.iep_status && <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">IEP</span>}
+                    {report?.student?.ell_status && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">ELL</span>}
+                  </div>
+                </div>
+              </div>
+              <div className="text-left text-sm text-slate-500 sm:text-right">
+                <p className="font-bold text-[#0b1f41]">{reportPeriodLabel}</p>
+                <p>{formatDate(selectedRangeStart)} – {formatDate(selectedRangeEnd)}</p>
+                <p>{reportData.subject || 'All Subjects'}</p>
+              </div>
+            </section>
+
+            {/* Exact totals for the range selected in the report modal. */}
+            <CountsCard label={`Report Period — ${reportPeriodLabel}`} counts={selectedRangeCounts} />
+
+            {redSummary && (
+              <section className="rounded-xl border border-red-100 bg-white p-5 shadow-sm">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900">Canonical Red Summary</h3>
+                    <p className="text-xs text-gray-500">{formatDate(redSummary.range_start)} – {formatDate(redSummary.range_end)}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
+                  {[
+                    ['Total Red', redSummary.red_count],
+                    ['Academic', redSummary.academic_red_count],
+                    ['Behavioral', redSummary.behavioral_red_count],
+                    ['Cross-Class', redSummary.cross_class_red_count],
+                  ].map(([label, value]) => (
+                    <div key={String(label)} className="rounded-lg border border-red-100 bg-red-50 p-3">
+                      <p className="text-2xl font-bold text-red-600">{value}</p>
+                      <p className="mt-1 text-xs text-gray-600">{label}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* 7-Day Category Breakdown (Row 2) */}
             <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] p-5 shadow-sm">
@@ -805,14 +853,14 @@ export default function ReportView({
             </div>
 
             {/* Student History (Row 3 - Full Width) */}
-            {rawFlagLog && rawFlagLog.length > 0 && (
+            {teacherHistory.length > 0 && (
               <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden mb-6">
                 <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex items-center gap-2">
                   <Activity size={16} className="text-teal-500" />
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white">Student History</h3>
                 </div>
-                <div className="divide-y divide-gray-100 dark:divide-[#262a3d] max-h-96 overflow-y-auto">
-                  {rawFlagLog.map((flag: any, i: number) => {
+                <div className="divide-y divide-gray-100 dark:divide-[#262a3d]">
+                  {teacherHistory.map((flag: any, i: number) => {
                     let rawDate = new Date(flag.signal_date + 'T00:00:00');
                     let shortDate = flag.signal_date;
                     let dayOfWeek = '';
@@ -873,76 +921,6 @@ export default function ReportView({
                 </div>
               </div>
             )}
-
-            {/* Unresolved Alerts (Row 4) */}
-            <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden">
-              <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex items-center gap-2">
-                <AlertTriangle size={16} className="text-orange-500" />
-                <h3 className="text-sm font-bold text-gray-900 dark:text-white">Unresolved Alerts</h3>
-                <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">{unresolvedAlerts.length}</span>
-              </div>
-              {unresolvedAlerts.length === 0 ? (
-                <div className="p-8 text-center text-gray-400 text-sm">No unresolved alerts</div>
-              ) : (
-                <div className="divide-y divide-gray-100 dark:divide-[#262a3d] max-h-72 overflow-y-auto">
-                  {unresolvedAlerts.map((alert: any) => (
-                    <div key={alert.alert_id} className="p-3 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${severityStyles[alert.severity?.toLowerCase()] || 'bg-gray-100 dark:bg-[#1b1e2c] text-gray-700 dark:text-gray-300'}`}>{alert.severity}</span>
-                        <span className="text-xs text-gray-400">{formatDate(alert.triggered_at)}</span>
-                      </div>
-                      <p className="text-sm text-gray-800 dark:text-gray-200">{alert.rule_description}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{alert.class_name}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Referrals (Row 5) */}
-            <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden mb-6">
-              <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex items-center gap-2">
-                <Shield size={16} className="text-red-500" />
-                <h3 className="text-sm font-bold text-gray-900 dark:text-white">Counselor / Admin Referrals</h3>
-                <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">{recentReferrals.length}</span>
-              </div>
-              {recentReferrals.length === 0 ? (
-                <div className="p-8 text-center text-gray-400 text-sm">No referrals recorded for this student</div>
-              ) : (
-                <div className="divide-y divide-gray-100 dark:divide-[#262a3d] max-h-72 overflow-y-auto">
-                  {recentReferrals.map((ref: any, idx: number) => {
-                    const refType = ref.referral_type ? String(ref.referral_type).replace('manual_', '').toUpperCase() : 'REFERRAL';
-                    const isAuto = String(ref.referral_type || '').includes('auto');
-                    const teacherName = `${ref.referred_by_first_name || ''} ${ref.referred_by_last_name || ''}`.trim() || 'Teacher';
-                    const displayClass = ref.class_name || ref.subject || 'Cross-Class';
-
-                    return (
-                      <div key={ref.referral_id || idx} className="p-4 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition flex items-start gap-4">
-                        <div className="shrink-0 pt-0.5">
-                          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30">
-                            {isAuto ? 'Auto Escalation' : `${refType} Referral`}
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white">{ref.note || 'No notes provided'}</p>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-2">
-                            <span>By {teacherName}</span>
-                            <span>•</span>
-                            <span>{displayClass}</span>
-                            {ref.created_at && (
-                              <>
-                                <span>•</span>
-                                <span>{formatDate(ref.created_at)}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
 
             {/* AI Recommendations (Row 6) */}
             {(reportData.includeAIRecommendations || reportData.include_ai_recommendations) && recommendations.length > 0 && (

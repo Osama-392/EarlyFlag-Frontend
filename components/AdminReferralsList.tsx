@@ -178,6 +178,7 @@ export default function AdminReferralsList({
       } else {
         await fetchRedFlags(true);
       }
+      window.dispatchEvent(new Event('dashboard-refresh'));
     } catch (err: any) {
       console.error('Failed to acknowledge referral:', err);
       setError(err?.response?.data?.detail || 'Unable to acknowledge this referral.');

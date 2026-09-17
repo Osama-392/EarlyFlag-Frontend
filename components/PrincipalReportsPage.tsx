@@ -631,7 +631,7 @@ export default function PrincipalReportsPage() {
  redCount: selectedStudentForReport.signal_counts?.red,
  yellowCount: selectedStudentForReport.signal_counts?.yellow,
  }}
- defaultSubject="Student Overview"
+ defaultSubject="All Subjects"
  gradeSubjects={[]}
  onClose={() => {
  setIsStudentReportModalOpen(false);
