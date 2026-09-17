@@ -1,5 +1,6 @@
 import api from './api';
-import { YellowWatchListRow, AbsentStudentRow } from './dashboardService';
+import { AbsentStudentRow } from './dashboardService';
+import type { AdminRedFlagsResponse } from './adminService';
 
 // ═══════════════════════════════════════════════════════════════════
 // M8 Admin Dashboard — Types & API Service
@@ -21,6 +22,7 @@ export interface ReportCategoryBreakdown {
   yellow_behavioral: number;
   red_academic: number;
   red_behavioral: number;
+  red_cross_class?: number | null;
 }
 
 export interface DailySignalBucket {
@@ -98,42 +100,6 @@ export interface MondayRedFlagBlock {
   top_students: MondayRedFlagTopStudent[];
 }
 
-export interface AdminUrgentAlertStudent {
-  student_id: string;
-  first_name: string;
-  last_name: string;
-  grade_level: number;
-}
-
-export interface AdminUrgentAlertRow {
-  alert_id: string;
-  rule_description: string;
-  severity: string;
-  alert_type: string;
-  triggered_at: string;
-  student: AdminUrgentAlertStudent;
-}
-
-export interface AdminRedUrgentRow {
-  alert_id: string;
-  escalation_id?: string;
-  origin: 'automatic_threshold' | 'direct_red' | 'manual_send';
-  category: 'academic' | 'behavioral';
-  rule_description: string;
-  severity: string;
-  triggered_at: string;
-  student: {
-    student_id: string;
-    first_name: string;
-    last_name: string;
-    grade_level: number;
-    subject?: string;
-  };
-  recent_flags?: any[];
-  subject?: string;
-  class_name?: string;
-}
-
 export interface TeacherObservationFlagRow {
   flag_id: string;
   class_id: string;
@@ -184,15 +150,13 @@ export interface AdminDashboardResponse {
   range: AdminDashboardRangeBlock;
   kpis: AdminKpiBlock;
   monday_red_flag: MondayRedFlagBlock;
-  urgent_alerts: AdminUrgentAlertRow[];
   pending_teacher_flags: TeacherObservationFlagRow[];
   departments: DepartmentOverviewBlock[];
   recommendations: string[];
   teacher_leaderboard: TeacherLeaderboardRow[];
   generated_at: string;
   school_timezone: string;
-  red_urgent: AdminRedUrgentRow[];
-  yellow_watch_list: YellowWatchListRow[];
+  red_flags: AdminRedFlagsResponse;
   absent_students: AbsentStudentRow[];
 }
 
@@ -337,6 +301,7 @@ export interface AdminStudentProfileBlock {
   counts_30d: SignalCountsByType;
   counts_semester: SignalCountsByType;
   category_7d: ReportCategoryBreakdown;
+  cross_class_red_count_7d?: number | null;
   timeline_30d: DailySignalBucket[];
   semester_start: string;
   semester_end: string;
@@ -385,49 +350,14 @@ export interface AdminStudentReportPayload {
   admin_email_concerns?: string | null;
 }
 
-// ─── 6. Counselor Escalation Log ──────────────────────────────────
-
-export interface EscalationLogRow {
-  referral_id: string;
-  referral_type: string;
-  priority: string;
-  email_status: string;
-  email_error?: string | null;
-  sent_at: string | null;
-  opened_at: string | null;
-  acknowledged_at: string | null;
-  acknowledged_by?: string | null;
-  follow_up_needed: boolean;
-  follow_up_date: string | null;
-  note: string;
-  created_at: string;
-  student_id: string;
-  external_student_id: string;
-  student_first_name: string;
-  student_last_name: string;
-  student_grade_level: number;
-  referred_by_id: string;
-  referred_by_first_name: string;
-  referred_by_last_name: string;
-}
-
-export interface EscalationLogBlock {
-  total: number;
-  limit: number;
-  offset: number;
-  range_start: string;
-  range_end: string;
-  referrals: EscalationLogRow[];
-}
-
-// ─── 7. Teacher Observation Flags List ────────────────────────────
+// ─── 6. Teacher Observation Flags List ────────────────────────────
 
 export interface TeacherObservationFlagListBlock {
   status_filter: 'open' | 'all';
   flags: TeacherObservationFlagRow[];
 }
 
-// ─── 8. Trends ────────────────────────────────────────────────────
+// ─── 7. Trends ────────────────────────────────────────────────────
 
 export interface TrendsDailyBucket {
   date: string;
@@ -460,7 +390,7 @@ export interface AdminTrendsBlock {
   attendance_trend: TrendsAttendancePoint[];
 }
 
-// ─── 9. Mutations ─────────────────────────────────────────────────
+// ─── 8. Mutations ─────────────────────────────────────────────────
 
 export interface AlertResolveRequest {
   resolution_note: string;
@@ -507,18 +437,6 @@ export interface SuperGreenExportPayload {
   threshold: number;
   row_count: number;
   students: SuperGreenExportRow[];
-}
-
-// ─── Referral Filter Params ───────────────────────────────────────
-
-export interface ReferralFilterParams {
-  status?: string[];
-  priority?: string[];
-  follow_up?: boolean;
-  from?: string;
-  to?: string;
-  limit?: number;
-  offset?: number;
 }
 
 // ─── Report Filter Params (shared across student/teacher/grade reports) ───
@@ -724,39 +642,6 @@ export const getAdminStudentProfile = async (
   studentId: string,
 ): Promise<AdminStudentProfileBlock> => {
   const res = await api.get(`/api/v1/admin/students/${studentId}`);
-  return res.data;
-};
-
-/**
- * GET /api/v1/admin/referrals
- * Counselor Escalation Log — paginated with filters.
- */
-export const getAdminReferrals = async (
-  params?: ReferralFilterParams,
-): Promise<EscalationLogBlock> => {
-  const queryParams: Record<string, any> = {};
-
-  if (params?.status?.length) {
-    // Repeat status param for multi-select: ?status=pending&status=sent
-    queryParams.status = params.status;
-  }
-  if (params?.priority?.length) {
-    queryParams.priority = params.priority;
-  }
-  if (params?.follow_up !== undefined) {
-    queryParams.follow_up = params.follow_up;
-  }
-  if (params?.from) queryParams.from = params.from;
-  if (params?.to) queryParams.to = params.to;
-  if (params?.limit) queryParams.limit = params.limit;
-  if (params?.offset !== undefined) queryParams.offset = params.offset;
-
-  const res = await api.get('/api/v1/admin/referrals', {
-    params: queryParams,
-    paramsSerializer: {
-      indexes: null, // serialize arrays as ?status=a&status=b (no brackets)
-    },
-  });
   return res.data;
 };
 

@@ -24,68 +24,67 @@ export const rejectTeacher = async (teacherId: string) => {
   return res.data;
 };
 
-export interface AdminReferral {
-  referral_id: string;
-  referral_type: string;
-  category: 'academic' | 'behavioral';
-  origin: 'automatic_threshold' | 'direct_red' | 'manual_send';
-  priority: string;
-  email_status: string;
-  sent_at: string | null;
-  opened_at: string | null;
-  acknowledged_at: string | null;
-  acknowledged_by: string | null;
+export type AdminRedFlagTab = 'all' | 'academic' | 'behavioral' | 'cross_class' | 'resolved';
+export type AdminRedFlagCategory = 'academic' | 'behavioral';
+export type AdminRedFlagType = 'escalated' | 'direct_red' | 'manual_send' | 'cross_class';
+
+export interface AdminRedFlagStudent {
+  student_id: string;
+  slug: string;
+  external_student_id: string;
+  first_name: string;
+  last_name: string;
+  grade_level: number;
+}
+
+export interface AdminRedFlag {
+  escalation_id: string;
+  category: AdminRedFlagCategory;
+  red_type: AdminRedFlagType;
+  status: 'active' | 'resolved';
+  description: string;
+  occurred_on: string;
+  triggered_at: string;
+  class_id: string | null;
+  class_name: string | null;
+  subject: string | null;
+  referral_id: string | null;
   follow_up_needed: boolean;
   follow_up_date: string | null;
-  note: string;
-  created_at: string;
-  student_id: string;
-  external_student_id: string;
-  student_first_name: string;
-  student_last_name: string;
-  student_grade_level: number;
-  referred_by_id: string;
-  referred_by_first_name: string;
-  referred_by_last_name: string;
-  subject?: string;
-  class_name?: string;
+  admin_acknowledged_at: string | null;
+  red_events_7d: number;
+  repeat_offender: boolean;
+  student: AdminRedFlagStudent;
 }
 
-export interface EscalationLogResponse {
+export interface AdminRedFlagsResponse {
   total: number;
+  all_total: number;
+  academic_total: number;
+  behavioral_total: number;
+  cross_class_total: number;
+  resolved_total: number;
+  active_referrals_total: number;
   limit: number;
   offset: number;
-  range_start: string;
+  range_start: string | null;
   range_end: string;
-  referrals: AdminReferral[];
+  selected_tab: AdminRedFlagTab;
+  events: AdminRedFlag[];
 }
 
-export const getAdminReferrals = async (
-  params?: {
-    status?: string[];
-    priority?: string[];
-    limit?: number;
-    offset?: number;
-    from?: string;
-    to?: string;
-  }
-): Promise<EscalationLogResponse> => {
+export const getAdminRedFlags = async (
+  tab: AdminRedFlagTab,
+  limit = 10,
+  offset = 0,
+): Promise<AdminRedFlagsResponse> => {
   const searchParams = new URLSearchParams();
-  
-  if (params) {
-    if (params.status) {
-      params.status.forEach(s => searchParams.append('status', s));
-    }
-    if (params.priority) {
-      params.priority.forEach(p => searchParams.append('priority', p));
-    }
-    if (params.limit) searchParams.append('limit', params.limit.toString());
-    if (params.offset) searchParams.append('offset', params.offset.toString());
-    if (params.from) searchParams.append('from', params.from);
-    if (params.to) searchParams.append('to', params.to);
-  }
+  searchParams.set('tab', tab);
+  searchParams.set('range', 'all');
+  searchParams.set('limit', limit.toString());
+  searchParams.set('offset', offset.toString());
 
-  const res = await api.get(`/api/v1/admin/referrals?${searchParams.toString()}`);
+  const res = await api.get(`/api/v1/admin/red-flags?${searchParams.toString()}`);
   return res.data;
 };
 

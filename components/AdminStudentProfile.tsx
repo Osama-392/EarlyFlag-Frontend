@@ -110,6 +110,10 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
   };
 
   const { student } = profile;
+  const crossClassRed =
+    profile.category_7d?.red_cross_class ??
+    profile.cross_class_red_count_7d ??
+    0;
   const maxDayCount = Math.max(1, ...profile.timeline_30d.map(d => d.counts.yellow + d.counts.red + d.counts.absent));
 
   return (
@@ -188,22 +192,26 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
       {/* Category Breakdown 7d */}
       <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] p-5 shadow-sm">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">7-Day Category Breakdown</h3>
-        <div className="grid grid-cols-4 gap-4 text-center text-sm">
+        <div className="grid grid-cols-2 gap-3 text-center text-sm md:grid-cols-4">
           <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-100">
-            <p className="text-2xl font-bold text-yellow-600">{profile.category_7d.yellow_academic}</p>
+            <p className="text-2xl font-bold text-yellow-600">{profile.category_7d?.yellow_academic ?? 0}</p>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Yellow Academic</p>
           </div>
           <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-100">
-            <p className="text-2xl font-bold text-yellow-600">{profile.category_7d.yellow_behavioral}</p>
+            <p className="text-2xl font-bold text-yellow-600">{profile.category_7d?.yellow_behavioral ?? 0}</p>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Yellow Behavioral</p>
           </div>
           <div className="p-3 bg-red-50 rounded-lg border border-red-100">
-            <p className="text-2xl font-bold text-red-600">{profile.category_7d.red_academic}</p>
+            <p className="text-2xl font-bold text-red-600">{profile.category_7d?.red_academic ?? 0}</p>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Red Academic</p>
           </div>
           <div className="p-3 bg-red-50 rounded-lg border border-red-100">
-            <p className="text-2xl font-bold text-red-600">{profile.category_7d.red_behavioral}</p>
+            <p className="text-2xl font-bold text-red-600">{profile.category_7d?.red_behavioral ?? 0}</p>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Red Behavioral</p>
+          </div>
+          <div className="p-3 bg-red-50 rounded-lg border border-red-100 md:col-span-2 md:col-start-2">
+            <p className="text-2xl font-bold text-red-600">{crossClassRed}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Red Cross-Class</p>
           </div>
         </div>
         {profile.semester_absent_count > 0 && (
