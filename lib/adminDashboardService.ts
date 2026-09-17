@@ -111,6 +111,7 @@ export interface TeacherEscalation {
   teacher_id: string;
   teacher_first_name: string;
   teacher_last_name: string;
+  escalation_date: string;
   triggered_at: string;
   threshold_percentage: number;
   yellow_count: number;

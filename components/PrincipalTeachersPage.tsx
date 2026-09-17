@@ -16,6 +16,19 @@ interface Toast {
  type: ToastType;
 }
 
+const formatEscalationDate = (value: string) => {
+ const parsed = new Date(value.includes('T') ? value : `${value}T00:00:00`);
+ if (Number.isNaN(parsed.getTime())) return value;
+ return parsed.toLocaleDateString('en-US', {
+ year: 'numeric',
+ month: 'short',
+ day: 'numeric',
+ });
+};
+
+const formatThreshold = (value: number) =>
+ Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
+
 export default function PrincipalTeachersPage() {
  const [tab, setTab] = useState<'observation' | 'pending' | 'approved'>('observation');
  const [searchTerm, setSearchTerm] = useState('');
@@ -122,7 +135,12 @@ export default function PrincipalTeachersPage() {
  try {
  setAckLoading(flagId);
  await acknowledgeTeacherFlag(flagId);
+ if (obsFlagStatus === 'open') {
  setObsFlags(f => f.filter(fl => fl.flag_id !== flagId));
+ } else {
+ await loadObsFlags();
+ }
+ window.dispatchEvent(new Event('dashboard-refresh'));
  showToast('Flag acknowledged successfully', 'success');
  } catch (err) {
  console.error('Acknowledge failed', err);
@@ -408,7 +426,7 @@ export default function PrincipalTeachersPage() {
  <div className="p-2 bg-red-100 rounded-lg">
  <Flag size={18} className="text-red-600" />
  </div>
- <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400 text-xs font-semibold uppercase tracking-wide">Observation Flags</p>
+ <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400 text-xs font-semibold uppercase tracking-wide">Teacher Escalations</p>
  </div>
  <p className="text-3xl font-bold text-red-600">{obsFlags.filter(f => !f.is_acknowledged).length}</p>
  <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 mt-2">Unacknowledged class alerts</p>
@@ -454,7 +472,7 @@ export default function PrincipalTeachersPage() {
  ) : obsFlags.length === 0 ? (
  <div className="text-center py-12">
  <CheckCircle2 size={36} className="mx-auto text-emerald-400 mb-3" />
- <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400 font-medium">No {obsFlagStatus === 'open' ? 'open' : ''} observation flags</p>
+ <p className="text-gray-600 dark:text-gray-400 dark:text-gray-400 font-medium">No {obsFlagStatus === 'open' ? 'open' : ''} teacher escalations</p>
  <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm mt-1">All class thresholds are healthy</p>
  </div>
  ) : (
@@ -464,10 +482,12 @@ export default function PrincipalTeachersPage() {
  <div className="flex items-start justify-between mb-3">
  <div>
  <h4 className="text-sm font-bold text-gray-900 dark:text-white dark:text-white">{flag.class_name}</h4>
- <p className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-400 mt-0.5">Grade {flag.grade_level}</p>
+ <p className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-400 mt-0.5">
+ Grade {flag.grade_level}{flag.class_period != null ? ` · Period ${flag.class_period}` : ''}
+ </p>
  </div>
  {flag.is_acknowledged ? (
- <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold">✓ Ack'd</span>
+ <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold">✓ Ack&apos;d</span>
  ) : (
  <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-bold animate-pulse">Open</span>
  )}
@@ -475,15 +495,28 @@ export default function PrincipalTeachersPage() {
  <div className="mb-3 pb-3 border-b border-gray-100 dark:border-[#262a3d] dark:border-[#262a3d]">
  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 dark:text-gray-200">{flag.teacher_first_name} {flag.teacher_last_name}</p>
  </div>
- <div className="flex items-center gap-3 text-xs mb-3">
- <span className="text-yellow-700 font-semibold">🟡 {flag.yellow_count} yellow</span>
- <span className="text-red-700 font-semibold">🔴 {flag.red_count} red</span>
- <span className="text-gray-500 dark:text-gray-400 dark:text-gray-400">{Math.round(flag.threshold_percentage)}%</span>
+ <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs mb-3">
+ <div>
+ <p className="text-gray-400">Escalation Date</p>
+ <p className="mt-0.5 font-semibold text-gray-700 dark:text-gray-200">{formatEscalationDate(flag.escalation_date)}</p>
+ </div>
+ <div>
+ <p className="text-gray-400">Yellow Students</p>
+ <p className="mt-0.5 font-semibold text-yellow-700 dark:text-yellow-400">{flag.yellow_count} of {flag.total_student_count}</p>
+ </div>
+ <div>
+ <p className="text-gray-400">Threshold</p>
+ <p className="mt-0.5 font-semibold text-gray-700 dark:text-gray-200">{formatThreshold(flag.threshold_percentage)}%</p>
+ </div>
+ <div>
+ <p className="text-gray-400">Severity</p>
+ <span className={`mt-0.5 inline-flex rounded-full px-2 py-0.5 font-bold capitalize ${flag.severity === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300'}`}>
+ {flag.severity}
+ </span>
+ </div>
  </div>
  <div className="flex items-center justify-between">
- <span className="text-xs text-gray-400">
- {new Date(flag.triggered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
- </span>
+ <span />
  {!flag.is_acknowledged && (
  <button onClick={() => handleAcknowledge(flag.flag_id)} disabled={ackLoading === flag.flag_id}
  className="flex items-center gap-1 px-3 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-semibold hover:bg-teal-700 transition disabled:opacity-50">
@@ -789,7 +822,7 @@ export default function PrincipalTeachersPage() {
  </div>
  <h3 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white mb-2 ">No Approved Teachers</h3>
  <p className="text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm max-w-md mx-auto mb-6">
- There are no approved teachers registered in your school yet. Pending approval requests in the "Pending" tab can be reviewed to approve them.
+ There are no approved teachers registered in your school yet. Pending approval requests in the &quot;Pending&quot; tab can be reviewed to approve them.
  </p>
  </div>
  )}

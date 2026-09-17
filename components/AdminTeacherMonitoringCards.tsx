@@ -27,6 +27,16 @@ const formatRecordedDate = (value: string | null) => {
   });
 };
 
+const formatEscalationDate = (value: string) => {
+  const parsed = new Date(value.includes('T') ? value : `${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
 const SkeletonRows = () => (
   <div className="space-y-1 px-4 pb-4">
     {[1, 2, 3].map(row => (
@@ -53,7 +63,7 @@ export default function AdminTeacherMonitoringCards({
       ...flag,
       class_period: flag.class_period ?? null,
       total_student_count: flag.total_student_count ?? Math.max(flag.yellow_count, 1),
-      severity: flag.severity ?? (flag.threshold_percentage >= 40 ? 'high' : 'moderate'),
+      severity: flag.severity ?? (flag.threshold_percentage >= 37.5 ? 'high' : 'moderate'),
     })),
   };
   const inactivityBlock = inactiveTeachers ?? {
@@ -85,11 +95,12 @@ export default function AdminTeacherMonitoringCards({
 
         {loading ? <SkeletonRows /> : (
           <div className="overflow-x-auto px-4">
-            <table className="w-full min-w-[560px] text-left text-xs">
+            <table className="w-full min-w-[680px] text-left text-xs">
               <thead>
                 <tr className="border-b border-gray-100 text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:border-[#262a3d]">
                   <th className="px-2 py-2.5">Teacher</th>
                   <th className="px-2 py-2.5">Class / Period</th>
+                  <th className="px-2 py-2.5">Escalation Date</th>
                   <th className="px-2 py-2.5 text-center">% Yellow Flagged</th>
                   <th className="px-2 py-2.5 text-center">Students</th>
                   <th className="w-8" aria-label="Open class" />
@@ -113,6 +124,9 @@ export default function AdminTeacherMonitoringCards({
                       <td className="px-2 py-3.5 text-gray-600 dark:text-gray-300">
                         {escalation.class_name}{escalation.class_period != null ? ` · Period ${escalation.class_period}` : ''}
                       </td>
+                      <td className="px-2 py-3.5 text-gray-600 dark:text-gray-300">
+                        {formatEscalationDate(escalation.escalation_date)}
+                      </td>
                       <td className="px-2 py-3.5 text-center">
                         <span className={`inline-flex rounded-full px-2 py-1 font-extrabold ${high ? 'bg-red-100 text-red-600 dark:bg-red-950/50' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/50'}`}>
                           {Math.round(escalation.threshold_percentage)}%
@@ -125,7 +139,7 @@ export default function AdminTeacherMonitoringCards({
                   );
                 })}
                 {escalationBlock.total === 0 && (
-                  <tr><td colSpan={5} className="px-3 py-12 text-center text-sm text-gray-400">No active teacher escalations</td></tr>
+                  <tr><td colSpan={6} className="px-3 py-12 text-center text-sm text-gray-400">No active teacher escalations</td></tr>
                 )}
               </tbody>
             </table>

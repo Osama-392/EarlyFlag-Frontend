@@ -3,12 +3,11 @@
 import { useRef, useState } from 'react';
 import { 
   Download, ArrowLeft, Loader2, AlertCircle, AlertTriangle, 
-  CheckCircle, Shield, BookOpen, Clock, Activity, Flag, CalendarDays
+  CheckCircle, Shield, BookOpen, Activity, Flag, CalendarDays
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import { createTeacherReportPdf } from '@/lib/teacherReportPdf';
+import { createAdminReportPdf } from '@/lib/adminReportPdf';
 import { useAuth } from '@/app/providers';
 
 interface ReportViewProps {
@@ -117,10 +116,6 @@ export default function ReportView({
   const redSummary = reportResponse?.red_summary;
   const rawFlagLog = report?.flag_log || report?.signals || report?.recent_flags || [];
 
-  const today = new Date();
-  const d7 = new Date(today.getTime() - 7 * 86400000);
-  const d30 = new Date(today.getTime() - 30 * 86400000);
-
   const isSuperGreenOrGeneral = (s: any): boolean => {
     if (!s) return false;
     const st = String(s.signal_type || '').toLowerCase();
@@ -173,53 +168,6 @@ export default function ReportView({
   if (redCount > 0) statusText = 'Red';
   else if (yellowCount > 0) statusText = 'Yellow';
   else if (greenCount > 0) statusText = 'Super Green';
-
-  const fallbackCounts = (sinceDate: Date) => {
-    const res = { super_green: 0, present: 0, yellow: 0, red: 0, absent: 0 };
-    rawFlagLog.forEach((f: any) => {
-      const fDate = new Date(f.signal_date + 'T00:00:00');
-      if (fDate >= sinceDate) {
-        const st = String(f.signal_type || '').toUpperCase();
-        if (st === 'RED') res.red++;
-        else if (st === 'YELLOW') res.yellow++;
-        else if (st === 'SUPER_GREEN' || st === 'GREEN') res.super_green++;
-        else if (st === 'PRESENT') res.present++;
-        else if (st === 'ABSENT') res.absent++;
-      }
-    });
-    return res;
-  };
-
-  const fallbackCat7 = () => {
-    const res = { yellow_academic: 0, yellow_behavioral: 0, red_academic: 0, red_behavioral: 0 };
-    rawFlagLog.forEach((f: any) => {
-      const fDate = new Date(f.signal_date + 'T00:00:00');
-      if (fDate >= d7) {
-        const st = String(f.signal_type || '').toUpperCase();
-        const cat = String(f.category || '').toUpperCase();
-        if (st === 'YELLOW') {
-          if (cat === 'ACADEMIC') res.yellow_academic++;
-          else if (cat === 'BEHAVIORAL') res.yellow_behavioral++;
-          else res.yellow_academic++;
-        } else if (st === 'RED') {
-          if (cat === 'ACADEMIC') res.red_academic++;
-          else if (cat === 'BEHAVIORAL') res.red_behavioral++;
-          else res.red_academic++;
-        }
-      }
-    });
-    return res;
-  };
-
-  const counts7d = report?.counts_7d || report?.summary_counts?.window_7d || fallbackCounts(d7);
-  const counts30d = report?.counts_30d || report?.summary_counts?.window_30d || fallbackCounts(d30);
-  const countsSemester = report?.counts_semester
-    || report?.summary_counts?.window_semester
-    || fallbackCounts(new Date(today.getFullYear(), today.getMonth() > 6 ? 7 : 0, 1));
-  const cat7d = report?.category_7d || report?.category_breakdown || fallbackCat7();
-  const semesterStart = report?.semester_start || `${today.getFullYear()}-08-01`;
-  const semesterEnd = report?.semester_end || `${today.getFullYear()}-12-31`;
-  const semesterAbsentCount = report?.semester_absent_count ?? countsSemester.absent;
 
   const recommendations = report?.talking_points || [];
 
@@ -294,63 +242,80 @@ export default function ReportView({
         return;
       }
 
-      const canvas = await html2canvas(reportContentRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#f9fafb',
-        windowWidth: 1200,
-        onclone: (clonedDoc) => {
-          const scrollables = clonedDoc.querySelectorAll('.overflow-y-auto, [class*="max-h-"]');
-          scrollables.forEach((el: any) => {
-            el.style.maxHeight = 'none';
-            el.style.overflow = 'visible';
-            el.style.height = 'auto';
-          });
-          const hiddenWrappers = clonedDoc.querySelectorAll('.overflow-hidden');
-          hiddenWrappers.forEach((el: any) => {
-            el.style.overflow = 'visible';
-          });
-        },
-      });
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const usableWidth = pageWidth - margin * 2;
-      const imgWidth = usableWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      const usableHeight = pageHeight - margin * 2;
-
-      let yOffset = 0;
-      let page = 0;
-
-      while (yOffset < imgHeight) {
-        if (page > 0) pdf.addPage();
-        const sourceY = (yOffset / imgHeight) * canvas.height;
-        const sourceH = (usableHeight / imgHeight) * canvas.height;
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = Math.min(sourceH, canvas.height - sourceY);
-        const ctx = pageCanvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(
-            canvas,
-            0, sourceY, canvas.width, pageCanvas.height,
-            0, 0, canvas.width, pageCanvas.height,
-          );
-          const pageImg = pageCanvas.toDataURL('image/png');
-          const drawHeight = (pageCanvas.height * imgWidth) / canvas.width;
-          pdf.addImage(pageImg, 'PNG', margin, margin, imgWidth, drawHeight);
+      const nameParts = student.name.trim().split(/\s+/);
+      const initials = student.initial?.trim()
+        || [nameParts[0], nameParts.length > 1 ? nameParts[nameParts.length - 1] : '']
+          .map((part) => part.charAt(0)).join('').toUpperCase();
+      const adminHistory = teacherHistory.map((flag: any) => {
+        const signalType = String(flag.signal_type || '').toLowerCase();
+        const typeLabel = signalType
+          ? signalType.charAt(0).toUpperCase() + signalType.slice(1)
+          : '';
+        let categoryLabel = '';
+        if (flag.category) {
+          const category = String(flag.category).toLowerCase();
+          categoryLabel = category === 'super_green'
+            ? 'Super Green'
+            : category === 'referral'
+              ? 'Referral'
+              : category.charAt(0).toUpperCase() + category.slice(1);
         }
-        yOffset += usableHeight;
-        page++;
+        const displayType = categoryLabel && signalType !== 'super_green'
+          ? `${typeLabel} - ${categoryLabel}`
+          : signalType === 'super_green' ? 'Super Green' : typeLabel;
+        const eventDate = parseSignalDate(flag);
+        return {
+          date: formatDate(flag.signal_date || flag.created_at).replace(/, \d{4}$/, ''),
+          dayOfWeek: Number.isNaN(eventDate.getTime())
+            ? ''
+            : eventDate.toLocaleDateString('en-US', { weekday: 'short' }),
+          title: String(flag.title || 'Flag Logged'),
+          description: String(flag.description || ''),
+          className: String(flag.class_name || ''),
+          teacherName: String(flag.teacher_name || ''),
+          typeLabel: displayType,
+          signalType,
+        };
+      });
+      const includeAdminNotes = Boolean(reportData.includeTeachersNotes || reportData.include_teachers_notes);
+      const adminNotes = includeAdminNotes ? (report?.recent_notes || []).map((note: any) => ({
+        date: formatDate(note.signal_date || note.created_at),
+        className: note.class_name || '',
+        text: String(note.note || note.excerpt || note.description || ''),
+      })) : undefined;
+      if (adminNotes && !adminNotes.length && teachersNotes) {
+        adminNotes.push({ date: '', className: '', text: String(teachersNotes) });
       }
-
+      const pdf = createAdminReportPdf({
+        name: student.name,
+        initials,
+        grade: formatGrade(student.gradeLevel),
+        studentId: report?.student?.external_student_id,
+        iep: Boolean(report?.student?.iep_status),
+        ell: Boolean(report?.student?.ell_status),
+        period: reportPeriodLabel,
+        dateRange: `${formatDate(selectedRangeStart)} - ${formatDate(selectedRangeEnd)}`,
+        subject: reportData.subject || 'All Subjects',
+        counts: {
+          superGreen: Number(selectedRangeCounts.super_green ?? selectedRangeCounts.green ?? 0),
+          present: Number(selectedRangeCounts.present ?? 0),
+          yellow: Number(selectedRangeCounts.yellow ?? 0),
+          red: Number(selectedRangeCounts.red ?? 0),
+          absent: Number(selectedRangeCounts.absent ?? 0),
+        },
+        canonicalRed: redSummary ? {
+          total: Number(redSummary.red_count ?? 0),
+          academic: Number(redSummary.academic_red_count ?? 0),
+          behavioral: Number(redSummary.behavioral_red_count ?? 0),
+          crossClass: Number(redSummary.cross_class_red_count ?? 0),
+          range: `${formatDate(redSummary.range_start)} - ${formatDate(redSummary.range_end)}`,
+        } : undefined,
+        history: adminHistory,
+        recommendations: (reportData.includeAIRecommendations || reportData.include_ai_recommendations)
+          ? recommendations
+          : undefined,
+        notes: adminNotes,
+      });
       const safeName = (student.name || 'Student').replace(/[^a-zA-Z0-9]/g, '_');
       pdf.save(`${safeName}_Report.pdf`);
     } catch (err) {
@@ -823,36 +788,7 @@ export default function ReportView({
               </section>
             )}
 
-            {/* 7-Day Category Breakdown (Row 2) */}
-            <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">7-Day Category Breakdown</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center text-sm">
-                <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-100 dark:border-yellow-900/30">
-                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-500">{cat7d.yellow_academic || 0}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Yellow Academic</p>
-                </div>
-                <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-100 dark:border-yellow-900/30">
-                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-500">{cat7d.yellow_behavioral || 0}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Yellow Behavioral</p>
-                </div>
-                <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-100 dark:border-red-900/30">
-                  <p className="text-2xl font-bold text-red-600 dark:text-red-500">{cat7d.red_academic || 0}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Red Academic</p>
-                </div>
-                <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-100 dark:border-red-900/30">
-                  <p className="text-2xl font-bold text-red-600 dark:text-red-500">{cat7d.red_behavioral || 0}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Red Behavioral</p>
-                </div>
-              </div>
-              {semesterAbsentCount > 0 && (
-                <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-                  <Clock size={14} className="inline mr-1 text-slate-400" />
-                  Semester absences: <span className="font-bold text-gray-900 dark:text-white">{semesterAbsentCount}</span>
-                </p>
-              )}
-            </div>
-
-            {/* Student History (Row 3 - Full Width) */}
+            {/* Student History */}
             {teacherHistory.length > 0 && (
               <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden mb-6">
                 <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex items-center gap-2">
