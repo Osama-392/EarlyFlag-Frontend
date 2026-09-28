@@ -1,6 +1,7 @@
 import api from './api';
 import { AbsentStudentRow } from './dashboardService';
 import type { AdminRedFlagsResponse } from './adminService';
+import type { TeacherTitle } from './teacherTitle';
 
 // ═══════════════════════════════════════════════════════════════════
 // M8 Admin Dashboard — Types & API Service
@@ -603,6 +604,7 @@ export interface StudentReportBlock {
 
 export interface TeacherReportItem {
   teacher_id: string;
+  title?: TeacherTitle | null;
   first_name: string;
   last_name: string;
   email: string;
@@ -676,6 +678,7 @@ export interface AdminTeacherTopStudentRow {
 
 export interface AdminTeacherSpecificReportBlock {
   teacher_id: string;
+  title?: TeacherTitle | null;
   first_name: string;
   last_name: string;
   email: string;

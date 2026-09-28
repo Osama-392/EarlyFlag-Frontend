@@ -5,6 +5,7 @@ import PrincipalHeader from "@/components/PrincipalHeader";
 import { useAuth } from "@/app/providers";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { AdminWorkspaceSkeleton } from "@/components/AdminLoadingSkeletons";
 
 export default function PrincipalLayout({
  children,
@@ -32,9 +33,9 @@ export default function PrincipalLayout({
 
  if (loading) {
  return (
- <div className="flex items-center justify-center h-screen">
- <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
- </div>
+ <main className="min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-50 p-6 dark:from-[#0f111a] dark:via-[#151722] dark:to-[#0f111a]">
+ <AdminWorkspaceSkeleton label="Loading admin workspace content" />
+ </main>
  );
  }
 

@@ -57,7 +57,6 @@ test('dashboard renders server ranking blocks and installs all refresh triggers'
     'dashboard.students_improving.total',
     'student.previous_active_flag_count',
     'student.current_active_flag_count',
-    'student.net_decrease',
     "window.addEventListener('dashboard-refresh'",
     "window.addEventListener('focus'",
     'window.setInterval(refresh, 60_000)',
@@ -70,8 +69,19 @@ test('dashboard renders server ranking blocks and installs all refresh triggers'
   assert.ok(!source.includes('getAdminMostFlagged'));
   assert.ok(!source.includes('most_at_risk.students.sort'));
   assert.ok(!source.includes('students_improving.students.sort'));
+  assert.ok(!source.includes('student.net_decrease'));
   assert.ok(!source.includes('h-28 bg-gray-200 rounded-xl'));
   assert.ok(!source.includes('h-44 bg-gray-200 rounded-xl'));
+});
+
+test('improving rankings show only the previous-to-current change', () => {
+  const dashboard = fs.readFileSync(path.join(__dirname, '../components/PrincipalDashboard.tsx'), 'utf8');
+  const fullList = fs.readFileSync(path.join(__dirname, '../components/PrincipalStudentRankingPage.tsx'), 'utf8');
+
+  for (const source of [dashboard, fullList]) {
+    assert.ok(source.includes('{student.previous_active_flag_count} → {student.current_active_flag_count}'));
+    assert.ok(!source.includes('↓{student.net_decrease}'));
+  }
 });
 
 test('inactive-teacher full list client uses the backend activity endpoint', async () => {

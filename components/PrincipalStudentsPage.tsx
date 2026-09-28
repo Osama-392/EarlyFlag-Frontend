@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react';
 import { getAdminHeatmap, HeatmapBlock } from '@/lib/adminDashboardService';
+import { AdminClassesSkeleton } from '@/components/AdminLoadingSkeletons';
 
 // Deterministic color based on the first letter of the class name
 const getAvatarColor = (name: string) => {
@@ -41,22 +42,7 @@ export default function PrincipalStudentsPage() {
  }, [fetchClasses]);
 
  if (loading) {
- return (
- <div className="space-y-8 animate-pulse">
- <div className="h-8 bg-gray-200 rounded w-48 mb-2" />
- <div className="h-4 bg-gray-200 rounded w-64 mb-8" />
- {[1, 2, 3].map((grade) => (
- <div key={grade} className="mb-8">
- <div className="h-6 bg-gray-200 rounded w-32 mb-4" />
- <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
- {[1, 2, 3].map((card) => (
- <div key={card} className="h-24 bg-gray-200 rounded-2xl" />
- ))}
- </div>
- </div>
- ))}
- </div>
- );
+ return <AdminClassesSkeleton />;
  }
 
  if (error) {

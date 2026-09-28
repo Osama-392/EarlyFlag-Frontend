@@ -164,11 +164,6 @@ export default function ReportView({
     red: redSummary?.red_count ?? redCount,
   };
 
-  let statusText = 'Normal';
-  if (redCount > 0) statusText = 'Red';
-  else if (yellowCount > 0) statusText = 'Yellow';
-  else if (greenCount > 0) statusText = 'Super Green';
-
   const recommendations = report?.talking_points || [];
 
   // Notes
@@ -186,13 +181,6 @@ export default function ReportView({
   const teacherRedCount = redCount;
   const teacherYellowCount = yellowCount;
   const teacherGreenCount = greenCount;
-  const teacherStatusText = teacherRedCount > 0
-    ? 'Red'
-    : teacherYellowCount > 0
-      ? 'Yellow'
-      : teacherGreenCount > 0
-        ? 'Super Green'
-        : 'Normal';
   const teacherHistory = [...selectedRangeSignals].sort(
     (a: any, b: any) => parseSignalDate(b).getTime() - parseSignalDate(a).getTime(),
   );
@@ -229,7 +217,6 @@ export default function ReportView({
           name: student.name,
           initials,
           grade: formatGrade(student.gradeLevel),
-          status: teacherStatusText,
           period: reportPeriodLabel,
           countPeriodLabel: teacherCountPeriodLabel,
           subject: reportData.subject || 'All Subjects',
@@ -446,28 +433,12 @@ export default function ReportView({
                   {student.initial || (student.name ? student.name.charAt(0).toUpperCase() : '??')}
                 </div>
                 <div className="min-w-0">
-                  {teacherStatusText !== 'Normal' && (
-                    <span className={`inline-flex rounded-full px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white ${
-                      teacherStatusText === 'Red' ? 'bg-red-400' : teacherStatusText === 'Yellow' ? 'bg-amber-400' : 'bg-emerald-500'
-                    }`}>
-                      {teacherStatusText}
-                    </span>
-                  )}
-                  <h1 className="mt-1 truncate text-3xl font-extrabold capitalize tracking-tight text-[#071b3c]">
+                  <h1 className="truncate text-3xl font-extrabold capitalize tracking-tight text-[#071b3c]">
                     {student.name}
                   </h1>
                   <p className="mt-1 text-sm font-bold text-slate-400">{formatGrade(student.gradeLevel)}</p>
                 </div>
               </div>
-              <span className={`shrink-0 rounded-xl border px-5 py-2.5 text-xs font-extrabold ${
-                teacherStatusText === 'Red'
-                  ? 'border-red-100 bg-red-50 text-red-500'
-                  : teacherStatusText === 'Yellow'
-                    ? 'border-amber-100 bg-amber-50 text-amber-600'
-                    : 'border-emerald-100 bg-emerald-50 text-emerald-600'
-              }`}>
-                Status : {teacherStatusText} Active
-              </span>
             </section>
 
             {/* Selected report range summary */}
@@ -817,28 +788,26 @@ export default function ReportView({
                     const displayType = catLabel && sType !== 'SUPER_GREEN' ? `${typeLabel} - ${catLabel}` : (sType === 'SUPER_GREEN' ? 'Super Green' : typeLabel);
 
                     return (
-                      <div key={i} className="flex items-start gap-4 p-4 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors">
-                        <div className="flex flex-col text-left shrink-0 w-14 pt-0.5">
+                      <div key={i} className="grid grid-cols-1 gap-2 p-4 transition-colors hover:bg-gray-50 dark:hover:bg-[#1b1e2c] lg:grid-cols-[5rem_minmax(0,0.8fr)_minmax(0,1.6fr)_minmax(0,1.1fr)_10rem] lg:items-center lg:gap-4">
+                        <div className="flex flex-col whitespace-nowrap text-left">
                           <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{shortDate}</span>
-                          <span className="text-xs font-semibold text-gray-400">{dayOfWeek}</span>
-                        </div>
-                        
-                        <div className="flex-1 flex flex-col gap-1 pr-4">
-                          <h3 className="text-sm font-bold text-slate-800 dark:text-white leading-tight">
-                            {flag.title || 'Flag Logged'}
-                          </h3>
-                          {flag.description && flag.description.toLowerCase() !== (flag.title || '').toLowerCase() && (
-                            <p className="text-[13px] text-gray-500 dark:text-gray-400 leading-snug">
-                              {flag.description}
-                            </p>
-                          )}
-                          <div className="text-[11px] font-semibold text-gray-400 mt-1">
-                            {flag.class_name} • {flag.teacher_name}
-                          </div>
+                          <span className="text-xs font-bold text-gray-400">{dayOfWeek}</span>
                         </div>
 
-                        <div className="shrink-0 pt-0.5">
-                          <div className={`px-2.5 py-1 rounded-full text-[11px] font-bold border flex items-center gap-1.5 ${
+                        <h3 className="min-w-0 break-words text-sm font-bold leading-tight text-slate-800 dark:text-white">
+                          {flag.title || 'Flag Logged'}
+                        </h3>
+
+                        <p className="min-w-0 break-words text-[13px] leading-snug text-gray-500 dark:text-gray-400">
+                          {flag.description && flag.description.toLowerCase() !== (flag.title || '').toLowerCase() ? flag.description : '—'}
+                        </p>
+
+                        <span className="min-w-0 break-words text-xs font-bold text-slate-500 dark:text-slate-400">
+                          {[flag.class_name, flag.teacher_name].filter(Boolean).join(' • ') || '—'}
+                        </span>
+
+                        <div className="shrink-0 lg:justify-self-end">
+                          <div className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-bold ${
                             sType === 'RED' 
                               ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30'
                               : sType === 'YELLOW'

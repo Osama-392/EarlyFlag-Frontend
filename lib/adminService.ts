@@ -1,8 +1,10 @@
 import api from './api';
+import type { TeacherTitle } from './teacherTitle';
 
 export interface PendingTeacher {
   id: string;
   email: string;
+  title?: TeacherTitle | null;
   first_name: string;
   last_name: string;
   school_id: string;

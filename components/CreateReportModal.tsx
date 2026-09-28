@@ -34,6 +34,8 @@ export default function CreateReportModal({
 }: CreateReportModalProps) {
  // Calculate dynamic dates
  const today = new Date();
+ const sevenDaysAgo = new Date();
+ sevenDaysAgo.setDate(today.getDate() - 6);
  const thirtyDaysAgo = new Date();
  thirtyDaysAgo.setDate(today.getDate() - 29);
  const ninetyDaysAgo = new Date();
@@ -144,6 +146,16 @@ export default function CreateReportModal({
  </label>
  {/* Preset Range Buttons */}
  <div className="flex gap-2 mb-3">
+ <button
+ type="button"
+ onClick={() => { setStartDate(formatDate(sevenDaysAgo)); setEndDate(formatDate(today)); }}
+ className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+ startDate === formatDate(sevenDaysAgo) && endDate === formatDate(today)
+ ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-[#262a3d] text-gray-600 dark:text-gray-400 hover:bg-gray-200'
+ }`}
+ >
+ Last 7 Days
+ </button>
  <button
  type="button"
  onClick={() => { setStartDate(formatDate(thirtyDaysAgo)); setEndDate(formatDate(today)); }}

@@ -15,7 +15,7 @@ const exportsObject = {};
 vm.runInNewContext(compiled, { exports: exportsObject, require });
 const { createTeacherReportPdf } = exportsObject;
 const base = {
-  name: 'Mateo Elijah', initials: 'ME', grade: '7th Grade', status: 'Red',
+  name: 'Mateo Elijah', initials: 'ME', grade: '7th Grade',
   period: 'Last 30 Days', countPeriodLabel: '30 Days', subject: 'Science 7B', counts: { red: 4, yellow: 6, superGreen: 0 },
   history: [],
 };
@@ -28,6 +28,7 @@ test('portrait A4 has complete name and initials as real PDF text, without the A
   const output = pages(pdf).join('\n');
   assert.match(output, /\(Mateo Elijah\) Tj/);
   assert.match(output, /\(ME\) Tj/);
+  assert.doesNotMatch(output, /\(RED\) Tj|Status: Red Active/);
   assert.doesNotMatch(output, /View Details|\(Action\)/);
   assert.doesNotMatch(pdf.output(), /\/Subtype \/Image/);
 });

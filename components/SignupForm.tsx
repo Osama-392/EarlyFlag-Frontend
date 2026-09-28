@@ -7,8 +7,10 @@ import Link from 'next/link';
 import { AlertCircle, Eye, EyeOff, CheckCircle } from 'lucide-react';
 
 import { COUNTRY_CODES } from '@/lib/countryCodes';
+import { TEACHER_TITLES, TeacherTitle } from '@/lib/teacherTitle';
 
 export default function SignupForm() {
+ const [title, setTitle] = useState<TeacherTitle | ''>('');
  const [firstName, setFirstName] = useState('');
  const [lastName, setLastName] = useState('');
  const [email, setEmail] = useState('');
@@ -45,8 +47,8 @@ export default function SignupForm() {
  }
 
  try {
- const fullPhoneNumber = `${countryCode} ${phoneNumber.trim()}`;
- await signup(email, password, schoolId, firstName, lastName, fullPhoneNumber);
+ const fullPhoneNumber = `${countryCode}${phoneNumber.trim()}`;
+ await signup(email, password, schoolId, firstName, lastName, fullPhoneNumber, title || undefined);
  setSignupSuccess(true);
  } catch (err: any) {
  // Error is already set in context
@@ -78,7 +80,22 @@ export default function SignupForm() {
 
  return (
  <form onSubmit={handleSubmit} className="space-y-4">
- <div className="grid grid-cols-2 gap-3">
+ <div className="grid grid-cols-1 gap-3 sm:grid-cols-[110px_minmax(0,1fr)_minmax(0,1fr)]">
+ <div>
+ <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+ Title <span className="font-normal text-gray-500">(Optional)</span>
+ </label>
+ <select
+ id="title"
+ value={title}
+ onChange={(e) => setTitle(e.target.value as TeacherTitle | '')}
+ className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 text-gray-900"
+ disabled={loading}
+ >
+ <option value="">Select title</option>
+ {TEACHER_TITLES.map((option) => <option key={option} value={option}>{option}</option>)}
+ </select>
+ </div>
  <div>
  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
  First Name

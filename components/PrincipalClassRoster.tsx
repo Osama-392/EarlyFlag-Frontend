@@ -6,6 +6,7 @@ import { Users, Search, ArrowLeft, AlertCircle, ChevronRight, Shield, BookOpen, 
 import { getAdminClassDrilldown, AdminClassDrilldownBlock, unenrollStudentAdmin } from '@/lib/adminDashboardService';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import { useToast } from '@/components/Toast';
+import { AdminClassRosterSkeleton } from '@/components/AdminLoadingSkeletons';
 
 const getStatusFromScore = (score: number): 'critical' | 'at-risk' | 'on-track' => {
  if (score >= 6) return 'critical';
@@ -102,15 +103,7 @@ export default function PrincipalClassRoster({ classId }: { classId: string }) {
  };
 
  if (loading) {
- return (
- <div className="space-y-4 animate-pulse max-w-5xl mx-auto py-8">
- <div className="h-8 bg-gray-200 rounded-lg w-44 mb-6" />
- <div className="h-28 bg-gray-200 rounded-2xl mb-4" />
- {[1, 2, 3, 4, 5].map(i => (
- <div key={i} className="h-20 bg-gray-100 dark:bg-[#1b1e2c] dark:bg-[#1b1e2c] rounded-xl" />
- ))}
- </div>
- );
+ return <AdminClassRosterSkeleton />;
  }
 
  if (error || !data) {

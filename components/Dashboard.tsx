@@ -40,6 +40,7 @@ import ParentNotifyModal from '@/components/ParentNotifyModal';
 import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
 import GoodMorningBanner from '@/components/GoodMorningBanner';
 import { TeacherSkeletonLine } from '@/components/TeacherLoadingSkeletons';
+import { formatTeacherDisplayName } from '@/lib/teacherTitle';
 import {
  getTeacherDashboard,
  TeacherDashboardResponse,
@@ -1339,7 +1340,7 @@ export default function Dashboard() {
  isOpen={!!templateModalData}
  onClose={() => setTemplateModalData(null)}
  studentName={templateModalData.studentName}
- teacherName={user?.first_name ? `${user.first_name} ${user.last_name}` : 'Teacher'}
+ teacherName={user ? formatTeacherDisplayName(user) || 'Teacher' : 'Teacher'}
  flagCategory={templateModalData.flagCategory}
  reason={templateModalData.reason}
  studentId={templateModalData.studentId}

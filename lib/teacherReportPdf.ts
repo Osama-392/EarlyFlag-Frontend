@@ -4,7 +4,6 @@ export interface TeacherReportPdfData {
   name: string;
   initials: string;
   grade: string;
-  status: string;
   period: string;
   countPeriodLabel: string;
   subject: string;
@@ -71,8 +70,7 @@ export function createTeacherReportPdf(data: TeacherReportPdfData): jsPDF {
 
   // Explicit baselines and a real circular shape keep the initials centered.
   // Names wrap when necessary; their complete text is never truncated.
-  const statusTheme = themeFor(data.status.toLowerCase().replace(/ /g, '_'));
-  const nameLines = wrap(data.name, width - 82, 18, true);
+  const nameLines = wrap(data.name, width - 32, 18, true);
   const nameLineHeight = 8.6;
   const identityHeight = Math.max(27, 16 + nameLines.length * nameLineHeight);
   box(margin, y, width, identityHeight, colors.white);
@@ -83,21 +81,9 @@ export function createTeacherReportPdf(data: TeacherReportPdfData): jsPDF {
   setText(13, true, colors.muted);
   pdf.text(data.initials, avatarX, avatarY, { align: 'center', baseline: 'middle' });
   const nameX = margin + 26;
-  if (data.status !== 'Normal') {
-    setText(7, true);
-    const badgeWidth = pdf.getTextWidth(data.status.toUpperCase()) + 5;
-    box(nameX, y + 3, badgeWidth, 4.5, statusTheme.text, statusTheme.text, 2);
-    text(data.status.toUpperCase(), nameX + 2.5, y + 3.5, 7, true, colors.white);
-  }
   setText(18, true);
   pdf.text(nameLines, nameX, y + 8 + 18 * 25.4 / 72 * 1.075, { baseline: 'alphabetic', lineHeightFactor: nameLineHeight / (18 * 25.4 / 72) });
   text(data.grade, nameX, y + 10 + nameLines.length * nameLineHeight, 9, true, colors.muted);
-  const statusLabel = `Status: ${data.status} Active`;
-  setText(8, true);
-  const statusWidth = pdf.getTextWidth(statusLabel) + 8;
-  const statusX = pageWidth - margin - statusWidth - 4;
-  box(statusX, avatarY - 4, statusWidth, 8, statusTheme.background, statusTheme.border, 2.5);
-  text(statusLabel, statusX + 4, avatarY - 1.7, 8, true, statusTheme.text);
   y += identityHeight + 4;
 
   const cards = [
