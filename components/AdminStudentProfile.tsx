@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  ArrowLeft, AlertCircle, AlertTriangle, Shield, BookOpen, Clock,
+  ArrowLeft, AlertCircle, Shield, BookOpen, Clock,
   FileText, ChevronRight, RefreshCw, Activity, Calendar, UserMinus, Mail
 } from 'lucide-react';
 import {
@@ -20,13 +20,6 @@ import { useToast } from '@/components/Toast';
 import { useAuth } from '@/app/providers';
 import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
 import { logger } from '@/lib/logger';
-
-const severityStyles: Record<string, string> = {
-  critical: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50',
-  high: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-900/50',
-  medium: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900/50',
-  low: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-900/50',
-};
 
 const priorityStyles: Record<string, string> = {
   urgent: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
@@ -291,28 +284,26 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
               const displayType = catLabel && sType !== 'SUPER_GREEN' ? `${typeLabel} - ${catLabel}` : (sType === 'SUPER_GREEN' ? 'Super Green' : typeLabel);
 
               return (
-                <div key={i} className="flex items-start gap-4 p-4 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition-colors">
-                  <div className="flex flex-col text-left shrink-0 w-14 pt-0.5">
+                <div key={i} className="grid grid-cols-1 gap-2 p-4 transition-colors hover:bg-gray-50 dark:hover:bg-[#1b1e2c] lg:grid-cols-[5rem_minmax(0,0.8fr)_minmax(0,1.6fr)_minmax(0,1.1fr)_10rem] lg:items-center lg:gap-4">
+                  <div className="flex flex-col whitespace-nowrap text-left">
                     <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{shortDate}</span>
-                    <span className="text-xs font-semibold text-gray-400">{dayOfWeek}</span>
+                    <span className="text-xs font-bold text-gray-400">{dayOfWeek}</span>
                   </div>
 
-                  <div className="flex-1 flex flex-col gap-1 pr-4">
-                    <h3 className="text-sm font-bold text-slate-800 dark:text-white leading-tight">
-                      {flag.title || 'Flag Logged'}
-                    </h3>
-                    {flag.description && flag.description.toLowerCase() !== (flag.title || '').toLowerCase() && (
-                      <p className="text-[13px] text-gray-500 dark:text-gray-400 leading-snug">
-                        {flag.description}
-                      </p>
-                    )}
-                    <div className="text-[11px] font-semibold text-gray-400 mt-1">
-                      {flag.class_name} • {flag.teacher_name}
-                    </div>
-                  </div>
+                  <h3 className="min-w-0 break-words text-sm font-bold leading-tight text-slate-800 dark:text-white">
+                    {flag.title || 'Flag Logged'}
+                  </h3>
 
-                  <div className="shrink-0 pt-0.5">
-                    <div className={`px-2.5 py-1 rounded-full text-[11px] font-bold border flex items-center gap-1.5 ${sType === 'RED'
+                  <p className="min-w-0 break-words text-[13px] leading-snug text-gray-500 dark:text-gray-400">
+                    {flag.description && flag.description.toLowerCase() !== (flag.title || '').toLowerCase() ? flag.description : '—'}
+                  </p>
+
+                  <span className="min-w-0 break-words text-xs font-bold text-slate-500 dark:text-slate-400">
+                    {[flag.class_name, flag.teacher_name].filter(Boolean).join(' • ') || '—'}
+                  </span>
+
+                  <div className="shrink-0 lg:justify-self-end">
+                    <div className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-bold ${sType === 'RED'
                         ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30'
                         : sType === 'YELLOW'
                           ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30'
@@ -329,76 +320,6 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
         </div>
       )}
 
-      {/* Unresolved Alerts */}
-      <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex items-center gap-2">
-          <AlertTriangle size={16} className="text-orange-500" />
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white">Unresolved Alerts</h3>
-          <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">{profile.unresolved_alerts.length}</span>
-        </div>
-        {profile.unresolved_alerts.length === 0 ? (
-          <div className="p-8 text-center text-gray-400 text-sm">No unresolved alerts</div>
-        ) : (
-          <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
-            {profile.unresolved_alerts.map(alert => (
-              <div key={alert.alert_id} className="p-3 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${severityStyles[alert.severity] || 'bg-gray-100 dark:bg-[#1b1e2c] text-gray-700 dark:text-gray-300'}`}>{alert.severity}</span>
-                  <span className="text-xs text-gray-400">{formatDate(alert.triggered_at)}</span>
-                </div>
-                <p className="text-sm text-gray-800 dark:text-gray-200">{alert.rule_description}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{alert.class_name}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-
-      {/* Referrals */}
-      <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden mb-6">
-        <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex items-center gap-2">
-          <Shield size={16} className="text-red-500" />
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white">Counselor / Admin Referrals</h3>
-          <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">{profile.recent_referrals?.length || 0}</span>
-        </div>
-        {(!profile.recent_referrals || profile.recent_referrals.length === 0) ? (
-          <div className="p-8 text-center text-gray-400 text-sm">No referrals recorded for this student</div>
-        ) : (
-          <div className="divide-y divide-gray-100 dark:divide-[#262a3d] max-h-72 overflow-y-auto">
-            {profile.recent_referrals.map((ref: any, idx: number) => {
-              const refType = ref.referral_type ? String(ref.referral_type).replace('manual_', '').toUpperCase() : 'REFERRAL';
-              const isAuto = String(ref.referral_type || '').includes('auto');
-              const teacherName = `${ref.referred_by_first_name || ''} ${ref.referred_by_last_name || ''}`.trim() || 'Teacher';
-              const displayClass = ref.class_name || ref.subject || 'Cross-Class';
-
-              return (
-                <div key={ref.referral_id || idx} className="p-4 hover:bg-gray-50 dark:hover:bg-[#1b1e2c] transition flex items-start gap-4">
-                  <div className="shrink-0 pt-0.5">
-                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30">
-                      {isAuto ? 'Auto Escalation' : `${refType} Referral`}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{ref.note || 'No notes provided'}</p>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-2">
-                      <span>By {teacherName}</span>
-                      <span>•</span>
-                      <span>{displayClass}</span>
-                      {ref.created_at && (
-                        <>
-                          <span>•</span>
-                          <span>{formatDate(ref.created_at)}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
       <ConfirmDeleteModal
         isOpen={isDeactivateModalOpen}
         onClose={() => setIsDeactivateModalOpen(false)}

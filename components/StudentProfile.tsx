@@ -345,11 +345,6 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
           </div>
           
           <div>
-            <div className="flex items-center mb-1">
-              {statusText === 'Red' && <span className="px-2.5 py-0.5 bg-red-400 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Red</span>}
-              {statusText === 'Yellow' && <span className="px-2.5 py-0.5 bg-amber-400 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Yellow</span>}
-              {statusText === 'Super Green' && <span className="px-2.5 py-0.5 bg-emerald-500 text-white text-[10px] font-bold uppercase rounded-full tracking-wide">Super Green</span>}
-            </div>
             <h1 className="text-3xl font-bold text-slate-800 dark:text-white ">
               {history?.first_name} {history?.last_name}
             </h1>
@@ -357,18 +352,6 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
               {history?.grade_level ? `${history.grade_level}th Grade` : 'Unknown Grade'}
             </p>
           </div>
-        </div>
-
-        {/* Status Badge */}
-        <div className="flex items-center space-x-3">
-          <span className={`px-4 py-2 rounded-xl text-xs font-bold ${
-            statusText === 'Red' ? 'bg-red-50 text-red-500 border border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50'
-            : statusText === 'Yellow' ? 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50'
-            : statusText === 'Super Green' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'
-            : 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'
-          }`}>
-            Status : {statusText} Active
-          </span>
         </div>
       </div>
 

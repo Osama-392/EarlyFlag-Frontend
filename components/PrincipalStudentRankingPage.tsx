@@ -124,7 +124,7 @@ export default function PrincipalStudentRankingPage({ mode }: { mode: 'at-risk' 
                     <tr key={student.student_id} onClick={() => router.push(`/principal-students/${student.student_id}`)} className="cursor-pointer hover:bg-emerald-50/50 dark:hover:bg-emerald-950/10">
                       <td className="px-5 py-3 font-semibold text-gray-900 dark:text-white">{student.first_name} {student.last_name}</td>
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{student.grade_level}</td>
-                      <td className="px-4 py-3 font-bold text-emerald-600">{student.previous_active_flag_count} → {student.current_active_flag_count} ↓{student.net_decrease}</td>
+                      <td className="px-4 py-3 font-bold text-emerald-600">{student.previous_active_flag_count} → {student.current_active_flag_count}</td>
                       <td className="px-4 py-3 text-gray-500">{formatDate(student.last_activity_date)}</td>
                     </tr>
                   ))}

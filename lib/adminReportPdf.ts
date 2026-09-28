@@ -182,20 +182,32 @@ export function createAdminReportPdf(data: AdminReportPdfData): jsPDF {
     const freshHistoryY = y;
 
     for (const row of data.history) {
-    const theme = themeFor(row.signalType);
-    const contentWidth = width - 76;
-    const titleLines = wrap(row.title || 'Flag Logged', contentWidth, 9, true);
-    const descriptionLines = row.description && row.description.toLowerCase() !== row.title.toLowerCase()
-      ? wrap(row.description, contentWidth, 8.5)
-      : [];
-    const meta = [row.className, row.teacherName].filter(Boolean).join(' | ');
-    const metaLines = meta ? wrap(meta, contentWidth, 7.5) : [];
-    let items = [
-      ...titleLines.map(value => ({ value, size: 9, bold: true, color: palette.ink })),
-      ...descriptionLines.map(value => ({ value, size: 8.5, bold: false, color: palette.muted })),
-      ...metaLines.map(value => ({ value, size: 7.5, bold: true, color: palette.faint })),
-    ];
-    let continued = false;
+      const theme = themeFor(row.signalType);
+      const titleX = margin + 30;
+      const titleWidth = 25;
+      const descriptionX = titleX + titleWidth + 3;
+      const descriptionWidth = 43;
+      const metaX = descriptionX + descriptionWidth + 3;
+      const metaWidth = 40;
+      const descriptionBaselineOffset = (8.5 - 8) * 25.4 / 72 * 1.075;
+      const metaBaselineOffset = (8.5 - 7.5) * 25.4 / 72 * 1.075;
+      const title = row.title || 'Flag Logged';
+      const meta = [row.className, row.teacherName].filter(Boolean).join(' • ');
+      const description = row.description && row.description.toLowerCase() !== title.toLowerCase()
+        ? row.description
+        : '';
+      const titleLines = wrap(title, titleWidth, 8.5, true);
+      const descriptionLines = description ? wrap(description, descriptionWidth, 8) : [];
+      const metaLines = meta ? wrap(meta, metaWidth, 7.5, true) : [];
+      let items = Array.from(
+        { length: Math.max(titleLines.length, descriptionLines.length, metaLines.length, 1) },
+        (_, index) => ({
+          title: titleLines[index] || '',
+          description: descriptionLines[index] || '',
+          meta: metaLines[index] || '',
+        }),
+      );
+      let continued = false;
 
       while (items.length) {
         const desiredHeight = Math.max(15, items.length * lineHeight + 6);
@@ -208,12 +220,14 @@ export function createAdminReportPdf(data: AdminReportPdfData): jsPDF {
         const rowHeight = Math.max(15, chunk.length * lineHeight + 6);
         box(margin, y, width, rowHeight, palette.white, palette.border, 2);
 
-        text(continued ? '(cont.)' : row.date, margin + 4, y + 3, 8.5, true, palette.ink);
-        if (!continued && row.dayOfWeek) text(row.dayOfWeek, margin + 4, y + 8, 7.5, true, palette.faint);
+        text(continued ? '(cont.)' : row.date, margin + 4, y + 2.3, 8.5, true, palette.ink);
+        if (!continued && row.dayOfWeek) text(row.dayOfWeek, margin + 4, y + 7, 7.5, true, palette.faint);
 
         let contentY = y + 2.3;
         chunk.forEach((line) => {
-          text(line.value, margin + 30, contentY, line.size, line.bold, line.color);
+          if (line.title) text(line.title, titleX, contentY, 8.5, true, palette.ink);
+          if (line.description) text(line.description, descriptionX, contentY + descriptionBaselineOffset, 8, false, palette.muted);
+          if (line.meta) text(line.meta, metaX, contentY + metaBaselineOffset, 7.5, true, palette.faint);
           contentY += lineHeight;
         });
 

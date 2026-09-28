@@ -38,6 +38,35 @@ test('admin PDF keeps every admin-preview summary metric as native text', () => 
   assert.doesNotMatch(pdf.output(), /\/Subtype \/Image/);
 });
 
+test('admin PDF puts date, issue, description, class and teacher on one row', () => {
+  const pdf = createAdminReportPdf({
+    ...base,
+    history: [{
+      date: 'Sep 23', dayOfWeek: 'Wed', title: 'Bullying',
+      description: 'Said something mean', className: 'Math 6A', teacherName: 'Chris Mark',
+      typeLabel: 'Red - Behavioral', signalType: 'red',
+    }],
+  });
+  const commands = pdf.internal.pages.slice(1).flat();
+  const textPosition = (value) => {
+    const command = commands.find((entry) => entry.includes(`(${value}) Tj`));
+    assert.ok(command, `PDF contains ${value}`);
+    const match = command.match(/([\d.]+) ([\d.]+) Td/);
+    assert.ok(match, `PDF positions ${value}`);
+    return { x: Number(match[1]), y: Number(match[2]) };
+  };
+  const date = textPosition('Sep 23');
+  const day = textPosition('Wed');
+  const title = textPosition('Bullying');
+  const context = textPosition('Math 6A \u0095 Chris Mark');
+  const description = textPosition('Said something mean');
+  assert.ok(date.x < title.x && title.x < description.x && description.x < context.x, 'history fields follow the requested order');
+  assert.ok(Math.abs(date.y - title.y) < 0.01, 'date and issue share a baseline');
+  assert.ok(day.y < date.y, 'day of week appears below the date');
+  assert.ok(Math.abs(description.y - title.y) < 0.01, 'description shares the issue baseline');
+  assert.ok(Math.abs(context.y - title.y) < 0.01, 'class and teacher share the issue baseline');
+});
+
 test('admin PDF preserves long preview sections across native pages', () => {
   const history = Array.from({ length: 55 }, (_, index) => ({
     date: 'Sep 4', dayOfWeek: 'Fri', title: `HistoryTitle${String(index).padStart(2, '0')}`,

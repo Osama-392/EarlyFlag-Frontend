@@ -75,7 +75,10 @@ async function assertSummary(report, expected, label, settings) {
   });
   assert.equal(JSON.stringify(data.counts), JSON.stringify(expected));
   assert.equal(data.countPeriodLabel, label);
+  assert.ok(!Object.hasOwn(data, 'status'));
+  assert.doesNotMatch(html, /Status\s*:\s*Red Active/);
   const pdfText = pdf.internal.pages.slice(1).map((page) => page.join('\n')).join('\n');
+  assert.doesNotMatch(pdfText, /\(RED\) Tj|Status: Red Active/);
   for (const title of titles) assert.ok(pdfText.includes(`${title} \\(${label}\\)`));
   assert.doesNotMatch(html, /Incidents \(7 Days\)|Super Green \(7 Days\)/);
 }
@@ -175,6 +178,21 @@ test('admin preview and export use the native PDF renderer with canonical Red da
     'Recommended Next Steps', 'Schedule a family check-in.',
     'Teachers Notes', 'Reviewed the support plan.', 'Back to Student Profile',
   ]) assert.ok(html.includes(expected), `admin preview includes ${expected}`);
+  const historyRow = html.lastIndexOf('<div class="grid grid-cols-1 gap-2 p-4 transition-colors', html.indexOf('>Needs support</h3>'));
+  const historyDate = html.indexOf('>Sep 4</span>', historyRow);
+  const historyTitle = html.indexOf('>Needs support</h3>', historyDate);
+  const historyDescription = html.indexOf('>Missing assignments</p>', historyTitle);
+  const historyContext = html.indexOf('>Religion 8A • Mark Twain</span>', historyDescription);
+  const historyType = html.indexOf('Yellow - Academic', historyContext);
+  assert.ok(historyRow >= 0, 'admin history uses the responsive single-row grid');
+  const historyRowMarkup = html.slice(historyRow, historyType);
+  assert.ok(historyRowMarkup.includes('lg:grid-cols-[5rem_minmax(0,0.8fr)_minmax(0,1.6fr)_minmax(0,1.1fr)_10rem]'),
+    'admin history uses content-independent fixed columns');
+  assert.ok(!historyRowMarkup.includes('_auto]'), 'status width cannot shift preceding columns');
+  assert.ok(historyDate < historyTitle && historyTitle < historyDescription && historyDescription < historyContext && historyContext < historyType,
+    'history row follows date, issue, description, class/teacher, type order');
+  assert.ok(html.slice(historyRow, historyType).includes('flex flex-col whitespace-nowrap text-left'), 'date and weekday are stacked');
+  assert.ok(!html.slice(historyTitle, historyType).includes('text-right'), 'remaining history columns are left aligned');
   assert.match(html, /text-lg font-bold text-red-600">4<\/p><p[^>]*>Red<\/p>/);
   assert.ok(!html.includes('Last 7 Days'));
   assert.ok(!html.includes('Semester ('));
