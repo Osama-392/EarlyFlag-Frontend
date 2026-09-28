@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import { useAuth } from "@/app/providers";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { TeacherPageSkeleton } from "@/components/TeacherLoadingSkeletons";
 
 export default function DashboardLayout({
  children,
@@ -32,9 +33,9 @@ export default function DashboardLayout({
 
  if (loading) {
  return (
- <div className="flex items-center justify-center h-screen">
- <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
- </div>
+ <main className="min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-50 p-6 dark:from-[#0f111a] dark:via-[#151722] dark:to-[#0f111a]">
+ <TeacherPageSkeleton label="Loading teacher workspace content" />
+ </main>
  );
  }
 

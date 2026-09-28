@@ -18,6 +18,7 @@ import ReportView from '@/components/ReportView';
 import { useAuth } from '@/app/providers';
 import { logger } from '@/lib/logger';
 import { filterGlobalEscalationsFromReportData } from '@/lib/reportUtils';
+import { TeacherStudentProfileSkeleton } from '@/components/TeacherLoadingSkeletons';
 
 interface StudentProfileProps {
   studentId?: string;
@@ -71,11 +72,7 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
   }, [studentId, classId]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <TeacherStudentProfileSkeleton />;
   }
 
   if (error) {

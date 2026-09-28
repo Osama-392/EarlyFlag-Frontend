@@ -9,6 +9,7 @@ import { logger } from '@/lib/logger';
 import { useStudentRoster } from '@/lib/useStudentRoster';
 import { Student } from '@/lib/studentService';
 import { filterGlobalEscalationsFromReportData } from '@/lib/reportUtils';
+import { TeacherStudentListSkeleton } from '@/components/TeacherLoadingSkeletons';
 
 interface StudentReportsProps {
   classData: {
@@ -149,9 +150,7 @@ export default function StudentReportsView({
 
       {/* Loading state */}
       {loading && (
-        <div className="py-12 text-center">
-          <div className="animate-pulse text-gray-400">Loading students...</div>
-        </div>
+        <TeacherStudentListSkeleton compact />
       )}
 
       {/* Student List */}

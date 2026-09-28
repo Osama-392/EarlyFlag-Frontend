@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { X, Copy, CheckCircle, Mail, Loader2 } from 'lucide-react';
+import { X, Copy, CheckCircle, Mail } from 'lucide-react';
+import { TeacherSkeletonLine } from '@/components/TeacherLoadingSkeletons';
 import { getStudentHistory } from '@/lib/studentService';
 import { getAdminStudentProfile } from '@/lib/adminDashboardService';
 import { logTeacherEmail } from '@/lib/dashboardService';
@@ -506,9 +507,13 @@ export default function ParentEmailTemplateModal({
               style={{ minHeight: 200 }}
             >
               {loading ? (
-                <div className="flex flex-col items-center justify-center text-gray-400 py-10 w-full h-full">
-                  <Loader2 className="w-6 h-6 animate-spin mb-2" />
-                  <span className="text-sm font-medium">Generating template...</span>
+                <div className="w-full space-y-3 py-2" aria-label="Generating email template" role="status">
+                  <TeacherSkeletonLine className="h-3 w-4/5" />
+                  <TeacherSkeletonLine className="h-3 w-full" />
+                  <TeacherSkeletonLine className="h-3 w-11/12" />
+                  <TeacherSkeletonLine className="h-3 w-2/3" />
+                  <div className="pt-3"><TeacherSkeletonLine className="h-3 w-full" /><TeacherSkeletonLine className="mt-3 h-3 w-3/4" /></div>
+                  <span className="sr-only">Loading</span>
                 </div>
               ) : (
                 body

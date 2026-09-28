@@ -8,6 +8,7 @@ import ClassSetupModal from '@/components/ClassSetupModal';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import { useClasses } from '@/lib/useClasses';
 import { Class, CreateClassRequest, deleteClassTeacher, updateClass } from '@/lib/classService';
+import { TeacherClassesSkeleton } from '@/components/TeacherLoadingSkeletons';
 
 interface GradedClasses {
  [key: string]: Class[];
@@ -123,11 +124,7 @@ export default function ClassesPage() {
  });
 
  if (loading) {
- return (
- <div className="flex items-center justify-center h-full">
- <div className="animate-pulse text-gray-400">Loading classes...</div>
- </div>
- );
+ return <TeacherClassesSkeleton />;
  }
 
  return (

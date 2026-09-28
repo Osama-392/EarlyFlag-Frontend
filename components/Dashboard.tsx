@@ -39,6 +39,7 @@ import EmailCounselorModal from '@/components/EmailCounselorModal';
 import ParentNotifyModal from '@/components/ParentNotifyModal';
 import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
 import GoodMorningBanner from '@/components/GoodMorningBanner';
+import { TeacherSkeletonLine } from '@/components/TeacherLoadingSkeletons';
 import {
  getTeacherDashboard,
  TeacherDashboardResponse,
@@ -87,10 +88,6 @@ function pct(value: number, total: number): number {
  if (total === 0) return 0;
  return Math.round((value / total) * 100);
 }
-
-const TeacherSkeletonLine = ({ className = '' }: { className?: string }) => (
- <div className={`animate-pulse rounded bg-gray-200 dark:bg-[#2e3240] ${className}`} />
-);
 
 const TeacherListSkeleton = ({ title }: { title: string }) => (
  <section className="flex h-[450px] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-[#2e3240] dark:bg-[#1a1d27]">
