@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { Signal } from '@/lib/studentService';
+import { TeacherSkeletonLine } from '@/components/TeacherLoadingSkeletons';
 
 interface StudentHistoryModalProps {
  isOpen: boolean;
@@ -67,8 +68,16 @@ export default function StudentHistoryModal({
  {/* Content */}
  <div className="p-6">
  {loading ? (
- <div className="flex items-center justify-center py-12">
- <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+ <div className="space-y-3 py-2" aria-label="Loading signal history" role="status">
+ {[1, 2, 3, 4].map(row => (
+ <div key={row} className="rounded-lg border border-gray-200 p-4 dark:border-[#2e3240]">
+ <div className="flex items-start gap-3">
+ <TeacherSkeletonLine className="h-8 w-8 shrink-0 rounded-full" />
+ <div className="flex-1"><TeacherSkeletonLine className="h-3.5 w-1/2" /><TeacherSkeletonLine className="mt-3 h-3 w-full" /></div>
+ </div>
+ </div>
+ ))}
+ <span className="sr-only">Loading</span>
  </div>
  ) : history.length === 0 ? (
  <p className="text-center text-gray-500 py-8">No signal history available</p>

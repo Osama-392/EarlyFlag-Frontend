@@ -7,6 +7,7 @@ import { getTeacherRecognitions, StudentRecognitionRow } from '@/lib/dashboardSe
 import StudentReportsView from '@/components/StudentReportsView';
 import { logger } from '@/lib/logger';
 import { useClasses } from '@/lib/useClasses';
+import { TeacherClassesSkeleton } from '@/components/TeacherLoadingSkeletons';
 
 interface GradedClasses {
  [key: string]: any[];
@@ -71,11 +72,7 @@ export default function ReportsPage() {
 
  // Loading state
  if (loading) {
- return (
- <div className="flex items-center justify-center h-full min-h-[400px]">
- <div className="animate-pulse text-gray-400">Loading classes...</div>
- </div>
- );
+ return <TeacherClassesSkeleton label="Loading report classes" />;
  }
 
  // Otherwise, show the classes list

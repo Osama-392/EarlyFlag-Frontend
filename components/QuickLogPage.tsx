@@ -7,6 +7,7 @@ import { useToast } from '@/components/Toast';
 import FlagModal from '@/components/FlagModal';
 import { useClasses } from '@/lib/useClasses';
 import { getClassStudents, logSignals, getAvailableSignalDates, getIncompleteQuickLogs, Student as ApiStudent, IncompleteLogSession } from '@/lib/studentService';
+import { TeacherTableRowsSkeleton } from '@/components/TeacherLoadingSkeletons';
 
 
 interface Student {
@@ -663,14 +664,9 @@ export default function QuickLogPage({ onCancel, initialClassId, targetDate }: Q
  <th className="px-4 py-2.5 text-center text-sm font-semibold text-gray-900 dark:text-white">Absent</th>
  </tr>
  </thead>
- <tbody>
+ <tbody aria-busy={classesLoading || studentsLoading}>
  {classesLoading || studentsLoading ? (
- <tr>
- <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
- <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
- Loading students...
- </td>
- </tr>
+ <TeacherTableRowsSkeleton />
  ) : mappedStudents.length === 0 ? (
  <tr>
  <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">

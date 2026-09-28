@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { getSettings, updateSettings } from '@/lib/profileService';
 import { Moon, Sun, Monitor, Bell, Mail, Save, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { TeacherSettingsSkeleton } from '@/components/TeacherLoadingSkeletons';
 
 export default function SettingsPage() {
  const { theme, setTheme } = useTheme();
@@ -59,11 +60,7 @@ export default function SettingsPage() {
  };
 
  if (!mounted || isLoading) {
- return (
- <div className="p-8 max-w-2xl mx-auto w-full flex justify-center mt-20">
- <div className="w-8 h-8 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
- </div>
- );
+ return <TeacherSettingsSkeleton />;
  }
 
  return (

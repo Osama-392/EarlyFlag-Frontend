@@ -16,6 +16,7 @@ import BulkUploadModal from '@/components/BulkUploadModal';
 import { updateSignal } from '@/lib/studentService';
 import { useToast } from '@/components/Toast';
 import { ArrowLeft, Search, Upload, Plus, Edit2 } from 'lucide-react';
+import { TeacherStudentListSkeleton, TeacherSkeletonLine } from '@/components/TeacherLoadingSkeletons';
 
 export default function StudentRoster() {
  const params = useParams();
@@ -140,6 +141,10 @@ export default function StudentRoster() {
  )
  : [];
 
+ if (loading && !classInfo) {
+ return <TeacherStudentListSkeleton />;
+ }
+
 
 
  return (
@@ -216,14 +221,12 @@ export default function StudentRoster() {
  <div className="bg-white dark:bg-[#151722] rounded-2xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden mt-6">
  <div className="p-8">
  <div className="mb-6">
- <h2 className="text-xl font-bold text-slate-800 dark:text-white">{classInfo ? classInfo.name : 'Loading Class...'}</h2>
+ {classInfo ? <h2 className="text-xl font-bold text-slate-800 dark:text-white">{classInfo.name}</h2> : <TeacherSkeletonLine className="h-6 w-48" />}
  <p className="text-sm text-gray-500 dark:text-gray-400">Period {classInfo?.period || '—'}</p>
  </div>
 
  {loading ? (
- <div className="flex justify-center py-10">
- <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-700 dark:border-gray-300"></div>
- </div>
+ <TeacherStudentListSkeleton compact />
  ) : filteredStudents.length === 0 ? (
  <div className="text-center py-10 text-gray-500 dark:text-gray-400">No students found.</div>
  ) : (
