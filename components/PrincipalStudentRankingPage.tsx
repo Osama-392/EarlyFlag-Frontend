@@ -9,6 +9,7 @@ import {
   getAdminAtRisk,
   getAdminImproving,
 } from '@/lib/adminDashboardService';
+import { AdminRankingSkeleton } from '@/components/AdminLoadingSkeletons';
 
 const PAGE_SIZE = 20;
 
@@ -72,6 +73,8 @@ export default function PrincipalStudentRankingPage({ mode }: { mode: 'at-risk' 
     ? 'Students ranked by current Red events and active flags.'
     : 'Students with the largest decrease in active flags and no current seven-day Red.';
 
+  if (loading) return <AdminRankingSkeleton mode={mode} />;
+
   return (
     <div className="mx-auto w-full max-w-[1600px] space-y-6 pb-12">
       <div className="flex items-center justify-between gap-4">
@@ -94,8 +97,6 @@ export default function PrincipalStudentRankingPage({ mode }: { mode: 'at-risk' 
           <p className="mb-4 text-sm font-semibold">{error}</p>
           <button onClick={() => void fetchRanking()} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white">Try Again</button>
         </div>
-      ) : loading ? (
-        <div className="h-80 animate-pulse rounded-xl bg-gray-200 dark:bg-[#1b1e2c]" />
       ) : (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-[#262a3d] dark:bg-[#151722]">
           <div className="overflow-x-auto">

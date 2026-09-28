@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/providers';
 import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
 import { getAdminSchoolOverview, AdminSchoolOverviewResponse } from '@/lib/adminDashboardService';
+import { AdminSchoolOverviewSkeleton } from '@/components/AdminLoadingSkeletons';
+import { formatTeacherDisplayName } from '@/lib/teacherTitle';
 
 type TabType = 'all' | 'high_risk' | 'medium_risk' | 'super_green' | 'absent';
 
@@ -21,7 +23,7 @@ export default function SchoolOverviewPage() {
  const { user } = useAuth();
  const [emailModalData, setEmailModalData] = useState<{ isOpen: boolean, student: any, category: 'red' | 'yellow' | 'super_green' | 'absent' | 'admin_concern' | 'admin_commendation', reason?: string, adminEmailConcerns?: string } | null>(null);
  
- const adminFullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Administration';
+ const adminFullName = user ? formatTeacherDisplayName(user) || 'Administration' : 'Administration';
 
  const fetchData = useCallback(async () => {
  try {
@@ -64,13 +66,7 @@ export default function SchoolOverviewPage() {
  }, [data]);
 
  if (loading && !data) {
- return (
- <div className="space-y-6 animate-pulse">
- <div className="h-10 bg-gray-200 rounded-lg w-64" />
- <div className="h-24 bg-gray-200 rounded-xl" />
- <div className="h-96 bg-gray-200 rounded-xl" />
- </div>
- );
+ return <AdminSchoolOverviewSkeleton />;
  }
 
  if (error && !data) {

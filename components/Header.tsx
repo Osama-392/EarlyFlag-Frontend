@@ -9,6 +9,7 @@ import { getIncompleteQuickLogs, getTeacherSearch } from '@/lib/studentService';
 import { getTeacherClasses } from '@/lib/classService';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/app/providers';
+import { formatTeacherDisplayName } from '@/lib/teacherTitle';
 
 export default function Header() {
  const { theme, setTheme, resolvedTheme } = useTheme();
@@ -32,7 +33,7 @@ export default function Header() {
  const [quickLogTargetDate, setQuickLogTargetDate] = useState<string | undefined>(undefined);
  
  const userInitials = user ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() : 'U';
- const userName = user?.first_name || 'Teacher';
+ const userName = user ? formatTeacherDisplayName(user) || 'Teacher' : 'Teacher';
 
  useEffect(() => {
  setMounted(true);

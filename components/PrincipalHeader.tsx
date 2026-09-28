@@ -6,6 +6,7 @@ import { Bell, Search, Moon, Sun, X, User, BookOpen, Users, ChevronRight } from 
 import { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { getAdminHeatmap, getAdminLeaderboard, getAdminStudentReports, getAdminTeacherReports, getAdminSearch } from '@/lib/adminDashboardService';
+import { formatTeacherDisplayName } from '@/lib/teacherTitle';
 
 export default function PrincipalHeader() {
  const router = useRouter();
@@ -72,7 +73,7 @@ export default function PrincipalHeader() {
  };
 
  const userInitials = user ? `${user.first_name?.[0] || user.email?.charAt(0) || ''}${user.last_name?.[0] || ''}`.toUpperCase() : 'P';
- const userName = user?.first_name ? `${user.first_name} ${user.last_name}` : user?.email?.split('@')[0];
+ const userName = user ? formatTeacherDisplayName(user) || user.email?.split('@')[0] : undefined;
 
  const filteredClasses = searchClasses.slice(0, 4);
  const filteredTeachers = searchTeachers.slice(0, 4);

@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/providers';
 import { updateProfile } from '@/lib/profileService';
 import { User, Mail, Save, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { formatTeacherDisplayName, TEACHER_TITLES, TeacherTitle } from '@/lib/teacherTitle';
 
 export default function ProfilePage() {
  const { user, updateUser } = useAuth();
  
+ const [title, setTitle] = useState<TeacherTitle | ''>('');
  const [firstName, setFirstName] = useState('');
  const [lastName, setLastName] = useState('');
  const [isSaving, setIsSaving] = useState(false);
@@ -15,6 +17,7 @@ export default function ProfilePage() {
 
  useEffect(() => {
  if (user) {
+ setTitle(user.title || '');
  setFirstName(user.first_name || '');
  setLastName(user.last_name || '');
  }
@@ -26,8 +29,8 @@ export default function ProfilePage() {
  setMessage(null);
 
  try {
- await updateProfile({ first_name: firstName, last_name: lastName });
- updateUser({ first_name: firstName, last_name: lastName });
+ await updateProfile({ title: title || null, first_name: firstName, last_name: lastName });
+ updateUser({ title: title || null, first_name: firstName, last_name: lastName });
  setMessage({ type: 'success', text: 'Profile updated successfully!' });
  setTimeout(() => setMessage(null), 3000);
  } catch (error: any) {
@@ -41,6 +44,7 @@ export default function ProfilePage() {
  };
 
  const userInitials = `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || 'U';
+ const displayName = formatTeacherDisplayName({ title: title || null, first_name: firstName, last_name: lastName });
 
  return (
  <div className="p-8 max-w-2xl mx-auto w-full">
@@ -62,6 +66,7 @@ export default function ProfilePage() {
  </div>
 
  <div className="pt-16 pb-8 px-8">
+ <p className="mb-6 text-lg font-semibold text-gray-900 dark:text-white">{displayName}</p>
  <form onSubmit={handleSave} className="space-y-6">
  
  {message && (
@@ -75,7 +80,24 @@ export default function ProfilePage() {
  </div>
  )}
 
- <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+ <div className="grid grid-cols-1 gap-6 md:grid-cols-[120px_minmax(0,1fr)_minmax(0,1fr)]">
+ {/* Title */}
+ <div className="space-y-2">
+ <label htmlFor="profile-title" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+ <User className="w-4 h-4 text-gray-400" />
+ Title
+ </label>
+ <select
+ id="profile-title"
+ value={title}
+ onChange={(e) => setTitle(e.target.value as TeacherTitle | '')}
+ className="w-full bg-gray-50 dark:bg-[#1b1e2c] border border-gray-200 dark:border-[#262a3d] rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
+ >
+ <option value="">Select title</option>
+ {TEACHER_TITLES.map((option) => <option key={option} value={option}>{option}</option>)}
+ </select>
+ </div>
+
  {/* First Name */}
  <div className="space-y-2">
  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">

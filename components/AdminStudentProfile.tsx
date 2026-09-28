@@ -20,6 +20,8 @@ import { useToast } from '@/components/Toast';
 import { useAuth } from '@/app/providers';
 import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
 import { logger } from '@/lib/logger';
+import { AdminStudentProfileSkeleton } from '@/components/AdminLoadingSkeletons';
+import { formatTeacherDisplayName } from '@/lib/teacherTitle';
 
 const priorityStyles: Record<string, string> = {
   urgent: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
@@ -60,7 +62,7 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
   const [generatedReport, setGeneratedReport] = useState<any | null>(null);
   const { showToast } = useToast();
   const { user } = useAuth();
-  const adminFullName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Admin' : 'Admin';
+  const adminFullName = user ? formatTeacherDisplayName(user) || 'Admin' : 'Admin';
 
   const [emailModalData, setEmailModalData] = useState<{
     isOpen: boolean;
@@ -82,14 +84,7 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
   }, [studentId]);
 
   if (loading) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-8 bg-gray-200 rounded-lg w-48" />
-        <div className="h-32 bg-gray-200 rounded-xl" />
-        <div className="grid grid-cols-3 gap-4">{[1, 2, 3].map(i => <div key={i} className="h-36 bg-gray-200 rounded-xl" />)}</div>
-        <div className="h-64 bg-gray-200 rounded-xl" />
-      </div>
-    );
+    return <AdminStudentProfileSkeleton />;
   }
 
   if (error || !profile) {

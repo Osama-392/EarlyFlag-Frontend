@@ -1,6 +1,8 @@
 import api from './api';
+import type { TeacherTitle } from './teacherTitle';
 
 export interface UserUpdate {
+  title?: TeacherTitle | null;
   first_name?: string;
   last_name?: string;
 }

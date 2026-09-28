@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Trophy, Medal } from 'lucide-react';
 import { getAdminLeaderboard, TeacherLeaderboardRow } from '@/lib/adminDashboardService';
+import { AdminLeaderboardSkeleton } from '@/components/AdminLoadingSkeletons';
 
 export default function TeacherLeaderboardPage() {
  const router = useRouter();
@@ -25,6 +26,8 @@ export default function TeacherLeaderboardPage() {
  }
  fetchLeaderboard();
  }, []);
+
+ if (loading) return <AdminLeaderboardSkeleton />;
 
  return (
  <div className="space-y-6 pb-12">
@@ -48,11 +51,7 @@ export default function TeacherLeaderboardPage() {
  </div>
  </div>
 
- {loading ? (
- <div className="flex justify-center items-center py-20">
- <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
- </div>
- ) : error ? (
+ {error ? (
  <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-6 rounded-xl border border-red-100 dark:border-red-900/30 text-center">
  <p className="font-medium">{error}</p>
  </div>

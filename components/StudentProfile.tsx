@@ -19,6 +19,7 @@ import { useAuth } from '@/app/providers';
 import { logger } from '@/lib/logger';
 import { filterGlobalEscalationsFromReportData } from '@/lib/reportUtils';
 import { TeacherStudentProfileSkeleton } from '@/components/TeacherLoadingSkeletons';
+import { formatTeacherDisplayName } from '@/lib/teacherTitle';
 
 interface StudentProfileProps {
   studentId?: string;
@@ -214,7 +215,7 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
 
   const meetsAbsenceThreshold = maxAbsencesInSingleClass >= 3;
 
-  const teacherFullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Your Teacher';
+  const teacherFullName = user ? formatTeacherDisplayName(user) || 'Your Teacher' : 'Your Teacher';
   const studentFullName = [history?.first_name, history?.last_name].filter(Boolean).join(' ') || 'Student';
 
   // Helper to parse signal date without time-of-day cutoff

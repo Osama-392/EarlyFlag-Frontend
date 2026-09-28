@@ -2,10 +2,12 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api from '@/lib/api';
+import { buildTeacherSignupPayload, TeacherTitle } from '@/lib/teacherTitle';
 
 interface User {
  id: string;
  email: string;
+ title?: TeacherTitle | null;
  first_name?: string;
  last_name?: string;
  school_id?: string;
@@ -20,7 +22,7 @@ interface AuthContextType {
  isAuthenticated: boolean;
  isPending: boolean;
  login: (email: string, password: string) => Promise<{ requires2fa: boolean; temporaryToken?: string } | void>;
- signup: (email: string, password: string, schoolId: string, firstName?: string, lastName?: string, phoneNumber?: string) => Promise<void>;
+ signup: (email: string, password: string, schoolId: string, firstName?: string, lastName?: string, phoneNumber?: string, title?: TeacherTitle) => Promise<void>;
  verify2FA: (code: string, temporaryToken: string) => Promise<void>;
  logout: () => void;
  updateUser: (data: Partial<User>) => void;
@@ -141,19 +143,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
  }
  };
 
- const signup = async (email: string, password: string, schoolId: string, firstName?: string, lastName?: string, phoneNumber?: string) => {
+ const signup = async (email: string, password: string, schoolId: string, firstName?: string, lastName?: string, phoneNumber?: string, title?: TeacherTitle) => {
  setLoading(true);
  setError(null);
 
  try {
- const response = await api.post('/api/v1/auth/signup', {
+ const response = await api.post('/api/v1/auth/signup', buildTeacherSignupPayload({
+ title,
+ firstName,
+ lastName,
  email,
  password,
- school_id: schoolId,
- first_name: firstName || '',
- last_name: lastName || '',
- phone_number: phoneNumber || '',
- });
+ phoneNumber,
+ schoolId,
+ }));
 
  const userData = response.data?.user;
  if (userData && typeof userData === 'object') {

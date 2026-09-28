@@ -7,6 +7,7 @@ import {
   getAdminInactiveTeachers,
   type TeachersNotLoggingInBlock,
 } from '@/lib/adminDashboardService';
+import { AdminInactiveTeachersSkeleton } from '@/components/AdminLoadingSkeletons';
 
 const formatRecordedDate = (value: string | null) => {
   if (!value) return 'Never';
@@ -40,6 +41,8 @@ export default function PrincipalInactiveTeachersPage() {
 
   useEffect(() => { void loadTeachers(); }, [loadTeachers]);
 
+  if (loading) return <AdminInactiveTeachersSkeleton />;
+
   return (
     <div className="mx-auto w-full max-w-[1200px] space-y-6 pb-12">
       <button onClick={() => router.push('/principal-dashboard')} className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-blue-600 shadow-sm hover:bg-gray-50 dark:border-[#262a3d] dark:bg-[#151722] dark:text-blue-400">
@@ -63,15 +66,7 @@ export default function PrincipalInactiveTeachersPage() {
       </div>
 
       <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-[#262a3d] dark:bg-[#151722]">
-        {loading ? (
-          <div className="space-y-1 p-5">
-            {[1, 2, 3, 4, 5].map(row => (
-              <div key={row} className="grid grid-cols-3 gap-5 border-b border-gray-100 py-5 dark:border-[#262a3d]">
-                {[1, 2, 3].map(cell => <div key={cell} className="h-4 animate-pulse rounded bg-gray-200 dark:bg-[#262a3d]" />)}
-              </div>
-            ))}
-          </div>
-        ) : error ? (
+        {error ? (
           <div className="flex flex-col items-center px-5 py-16 text-center">
             <AlertCircle size={36} className="mb-3 text-red-400" />
             <p className="font-semibold text-gray-900 dark:text-white">Unable to load inactive teachers</p>

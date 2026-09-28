@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Home, Users, BarChart3, FileText, Award, LogOut, User, Settings, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/app/providers';
 import { useRouter, usePathname } from 'next/navigation';
+import { formatTeacherDisplayName } from '@/lib/teacherTitle';
 
 const menuItems = [
  { icon: Home, label: 'Dashboard', href: '/dashboard' },
@@ -37,7 +38,7 @@ export default function Sidebar() {
  };
 
  const userInitials = user ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() : 'U';
- const userName = user?.first_name || 'Teacher';
+ const userName = user ? formatTeacherDisplayName(user) || 'Teacher' : 'Teacher';
 
  return (
  <aside className="w-64 bg-white dark:bg-[#151722] border-r border-[#262a3d] flex flex-col transition-colors">

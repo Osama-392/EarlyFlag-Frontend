@@ -18,6 +18,8 @@ import AdminTeacherReportModal from './AdminTeacherReportModal';
 import CreateReportModal from './CreateReportModal';
 import ReportView from './ReportView';
 import { generateAdminStudentReport } from '@/lib/adminDashboardService';
+import { AdminReportTableSkeleton } from '@/components/AdminLoadingSkeletons';
+import { formatTeacherDisplayName } from '@/lib/teacherTitle';
 
 const priorityColors: Record<string, string> = {
  urgent: 'bg-red-100 text-red-700', high: 'bg-orange-100 text-orange-700',
@@ -159,10 +161,6 @@ function ReportFilterBar({
  );
 }
 
-function LoadingSkeleton({ rows = 5 }: { rows?: number }) {
- return <div className="space-y-3 animate-pulse">{Array.from({ length: rows }).map((_, i) => <div key={i} className="h-16 bg-gray-200 rounded-lg" />)}</div>;
-}
-
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
  return (
  <div className="text-center py-12">
@@ -184,13 +182,13 @@ export default function PrincipalReportsPage() {
 
  // Super Green state
  const [sgData, setSgData] = useState<SuperGreenExportPayload | null>(null);
- const [sgLoading, setSgLoading] = useState(false);
+ const [sgLoading, setSgLoading] = useState(true);
  const [sgError, setSgError] = useState<string | null>(null);
  const [downloading, setDownloading] = useState(false);
 
  // Student Reports state
  const [studentData, setStudentData] = useState<StudentReportBlock | null>(null);
- const [studentLoading, setStudentLoading] = useState(false);
+ const [studentLoading, setStudentLoading] = useState(true);
  const [studentError, setStudentError] = useState<string | null>(null);
  const [studentPage, setStudentPage] = useState(0);
  const [studentRange, setStudentRange] = useState<'1d' | '7d' | '30d'>('1d');
@@ -206,7 +204,7 @@ export default function PrincipalReportsPage() {
  const [teacherData, setTeacherData] = useState<TeacherReportBlock | null>(null);
  const [reportModalOpen, setReportModalOpen] = useState(false);
  const [selectedTeacher, setSelectedTeacher] = useState<{id: string, name: string} | null>(null);
- const [teacherLoading, setTeacherLoading] = useState(false);
+ const [teacherLoading, setTeacherLoading] = useState(true);
  const [teacherError, setTeacherError] = useState<string | null>(null);
  const [teacherPage, setTeacherPage] = useState(0);
  const [teacherRange, setTeacherRange] = useState<'1d' | '7d' | '30d'>('1d');
@@ -215,7 +213,7 @@ export default function PrincipalReportsPage() {
 
  // Grade Reports state
  const [gradeData, setGradeData] = useState<GradeReportBlock | null>(null);
- const [gradeLoading, setGradeLoading] = useState(false);
+ const [gradeLoading, setGradeLoading] = useState(true);
  const [gradeError, setGradeError] = useState<string | null>(null);
  const [gradePage, setGradePage] = useState(0);
  const [gradeRange, setGradeRange] = useState<'1d' | '7d' | '30d'>('1d');
@@ -237,7 +235,7 @@ export default function PrincipalReportsPage() {
  } finally { setSgLoading(false); }
  };
 
- useEffect(() => { if (tab === 'supergreen' && !sgData) fetchSuperGreen(); }, [tab]);
+ useEffect(() => { if (tab === 'supergreen' && !sgData) fetchSuperGreen(); }, [tab, sgData]);
 
  const fetchStudentReports = useCallback(async () => {
  try {
@@ -454,7 +452,7 @@ export default function PrincipalReportsPage() {
  {tab === 'supergreen' && (
  <div className="space-y-4">
  {sgLoading ? (
- <LoadingSkeleton rows={3} />
+ <AdminReportTableSkeleton rows={3} columns={6} summary />
  ) : sgError ? (
  <ErrorState message={sgError} onRetry={fetchSuperGreen} />
  ) : sgData && (
@@ -555,7 +553,7 @@ export default function PrincipalReportsPage() {
  </div>
  )}
  {studentLoading ? (
- <LoadingSkeleton rows={5} />
+ <AdminReportTableSkeleton rows={5} columns={6} />
  ) : studentError ? (
  <ErrorState message={studentError} onRetry={fetchStudentReports} />
  ) : (
@@ -655,7 +653,7 @@ export default function PrincipalReportsPage() {
  showGrade={false} onRefresh={fetchTeacherReports} loading={teacherLoading}
  />
  {teacherLoading ? (
- <LoadingSkeleton rows={5} />
+ <AdminReportTableSkeleton rows={5} columns={9} />
  ) : teacherError ? (
  <ErrorState message={teacherError} onRetry={fetchTeacherReports} />
  ) : (
@@ -679,7 +677,7 @@ export default function PrincipalReportsPage() {
  {(teacherData?.teachers || []).map(t => (
  <tr key={t.teacher_id} className="border-b border-gray-100 dark:border-[#262a3d] dark:border-[#262a3d] hover:bg-gray-50 dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] dark:hover:bg-[#1b1e2c] dark:bg-[#1b1e2c] transition">
  <td className="px-4 py-3">
- <p className="text-sm font-medium text-gray-900 dark:text-white dark:text-white">{t.first_name} {t.last_name}</p>
+ <p className="text-sm font-medium text-gray-900 dark:text-white dark:text-white">{formatTeacherDisplayName(t)}</p>
  <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">{t.email}</p>
  </td>
  <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{t.class_count} classes · {t.total_enrollments} students</td>
@@ -709,7 +707,7 @@ export default function PrincipalReportsPage() {
  <td className="px-4 py-3 text-right">
  <button
  onClick={() => {
- setSelectedTeacher({ id: t.teacher_id, name: `${t.first_name} ${t.last_name}` });
+ setSelectedTeacher({ id: t.teacher_id, name: formatTeacherDisplayName(t) });
  setReportModalOpen(true);
  }}
  className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors inline-flex items-center justify-center"
@@ -745,7 +743,7 @@ export default function PrincipalReportsPage() {
  showGrade={true} onRefresh={fetchGradeReports} loading={gradeLoading}
  />
  {gradeLoading ? (
- <LoadingSkeleton rows={5} />
+ <AdminReportTableSkeleton rows={5} columns={8} />
  ) : gradeError ? (
  <ErrorState message={gradeError} onRetry={fetchGradeReports} />
  ) : (

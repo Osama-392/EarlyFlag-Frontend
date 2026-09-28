@@ -7,6 +7,8 @@ import { getPendingTeachers, approveTeacher, rejectTeacher, PendingTeacher } fro
 import { getAdminTeacherFlags, acknowledgeTeacherFlag, TeacherObservationFlagRow, getAdminTeacherReports, TeacherReportItem } from '@/lib/adminDashboardService';
 import AdminTeacherReportModal from './AdminTeacherReportModal';
 import { FileText } from 'lucide-react';
+import { AdminTeacherCardsSkeleton, AdminTeachersSkeleton } from '@/components/AdminLoadingSkeletons';
+import { formatTeacherDisplayName } from '@/lib/teacherTitle';
 
 type ToastType = 'success' | 'error';
 
@@ -156,11 +158,11 @@ export default function PrincipalTeachersPage() {
  setConfirmAction(null);
  await approveTeacher(teacher.id);
  setPending((p) => p.filter((t) => t.id !== teacher.id));
- showToast(`${teacher.first_name} ${teacher.last_name} has been approved!`, 'success');
+ showToast(`${formatTeacherDisplayName(teacher)} has been approved!`, 'success');
  loadApproved();
  } catch (err) {
  console.error('Approve failed', err);
- showToast(`Failed to approve ${teacher.first_name} ${teacher.last_name}. Please try again.`, 'error');
+ showToast(`Failed to approve ${formatTeacherDisplayName(teacher)}. Please try again.`, 'error');
  } finally {
  setActionLoading(null);
  }
@@ -172,23 +174,23 @@ export default function PrincipalTeachersPage() {
  setConfirmAction(null);
  await rejectTeacher(teacher.id);
  setPending((p) => p.filter((t) => t.id !== teacher.id));
- showToast(`${teacher.first_name} ${teacher.last_name} has been rejected.`, 'success');
+ showToast(`${formatTeacherDisplayName(teacher)} has been rejected.`, 'success');
  } catch (err) {
  console.error('Reject failed', err);
- showToast(`Failed to reject ${teacher.first_name} ${teacher.last_name}. Please try again.`, 'error');
+ showToast(`Failed to reject ${formatTeacherDisplayName(teacher)}. Please try again.`, 'error');
  } finally {
  setActionLoading(null);
  }
  };
 
  const filteredPending = pending.filter((t) => {
- const fullName = `${t.first_name} ${t.last_name}`.toLowerCase();
+ const fullName = formatTeacherDisplayName(t).toLowerCase();
  const term = searchTerm.toLowerCase();
  return fullName.includes(term) || t.email.toLowerCase().includes(term);
  });
 
  const filteredApproved = approvedTeachers.filter((t) => {
- const fullName = `${t.first_name} ${t.last_name}`.toLowerCase();
+ const fullName = formatTeacherDisplayName(t).toLowerCase();
  const term = searchTerm.toLowerCase();
  return fullName.includes(term) || t.email.toLowerCase().includes(term);
  });
@@ -213,6 +215,14 @@ export default function PrincipalTeachersPage() {
  const getInitials = (first: string, last: string) => {
  return `${(first || '?')[0]}${(last || '?')[0]}`.toUpperCase();
  };
+
+ if (
+ (loadingPending && pending.length === 0)
+ || (loadingApproved && approvedTeachers.length === 0)
+ || (obsFlagsLoading && obsFlags.length === 0)
+ ) {
+ return <AdminTeachersSkeleton />;
+ }
 
  return (
  <div className="w-full max-w-[1600px] mx-auto space-y-8 pb-12">
@@ -349,7 +359,7 @@ export default function PrincipalTeachersPage() {
 
  <div className="bg-gray-50 dark:bg-[#1b1e2c] dark:bg-[#1b1e2c] rounded-xl p-4 mb-6 border border-gray-100 dark:border-[#262a3d] dark:border-[#262a3d]">
  <p className="font-semibold text-gray-900 dark:text-white dark:text-white text-center">
- {confirmAction.teacher.first_name} {confirmAction.teacher.last_name}
+ {formatTeacherDisplayName(confirmAction.teacher)}
  </p>
  <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-400 text-center">{confirmAction.teacher.email}</p>
  </div>
@@ -466,9 +476,7 @@ export default function PrincipalTeachersPage() {
  </div>
 
  {obsFlagsLoading ? (
- <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
- {[1,2,3].map(i => <div key={i} className="h-40 bg-gray-200 rounded-xl animate-pulse" />)}
- </div>
+ <AdminTeacherCardsSkeleton />
  ) : obsFlags.length === 0 ? (
  <div className="text-center py-12">
  <CheckCircle2 size={36} className="mx-auto text-emerald-400 mb-3" />
@@ -567,25 +575,7 @@ export default function PrincipalTeachersPage() {
 
  {/* Loading State */}
  {loadingPending && (
- <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
- {[1, 2, 3].map((i) => (
- <div key={i} className="bg-white dark:bg-[#151722] dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] p-6 shadow-sm">
- <div className="flex items-center gap-3 mb-5">
- <div className="skeleton w-12 h-12 rounded-full" />
- <div className="flex-1">
- <div className="skeleton h-4 w-3/4 mb-2" />
- <div className="skeleton h-3 w-1/2" />
- </div>
- </div>
- <div className="skeleton h-3 w-full mb-3" />
- <div className="skeleton h-3 w-2/3 mb-5" />
- <div className="flex gap-3">
- <div className="skeleton h-10 flex-1" />
- <div className="skeleton h-10 flex-1" />
- </div>
- </div>
- ))}
- </div>
+ <AdminTeacherCardsSkeleton />
  )}
 
  {/* Pending Teacher Cards */}
@@ -605,7 +595,7 @@ export default function PrincipalTeachersPage() {
  {getInitials(teacher.first_name, teacher.last_name)}
  </div>
  <div>
- <h3 className="text-sm font-bold text-gray-900 dark:text-white dark:text-white">{teacher.first_name} {teacher.last_name}</h3>
+ <h3 className="text-sm font-bold text-gray-900 dark:text-white dark:text-white">{formatTeacherDisplayName(teacher)}</h3>
  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold mt-1">
  <Clock size={10} />
  Pending
@@ -725,21 +715,7 @@ export default function PrincipalTeachersPage() {
 
  {/* Loading State */}
  {loadingApproved && (
- <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
- {[1, 2, 3].map((i) => (
- <div key={i} className="bg-white dark:bg-[#151722] dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] dark:border-[#262a3d] p-6 shadow-sm">
- <div className="flex items-center gap-3 mb-5">
- <div className="skeleton w-12 h-12 rounded-full" />
- <div className="flex-1">
- <div className="skeleton h-4 w-3/4 mb-2" />
- <div className="skeleton h-3 w-1/2" />
- </div>
- </div>
- <div className="skeleton h-3 w-full mb-3" />
- <div className="skeleton h-3 w-2/3 mb-5" />
- </div>
- ))}
- </div>
+ <AdminTeacherCardsSkeleton />
  )}
 
  {/* Approved Teacher Cards */}
@@ -759,7 +735,7 @@ export default function PrincipalTeachersPage() {
  {getInitials(teacher.first_name, teacher.last_name)}
  </div>
  <div>
- <h3 className="text-sm font-bold text-gray-900 dark:text-white dark:text-white">{teacher.first_name} {teacher.last_name}</h3>
+ <h3 className="text-sm font-bold text-gray-900 dark:text-white dark:text-white">{formatTeacherDisplayName(teacher)}</h3>
  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold mt-1">
  <CheckCircle2 size={10} />
  Approved
@@ -801,7 +777,7 @@ export default function PrincipalTeachersPage() {
  </div>
  <button
  onClick={() => {
- setSelectedTeacher({ id: teacher.teacher_id, name: `${teacher.first_name} ${teacher.last_name}` });
+ setSelectedTeacher({ id: teacher.teacher_id, name: formatTeacherDisplayName(teacher) });
  setReportModalOpen(true);
  }}
  className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-sm font-semibold transition-colors"
