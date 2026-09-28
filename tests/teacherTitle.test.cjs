@@ -76,3 +76,9 @@ test('signup, profiles, and pending teachers use the shared title contract', () 
   assert.ok(pendingTeachers.includes('formatTeacherDisplayName(teacher)'));
   assert.ok(pendingTeachers.includes('formatTeacherDisplayName(confirmAction.teacher)'));
 });
+
+test('teacher sidebar shows title and last name only', () => {
+  const sidebar = read('components/Sidebar.tsx');
+  assert.ok(sidebar.includes("[user.title, user.last_name].filter(Boolean).join(' ')"));
+  assert.ok(!sidebar.includes('formatTeacherDisplayName(user)'));
+});
