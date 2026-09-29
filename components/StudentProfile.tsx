@@ -237,7 +237,7 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
 
   // Last 7 days (inclusive)
   const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
   sevenDaysAgo.setHours(0, 0, 0, 0);
   const recent7Days = signals.filter((s: any) => parseSignalDate(s) >= sevenDaysAgo);
 
