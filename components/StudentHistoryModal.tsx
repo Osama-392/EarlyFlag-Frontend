@@ -96,6 +96,7 @@ export default function StudentHistoryModal({
  {signal.signal_type} Signal
  {signal.category && ` - ${signal.category}`}
  </p>
+ {signal.signal_type === 'absent' && signal.reason_description && <p className="text-sm mt-1 font-medium">{signal.reason_description}</p>}
  {signal.note && (
  <p className="text-sm mt-1 opacity-90">{signal.note}</p>
  )}

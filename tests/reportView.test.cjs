@@ -251,3 +251,12 @@ test('admin preview and export use the native PDF renderer with canonical Red da
   }
   assert.doesNotMatch(exported.pdf.output(), /\/Subtype \/Image/);
 });
+
+
+test('teacher preview shows absence reason and note together', async () => {
+  const { html } = await previewAndExport({ counts_selected_range: { red: 0, yellow: 0, super_green: 0, absent: 1 },
+    flag_log: [{ signal_date: '2026-09-01', signal_type: 'absent', title: 'Sports dismissal', description: 'Leaving early for an away game.', class_name: 'Math 6A' }],
+  });
+  assert.ok(html.includes('Sports dismissal - Leaving early for an away game.'));
+  assert.ok(html.includes('data-signal-type="absent"'));
+});

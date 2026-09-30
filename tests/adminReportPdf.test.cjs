@@ -115,3 +115,14 @@ test('empty class snapshot has an explicit empty state in PDF', () => {
   assert.ok(output.includes('Class-by-Class Snapshot'));
   assert.ok(output.includes('No active classes match this report.'));
 });
+
+
+test('admin PDF includes absence reason and note without a behavior category', () => {
+  const output = pdfText(createAdminReportPdf({ ...base, history: [{
+    date: 'Sep 1', dayOfWeek: 'Tue', title: 'Sports dismissal', description: 'Leaving early for an away game.',
+    className: 'Math 6A', teacherName: 'Chris Mark', typeLabel: 'Absent', signalType: 'absent',
+  }] }));
+  assert.ok(output.includes('Sports dismissal'));
+  assert.ok(output.includes('Leaving early for an away game.'));
+  assert.ok(output.includes('(Absent)'));
+});

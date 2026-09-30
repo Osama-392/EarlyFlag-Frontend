@@ -53,10 +53,11 @@ export interface IncompleteLogSession {
 
 export interface SignalPayload {
   student_id: string;
-  signal_type: 'green' | 'yellow' | 'red';
-  category?: string;
-  note?: string;
-  reason_code?: string;
+  signal_type: 'green' | 'yellow' | 'red' | 'absent';
+  category?: string | null;
+  note?: string | null;
+  reason_code?: string | null;
+  reason_description?: string | null;
   save_for_later?: boolean;
 }
 

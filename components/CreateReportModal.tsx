@@ -17,6 +17,8 @@ interface CreateReportModalProps {
  yellowCount?: number;
  };
  defaultSubject: string;
+ initialStartDate?: string;
+ initialEndDate?: string;
  gradeSubjects: string[];
  onClose: () => void;
  onGenerate: (reportData: any) => void;
@@ -27,6 +29,8 @@ export default function CreateReportModal({
  isOpen,
  student,
  defaultSubject,
+ initialStartDate,
+ initialEndDate,
  gradeSubjects,
  onClose,
  onGenerate,
@@ -64,6 +68,13 @@ export default function CreateReportModal({
  useEffect(() => {
  if (isOpen) setSubject(defaultSubject || 'All Subjects');
  }, [defaultSubject, isOpen]);
+
+ useEffect(() => {
+ if (isOpen && initialStartDate && initialEndDate) {
+ setStartDate(initialStartDate);
+ setEndDate(initialEndDate);
+ }
+ }, [isOpen, initialStartDate, initialEndDate]);
 
  const handleGenerateReport = async () => {
  setLoading(true);

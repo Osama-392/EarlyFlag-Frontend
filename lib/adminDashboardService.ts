@@ -408,6 +408,10 @@ export interface StudentClassSnapshot {
 }
 
 export interface AdminStudentProfileBlock {
+  range_start?: string;
+  range_end?: string;
+  counts_selected_range?: SignalCountsByType;
+  category_selected_range?: ReportCategoryBreakdown;
   class_snapshot?: StudentClassSnapshot | null;
   student: ReportStudentHeader;
   counts_7d: SignalCountsByType;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, AlertCircle, Shield, BookOpen, Clock,
@@ -14,9 +14,9 @@ import {
   generateAdminStudentReport,
 } from '@/lib/adminDashboardService';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
-import CreateReportModal from '@/components/CreateReportModal';
 import ReportView from '@/components/ReportView';
 import AdminClassSnapshot from '@/components/AdminClassSnapshot';
+import AdminProfileDateFilter from '@/components/AdminProfileDateFilter';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/app/providers';
 import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
@@ -32,7 +32,7 @@ const priorityStyles: Record<string, string> = {
 };
 
 function formatDate(d: string) {
-  try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  try { return new Date(`${d}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
   catch { return d; }
 }
 
@@ -58,8 +58,13 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
   const [profile, setProfile] = useState<AdminStudentProfileBlock | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [rangeLoading, setRangeLoading] = useState(false);
+  const [rangeError, setRangeError] = useState<string | null>(null);
+  const profileRequest = useRef(0);
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const reportPending = useRef(false);
   const [generatedReport, setGeneratedReport] = useState<any | null>(null);
   const { showToast } = useToast();
   const { user } = useAuth();
@@ -73,16 +78,36 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
   } | null>(null);
 
   useEffect(() => {
+    const request = ++profileRequest.current;
+    setRangeLoading(false);
+    setRangeError(null);
+    setReportLoading(false);
+    setReportError(null);
     (async () => {
       try {
         setLoading(true); setError(null);
         const data = await getAdminStudentProfile(studentId);
-        setProfile(data);
+        if (request === profileRequest.current) setProfile(data);
       } catch (err: any) {
-        setError(err?.response?.data?.detail || 'Failed to load student profile.');
-      } finally { setLoading(false); }
+        if (request === profileRequest.current) setError(err?.response?.data?.detail || 'Failed to load student profile.');
+      } finally { if (request === profileRequest.current) setLoading(false); }
     })();
+    return () => { profileRequest.current += 1; };
   }, [studentId]);
+
+  async function applyRange(start: string, end: string) {
+    const request = ++profileRequest.current;
+    setRangeLoading(true);
+    setRangeError(null);
+    try {
+      const data = await getAdminStudentProfile(studentId, { start_date: start, end_date: end });
+      if (request === profileRequest.current) setProfile(data);
+    } catch (err: any) {
+      if (request === profileRequest.current) setRangeError('Unable to update the profile. The previous range is still shown. Please retry.');
+    } finally {
+      if (request === profileRequest.current) setRangeLoading(false);
+    }
+  }
 
   if (loading) {
     return <AdminStudentProfileSkeleton />;
@@ -130,17 +155,40 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
     );
   }
 
-  const crossClassRed =
-    profile.category_7d?.red_cross_class ??
-    profile.cross_class_red_count_7d ??
-    0;
-  const maxDayCount = Math.max(1, ...profile.timeline_30d.map(d => d.counts.yellow + d.counts.red + d.counts.absent));
+  const counts = profile.counts_selected_range ?? profile.counts_30d;
+  const category = profile.category_selected_range ?? profile.category_7d;
+  const rangeStart = profile.range_start ?? profile.class_snapshot?.range_start;
+  const rangeEnd = profile.range_end ?? profile.class_snapshot?.range_end;
+  const rangeLabel = rangeStart && rangeEnd ? `${formatDate(rangeStart)} - ${formatDate(rangeEnd)}` : 'Selected period';
+  const crossClassRed = category?.red_cross_class ?? 0;
+
+  async function createReport() {
+    if (reportPending.current || rangeLoading || !rangeStart || !rangeEnd) return;
+    reportPending.current = true;
+    setReportLoading(true);
+    setReportError(null);
+    const request = profileRequest.current;
+    const options = {
+      start_date: rangeStart, end_date: rangeEnd, subject: 'All Subjects',
+      include_teachers_notes: true, include_ai_recommendations: false, include_template: true,
+    };
+    try {
+      const result = await generateAdminStudentReport(studentId, options);
+      if (request === profileRequest.current) setGeneratedReport({ ...options, result });
+    } catch {
+      if (request === profileRequest.current) setReportError('Unable to create the report. Please try again.');
+    } finally {
+      reportPending.current = false;
+      if (request === profileRequest.current) setReportLoading(false);
+    }
+  }
+
 
   return (
     <div className="space-y-6">
 
       {/* Back + Header */}
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-4">
           <button
             onClick={() => {
@@ -169,21 +217,29 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 pt-1 md:pt-0">
+        <div className="flex flex-wrap items-end gap-2 pt-1 md:pt-0">
+          {profile.class_snapshot && <AdminProfileDateFilter
+            key={`${studentId}:${rangeStart}:${rangeEnd}`}
+            snapshot={profile.class_snapshot}
+            busy={rangeLoading || reportLoading}
+            onApply={(start, end) => void applyRange(start, end)}
+          />}
           <button
+            disabled={rangeLoading || reportLoading || !rangeStart || !rangeEnd}
             onClick={() => {
               logger.buttonClick(`Create Report for ${student.first_name} ${student.last_name}`, 'AdminStudentProfile');
-              setIsReportModalOpen(true);
+              void createReport();
             }}
             className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-[#1b1e2c] hover:bg-gray-100 dark:hover:bg-[#262a3d] text-gray-700 dark:text-gray-300 rounded-lg text-sm font-semibold transition-colors border border-gray-200 dark:border-[#262a3d]"
           >
-            <FileText size={16} />
-            Create Report
+            {reportLoading ? <RefreshCw size={16} className="animate-spin" /> : <FileText size={16} />}
+            {reportLoading ? 'Creating Report...' : 'Create Report'}
           </button>
-          {(profile.counts_30d.red > 0 || profile.counts_30d.super_green >= 5) && (
+          {(counts.red > 0 || counts.super_green >= 5) && (
             <button
+              disabled={rangeLoading}
               onClick={() => {
-                const category = profile.counts_30d.red > 0 ? 'admin_concern' : (profile.counts_30d.super_green >= 5 ? 'admin_commendation' : (profile.counts_30d.yellow > 0 ? 'yellow' : 'super_green'));
+                const category = counts.red > 0 ? 'admin_concern' : (counts.super_green >= 5 ? 'admin_commendation' : (counts.yellow > 0 ? 'yellow' : 'super_green'));
                 const adminEmailConcerns = profile?.flag_log
                   ?.filter((f: any) => f.signal_type === 'red' || f.signal_type === 'yellow')
                   ?.map((f: any) => `- ${f.class_name || 'Class'}: ${f.rule_description || f.description || f.note || 'Concern logged'}`)
@@ -212,31 +268,30 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
         </div>
       </div>
 
-      {/* Signal Count Windows */}
-      <div className="grid md:grid-cols-3 gap-4">
-        <CountsCard label="Last 7 Days" counts={profile.counts_7d} />
-        <CountsCard label="Last 30 Days" counts={profile.counts_30d} />
-        <CountsCard label={`Semester (${formatDate(profile.semester_start)} — ${formatDate(profile.semester_end)})`} counts={profile.counts_semester} />
-      </div>
+      {reportError && <p role="alert" className="text-sm text-red-600">{reportError}</p>}
+      {rangeError && <p role="alert" className="text-sm text-red-600">{rangeError}</p>}
+      {rangeLoading && <p role="status" className="text-sm text-gray-500">Updating all profile sections...</p>}
+      <div aria-busy={rangeLoading || reportLoading} className={rangeLoading ? 'pointer-events-none opacity-50 space-y-6' : 'space-y-6'}>
+      <CountsCard label={`Selected Period (${rangeLabel})`} counts={counts} />
 
-      {/* Category Breakdown 7d */}
+      {/* Category Breakdown */}
       <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">7-Day Category Breakdown</h3>
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Category Breakdown</h3>
         <div className="grid grid-cols-2 gap-3 text-center text-sm md:grid-cols-4">
           <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-100">
-            <p className="text-2xl font-bold text-yellow-600">{profile.category_7d?.yellow_academic ?? 0}</p>
+            <p className="text-2xl font-bold text-yellow-600">{category?.yellow_academic ?? 0}</p>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Yellow Academic</p>
           </div>
           <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-100">
-            <p className="text-2xl font-bold text-yellow-600">{profile.category_7d?.yellow_behavioral ?? 0}</p>
+            <p className="text-2xl font-bold text-yellow-600">{category?.yellow_behavioral ?? 0}</p>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Yellow Behavioral</p>
           </div>
           <div className="p-3 bg-red-50 rounded-lg border border-red-100">
-            <p className="text-2xl font-bold text-red-600">{profile.category_7d?.red_academic ?? 0}</p>
+            <p className="text-2xl font-bold text-red-600">{category?.red_academic ?? 0}</p>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Red Academic</p>
           </div>
           <div className="p-3 bg-red-50 rounded-lg border border-red-100">
-            <p className="text-2xl font-bold text-red-600">{profile.category_7d?.red_behavioral ?? 0}</p>
+            <p className="text-2xl font-bold text-red-600">{category?.red_behavioral ?? 0}</p>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Red Behavioral</p>
           </div>
           <div className="p-3 bg-red-50 rounded-lg border border-red-100 md:col-span-2 md:col-start-2">
@@ -244,32 +299,32 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Red Cross-Class</p>
           </div>
         </div>
-        {profile.semester_absent_count > 0 && (
+        {counts.absent > 0 && (
           <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-            <Clock size={14} className="inline mr-1" />Semester absences: <span className="font-bold text-gray-900 dark:text-white">{profile.semester_absent_count}</span>
+            <Clock size={14} className="inline mr-1" />Absences in selected period: <span className="font-bold text-gray-900 dark:text-white">{counts.absent}</span>
           </p>
         )}
       </div>
 
 
       <AdminClassSnapshot
-        key={studentId}
+        key={`${studentId}:${rangeStart}:${rangeEnd}`}
+        disabled={rangeLoading || reportLoading}
         studentId={studentId}
         snapshot={profile.class_snapshot}
-        academicStart={profile.semester_start}
-        onSnapshot={(class_snapshot) => setProfile((current) => current ? { ...current, class_snapshot } : current)}
         onReport={setGeneratedReport}
       />
 
       {/* Student History */}
-      {profile.flag_log && profile.flag_log.length > 0 && (
+      {(
         <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden mb-6">
           <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex items-center gap-2">
             <Activity size={16} className="text-teal-500" />
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">Student History</h3>
           </div>
           <div className="divide-y divide-gray-100 dark:divide-[#262a3d] max-h-96 overflow-y-auto">
-            {profile.flag_log.map((flag: any, i: number) => {
+            {!profile.flag_log?.length && <p className="p-4 text-sm text-gray-500">No student history in this period.</p>}
+            {profile.flag_log?.map((flag: any, i: number) => {
               let rawDate = new Date(flag.signal_date + 'T00:00:00');
               let shortDate = flag.signal_date;
               let dayOfWeek = '';
@@ -312,9 +367,9 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
                         ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30'
                         : sType === 'YELLOW'
                           ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30'
-                          : 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30'
+                          : sType === 'ABSENT' ? 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300' : 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30'
                       }`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${sType === 'RED' ? 'bg-red-500' : sType === 'YELLOW' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                      <div className={`w-1.5 h-1.5 rounded-full ${sType === 'RED' ? 'bg-red-500' : sType === 'YELLOW' ? 'bg-amber-500' : sType === 'ABSENT' ? 'bg-slate-400' : 'bg-emerald-500'}`} />
                       {displayType}
                     </div>
                   </div>
@@ -325,6 +380,8 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
         </div>
       )}
 
+      </div>
+
       <ConfirmDeleteModal
         isOpen={isDeactivateModalOpen}
         onClose={() => setIsDeactivateModalOpen(false)}
@@ -333,28 +390,6 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
         description={`Are you sure you want to deactivate ${student.first_name} ${student.last_name}? This will perform a global soft delete, making the student inactive across the entire school.`}
         confirmText="Deactivate"
         requireConfirmationText={`${student.first_name} ${student.last_name}`}
-      />
-
-      <CreateReportModal
-        isOpen={isReportModalOpen}
-        student={{
-          id: student.student_id,
-          name: `${student.first_name} ${student.last_name}`.trim(),
-          status: 'neutral',
-          initial: `${student.first_name.charAt(0)}${student.last_name.charAt(0)}`.toUpperCase(),
-          bgColor: 'from-blue-400 to-blue-600',
-          redCount: profile.counts_30d.red,
-          yellowCount: profile.counts_30d.yellow,
-        }}
-        defaultSubject="All Subjects"
-        gradeSubjects={[]}
-        onClose={() => setIsReportModalOpen(false)}
-        onGenerate={(reportData) => {
-          logger.reportGeneration(`${student.first_name} ${student.last_name}`.trim(), reportData);
-          setGeneratedReport(reportData);
-          setIsReportModalOpen(false);
-        }}
-        customGenerateFunction={generateAdminStudentReport}
       />
 
       {emailModalData && (

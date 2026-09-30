@@ -626,7 +626,7 @@ export default function ReportView({
                           : String(signal.category || (isPositive ? 'Super Green' : 'General')).replace(/_/g, ' ');
                       const description = signalType === 'present'
                         ? '—'
-                        : signal.title || signal.reason_description || signal.description || signal.note || 'Flag Logged';
+                        : signalType === 'absent' ? [signal.title || signal.reason_description || 'Absent', signal.description || signal.note].filter(Boolean).join(' - ') : signal.title || signal.reason_description || signal.description || signal.note || 'Flag Logged';
                       const className = signal.class_name || reportData.subject || 'All Subjects';
                       const isReferral = Boolean(signal.referral_type)
                         || String(signal.origin || '').includes('manual')

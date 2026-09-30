@@ -461,7 +461,7 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
                       {/* Content box with min-w-0 for proper truncate */}
                       <div className="flex-1 min-w-0 px-3.5 py-1.5 bg-gray-50 dark:bg-[#1b1e2c] rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 border border-gray-100 dark:border-[#262a3d] flex justify-between items-center gap-2">
                         <span className="truncate flex-1">
-                          {signal.signal_type === 'present' ? '' : (signal.reason_description || signal.note || 'No reason provided')}
+                          {signal.signal_type === 'present' ? '' : (signal.signal_type === 'absent' ? [signal.reason_description, signal.note].filter(Boolean).join(' - ') || 'Absent' : signal.reason_description || signal.note || 'No reason provided')}
                         </span>
                         {signal.class_name && (
                           <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium shrink-0 bg-white dark:bg-[#262a3d] px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 whitespace-nowrap">
