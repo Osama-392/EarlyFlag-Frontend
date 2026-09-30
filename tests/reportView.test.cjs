@@ -162,6 +162,14 @@ test('admin preview and export use the native PDF renderer with canonical Red da
           talking_points: ['Schedule a family check-in.'],
           recent_notes: [{ signal_date: '2026-09-03', class_name: 'Religion 8A', note: 'Reviewed the support plan.' }],
         },
+        class_snapshot: {
+          range_start: '2026-08-09', range_end: '2026-09-07', local_today: '2026-09-07',
+          academic_year_start: '2026-08-01', classes: [{
+            class_id: 'class-1', class_name: 'SnapshotClass', teacher: { id: 'teacher-1', display_name: 'SnapshotTeacher' },
+            counts: { present: 11, absent: 0, yellow: 3, red: 2, super_green: 1 },
+            latest_note: { signal_id: 'signal-1', signal_date: '2026-09-04', excerpt: 'SnapshotNote' },
+          }],
+        },
         red_summary: {
           range_start: '2026-08-09', range_end: '2026-09-07', red_count: 4,
           academic_red_count: 2, behavioral_red_count: 1, cross_class_red_count: 1,
@@ -174,7 +182,7 @@ test('admin preview and export use the native PDF renderer with canonical Red da
 
   for (const expected of [
     'Arthur O’Connor', 'S-2042', 'Last 30 Days', 'All Subjects',
-    'Canonical Red Summary', 'Cross-Class', 'Student History',
+    'Red Summary', 'Cross-Class', 'Student History',
     'Recommended Next Steps', 'Schedule a family check-in.',
     'Teachers Notes', 'Reviewed the support plan.', 'Back to Student Profile',
   ]) assert.ok(html.includes(expected), `admin preview includes ${expected}`);
@@ -218,9 +226,17 @@ test('admin preview and export use the native PDF renderer with canonical Red da
     total: 4, academic: 2, behavioral: 1, crossClass: 1,
     range: 'Aug 9, 2026 - Sep 7, 2026',
   });
+  assert.ok(html.indexOf('Red Summary') < html.indexOf('Class-by-Class Snapshot'));
+  assert.ok(html.indexOf('Class-by-Class Snapshot') < html.indexOf('Student History'));
+  for (const value of ['SnapshotClass', 'SnapshotTeacher', 'SnapshotNote', 'Latest Note']) assert.ok(html.includes(value));
+  assert.equal(exported.data.classSnapshot.range, 'Aug 9, 2026 - Sep 7, 2026');
+  assert.equal(exported.data.classSnapshot.rows[0].present, 11);
+  assert.equal(exported.data.classSnapshot.rows[0].absent, 0);
+  assert.equal(exported.data.classSnapshot.rows[0].latestNote, 'Sep 4, 2026 - SnapshotNote');
   assert.equal(exported.data.history.length, 1);
   const pdfText = exported.pdf.internal.pages.slice(1).map((page) => page.join('\n')).join('\n');
-  assert.ok(pdfText.includes('Canonical Red Summary'));
+  assert.ok(pdfText.includes('Red Summary'));
+  for (const value of ['Class-by-Class Snapshot', 'SnapshotClass', 'SnapshotTeacher', 'SnapshotNote']) assert.ok(pdfText.includes(value));
   assert.ok(pdfText.includes('Cross-Class'));
   assert.ok(pdfText.includes('Needs support'));
   assert.ok(pdfText.includes('Missing assignments'));

@@ -32,7 +32,7 @@ test('admin PDF keeps every admin-preview summary metric as native text', () => 
   for (const value of [
     'Arthur O', '8th Grade', 'S-2042', 'Last 30 Days', 'All Subjects',
     'Super Green', 'Present', 'Yellow', 'Red', 'Absent',
-    'Canonical Red Summary', 'Total Red', 'Academic', 'Behavioral', 'Cross-Class',
+    'Red Summary', 'Total Red', 'Academic', 'Behavioral', 'Cross-Class',
   ]) assert.ok(output.includes(value), `PDF contains ${value}`);
   assert.doesNotMatch(output, /Student History|Recommended Next Steps|Teachers Notes/);
   assert.doesNotMatch(pdf.output(), /\/Subtype \/Image/);
@@ -89,4 +89,29 @@ test('admin PDF preserves long preview sections across native pages', () => {
   assert.ok(output.includes('Student History \\(continued\\)'));
   assert.ok(output.includes('Recommended Next Steps'));
   assert.ok(output.includes('Teachers Notes'));
+});
+
+
+test('class snapshot preserves every row and repeats table headings across PDF pages', () => {
+  const rows = Array.from({ length: 45 }, (_, index) => ({
+    className: `SnapshotRow${String(index).padStart(2, '0')}`, teacherName: 'SnapshotTeacher',
+    present: 11, absent: 0, yellow: 2, red: 1, superGreen: 3,
+    latestNote: 'Sep 4, 2026 - ' + 'Class participation improved. '.repeat(5),
+  }));
+  const pdf = createAdminReportPdf({ ...base, classSnapshot: { range: base.dateRange, rows } });
+  const output = pdfText(pdf);
+  assert.ok(pdf.getNumberOfPages() >= 3);
+  assert.deepEqual(output.match(/SnapshotRow\d{2}/g), rows.map((row) => row.className));
+  assert.ok((output.match(/Class-by-Class Snapshot/g) || []).length >= 3);
+  assert.ok((output.match(/Subject \/ Teacher/g) || []).length >= 3);
+  assert.ok(output.includes('SnapshotTeacher'));
+  assert.ok(output.includes('Latest Note'));
+  assert.ok(output.includes('(0) Tj'));
+  assert.doesNotMatch(pdf.output(), /\/Subtype \/Image/);
+});
+
+test('empty class snapshot has an explicit empty state in PDF', () => {
+  const output = pdfText(createAdminReportPdf({ ...base, classSnapshot: { range: base.dateRange, rows: [] } }));
+  assert.ok(output.includes('Class-by-Class Snapshot'));
+  assert.ok(output.includes('No active classes match this report.'));
 });

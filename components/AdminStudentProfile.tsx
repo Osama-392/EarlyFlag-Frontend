@@ -16,6 +16,7 @@ import {
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import CreateReportModal from '@/components/CreateReportModal';
 import ReportView from '@/components/ReportView';
+import AdminClassSnapshot from '@/components/AdminClassSnapshot';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/app/providers';
 import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
@@ -250,6 +251,15 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
         )}
       </div>
 
+
+      <AdminClassSnapshot
+        key={studentId}
+        studentId={studentId}
+        snapshot={profile.class_snapshot}
+        academicStart={profile.semester_start}
+        onSnapshot={(class_snapshot) => setProfile((current) => current ? { ...current, class_snapshot } : current)}
+        onReport={setGeneratedReport}
+      />
 
       {/* Student History */}
       {profile.flag_log && profile.flag_log.length > 0 && (
