@@ -10,6 +10,7 @@ import { getStudentHistory } from '@/lib/studentService';
 import { getClass, Class } from '@/lib/classService';
 import StudentHistoryModal from '@/components/StudentHistoryModal';
 import SignalLogModal from '@/components/SignalLogModal';
+import { ABSENCE_REASONS } from '@/lib/absenceReasons';
 import EditSignalModal from '@/components/EditSignalModal';
 import AddStudentModal from '@/components/AddStudentModal';
 import BulkUploadModal from '@/components/BulkUploadModal';
@@ -88,7 +89,7 @@ export default function StudentRoster() {
 
  const handleUpdateSignal = async (
  signalId: string,
- signalType: 'green' | 'yellow' | 'red',
+ signalType: 'green' | 'yellow' | 'red' | 'absent',
  category?: string,
  note?: string,
  reasonCode?: string
@@ -96,8 +97,13 @@ export default function StudentRoster() {
  try {
  await updateSignal(signalId, {
  signal_type: signalType,
- category,
- note,
+ category: signalType === 'absent' ? null : category,
+ note: signalType === 'absent' ? note?.trim() || null : note,
+ ...(signalType === 'absent' ? {
+ reason_code: reasonCode || null,
+ reason_description: reasonCode ? ABSENCE_REASONS[reasonCode] || null : null,
+ save_for_later: false,
+ } : selectedSignalToEdit?.signal.signal_type === 'absent' ? { reason_code: null, reason_description: null } : {}),
  // reason_code: reasonCode // Backend might expect this in category or separate field
  });
  

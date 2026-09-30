@@ -8,6 +8,7 @@ import {
 import { logger } from '@/lib/logger';
 import { createTeacherReportPdf } from '@/lib/teacherReportPdf';
 import { createAdminReportPdf } from '@/lib/adminReportPdf';
+import type { StudentClassSnapshot } from '@/lib/adminDashboardService';
 import { useAuth } from '@/app/providers';
 
 interface ReportViewProps {
@@ -114,6 +115,16 @@ export default function ReportView({
   const reportResponse = reportData?.result;
   const report = reportResponse?.report || reportResponse;
   const redSummary = reportResponse?.red_summary;
+  const classSnapshot = reportResponse?.class_snapshot as StudentClassSnapshot | undefined;
+  const snapshotNotesIncluded = reportData.includeTeachersNotes !== false && reportData.include_teachers_notes !== false;
+  const classSnapshotRows = classSnapshot?.classes.map((row) => ({
+    className: row.class_name, teacherName: row.teacher.display_name,
+    present: row.counts.present, absent: row.counts.absent, yellow: row.counts.yellow,
+    red: row.counts.red, superGreen: row.counts.super_green,
+    latestNote: !snapshotNotesIncluded ? 'Not included' : row.latest_note
+      ? `${formatDate(row.latest_note.signal_date)} - ${row.latest_note.excerpt}`
+      : 'No notes in this period',
+  }));
   const rawFlagLog = report?.flag_log || report?.signals || report?.recent_flags || [];
 
   const isSuperGreenOrGeneral = (s: any): boolean => {
@@ -296,6 +307,10 @@ export default function ReportView({
           behavioral: Number(redSummary.behavioral_red_count ?? 0),
           crossClass: Number(redSummary.cross_class_red_count ?? 0),
           range: `${formatDate(redSummary.range_start)} - ${formatDate(redSummary.range_end)}`,
+        } : undefined,
+        classSnapshot: classSnapshot ? {
+          range: `${formatDate(classSnapshot.range_start)} - ${formatDate(classSnapshot.range_end)}`,
+          rows: classSnapshotRows || [],
         } : undefined,
         history: adminHistory,
         recommendations: (reportData.includeAIRecommendations || reportData.include_ai_recommendations)
@@ -611,7 +626,7 @@ export default function ReportView({
                           : String(signal.category || (isPositive ? 'Super Green' : 'General')).replace(/_/g, ' ');
                       const description = signalType === 'present'
                         ? '—'
-                        : signal.title || signal.reason_description || signal.description || signal.note || 'Flag Logged';
+                        : signalType === 'absent' ? [signal.title || signal.reason_description || 'Absent', signal.description || signal.note].filter(Boolean).join(' - ') : signal.title || signal.reason_description || signal.description || signal.note || 'Flag Logged';
                       const className = signal.class_name || reportData.subject || 'All Subjects';
                       const isReferral = Boolean(signal.referral_type)
                         || String(signal.origin || '').includes('manual')
@@ -739,7 +754,7 @@ export default function ReportView({
               <section className="rounded-xl border border-red-100 bg-white p-5 shadow-sm">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900">Canonical Red Summary</h3>
+                    <h3 className="text-sm font-bold text-gray-900">Red Summary</h3>
                     <p className="text-xs text-gray-500">{formatDate(redSummary.range_start)} – {formatDate(redSummary.range_end)}</p>
                   </div>
                 </div>
@@ -756,6 +771,42 @@ export default function ReportView({
                     </div>
                   ))}
                 </div>
+              </section>
+            )}
+
+            {classSnapshot && (
+              <section className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-[#262a3d] dark:bg-[#151722]">
+                <div className="p-5">
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">Class-by-Class Snapshot</h3>
+                  <p className="mt-1 text-xs text-gray-500">{formatDate(classSnapshot.range_start)} - {formatDate(classSnapshot.range_end)} | Current enrollments</p>
+                </div>
+                {classSnapshotRows?.length ? (
+                  <div className="overflow-x-auto print:overflow-visible">
+                    <table className="w-full text-left text-xs">
+                      <thead className="border-y border-gray-100 bg-gray-50 text-gray-600 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-gray-300">
+                        <tr>
+                          <th scope="col" className="px-4 py-3">Subject / Teacher</th>
+                          {['Present', 'Absent', 'Yellow', 'Red', 'Super Green'].map((label) => <th key={label} scope="col" className="px-3 py-3 text-center">{label}</th>)}
+                          <th scope="col" className="px-4 py-3">Latest Note</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-[#262a3d]">
+                        {classSnapshotRows.map((row, index) => (
+                          <tr key={classSnapshot.classes[index].class_id}>
+                            <th scope="row" className="px-4 py-3 text-gray-900 dark:text-white">{row.className}<span className="mt-1 block font-normal text-gray-500">{row.teacherName}</span></th>
+                            {[
+                              [row.present, 'bg-green-50 text-green-700'], [row.absent, 'bg-slate-50 text-slate-600'],
+                              [row.yellow, 'bg-amber-50 text-amber-700'], [row.red, 'bg-red-50 text-red-700'],
+                              [row.superGreen, 'bg-emerald-50 text-emerald-700'],
+                            ].map(([value, color], column) => <td key={column} className="px-3 py-3 text-center"><span className={`inline-block min-w-8 rounded-md px-2 py-1 font-semibold ${color}`}>{value}</span></td>)}
+                            <td className="max-w-xs break-words px-4 py-3 text-gray-500">{row.latestNote}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : <p className="px-5 pb-5 text-sm text-gray-500">No active classes match this report.</p>}
+                <p className="border-t border-gray-100 p-4 text-xs text-gray-500 dark:border-[#262a3d]">Present and Absent count recorded signals. Super Green includes automatic entries. Cross-class Reds appear in Red Summary.</p>
               </section>
             )}
 

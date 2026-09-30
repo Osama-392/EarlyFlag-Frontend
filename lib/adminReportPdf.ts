@@ -24,6 +24,14 @@ export interface AdminReportPdfData {
     crossClass: number;
     range: string;
   };
+  classSnapshot?: {
+    range: string;
+    rows: Array<{
+      className: string; teacherName: string;
+      present: number; absent: number; yellow: number; red: number; superGreen: number;
+      latestNote: string;
+    }>;
+  };
   history: Array<{
     date: string;
     dayOfWeek: string;
@@ -157,7 +165,7 @@ export function createAdminReportPdf(data: AdminReportPdfData): jsPDF {
   y += 23;
 
   if (data.canonicalRed) {
-    heading('Canonical Red Summary', data.canonicalRed.range);
+    heading('Red Summary', data.canonicalRed.range);
     const redCards = [
       { label: 'Total Red', value: data.canonicalRed.total },
       { label: 'Academic', value: data.canonicalRed.academic },
@@ -172,6 +180,69 @@ export function createAdminReportPdf(data: AdminReportPdfData): jsPDF {
       text(card.label, x + redCardWidth / 2, y + 11.5, 7.5, false, palette.muted, { align: 'center' });
     });
     y += 23;
+  }
+
+  if (data.classSnapshot) {
+    const snapshot = data.classSnapshot;
+    const columnWidths = [43, 16, 15, 15, 13, 23, width - 125];
+    const columnX = columnWidths.map((_, index) => margin + columnWidths.slice(0, index).reduce((sum, value) => sum + value, 0));
+    const tableHeading = (continued = false) => {
+      // Keep the heading, column labels and at least one row together.
+      ensureSpace(35);
+      heading('Class-by-Class Snapshot', snapshot.range, continued);
+      box(margin, y, width, 9, palette.surface, palette.border, 1);
+      ['Subject / Teacher', 'Present', 'Absent', 'Yellow', 'Red', 'Super Green', 'Latest Note'].forEach((label, index) => {
+        const numeric = index > 0 && index < 6;
+        text(label, columnX[index] + (numeric ? columnWidths[index] / 2 : 2), y + 2, 7, true, palette.muted,
+          numeric ? { align: 'center' } : {});
+      });
+      y += 9;
+    };
+    tableHeading();
+    if (!snapshot.rows.length) {
+      text('No active classes match this report.', margin + 3, y + 3, 9, false, palette.muted);
+      y += 12;
+    }
+    for (const row of snapshot.rows) {
+      const nameLines = wrap(row.className, columnWidths[0] - 4, 8, true);
+      const teacherLines = wrap(row.teacherName, columnWidths[0] - 4, 7.5);
+      const noteLines = wrap(row.latestNote, columnWidths[6] - 4, 7.5);
+      const labelLines = [...nameLines, ...teacherLines];
+      const totalLines = Math.max(labelLines.length, noteLines.length, 1);
+      const values = [row.present, row.absent, row.yellow, row.red, row.superGreen];
+      const themes = [palette.green, palette.neutral, palette.yellow, palette.red, palette.green];
+      let offset = 0;
+      while (offset < totalLines) {
+        const desiredHeight = Math.max(12, (totalLines - offset) * lineHeight + 5);
+        if (y + desiredHeight > bottom && y > margin + 21) {
+          nextPage();
+          tableHeading(true);
+        }
+        const capacity = Math.max(1, Math.floor((bottom - y - 5) / lineHeight));
+        const length = Math.min(capacity, totalLines - offset);
+        const height = Math.max(12, length * lineHeight + 5);
+        box(margin, y, width, height, palette.white, palette.border, 1);
+        for (let line = 0; line < length; line++) {
+          const at = offset + line;
+          if (labelLines[at]) text(labelLines[at], columnX[0] + 2, y + 2 + line * lineHeight,
+            at < nameLines.length ? 8 : 7.5, at < nameLines.length, at < nameLines.length ? palette.ink : palette.muted);
+          if (noteLines[at]) text(noteLines[at], columnX[6] + 2, y + 2 + line * lineHeight, 7.5, false, palette.muted);
+        }
+        if (offset === 0) values.forEach((value, index) => {
+          const center = columnX[index + 1] + columnWidths[index + 1] / 2;
+          box(center - 5, y + 2, 10, 7, themes[index].fill, themes[index].border, 1);
+          text(String(value), center, y + 3, 8, true, themes[index].text, { align: 'center' });
+        });
+        y += height;
+        offset += length;
+        if (offset < totalLines) { nextPage(); tableHeading(true); }
+      }
+    }
+    y += 3;
+    const caption = wrap('Present and Absent count recorded signals. Super Green includes automatic entries. Cross-class Reds appear in Red Summary.', width - 6, 7.5);
+    ensureSpace(caption.length * lineHeight + 5);
+    text(caption, margin + 3, y, 7.5, false, palette.muted);
+    y += caption.length * lineHeight + 6;
   }
 
   if (data.history.length) {

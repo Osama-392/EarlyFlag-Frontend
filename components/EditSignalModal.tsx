@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Save, AlertCircle } from 'lucide-react';
+import { ABSENCE_REASONS } from '@/lib/absenceReasons';
 import { Signal } from '@/lib/studentService';
 
 interface EditSignalModalProps {
@@ -11,7 +12,7 @@ interface EditSignalModalProps {
  signal: Signal | null;
  onUpdate: (
  signalId: string,
- signalType: 'green' | 'yellow' | 'red',
+ signalType: 'green' | 'yellow' | 'red' | 'absent',
  category?: string,
  note?: string,
  reason_code?: string
@@ -29,7 +30,7 @@ export default function EditSignalModal({
  signal,
  onUpdate,
 }: EditSignalModalProps) {
- const [selectedSignal, setSelectedSignal] = useState<'green' | 'yellow' | 'red' | null>(null);
+ const [selectedSignal, setSelectedSignal] = useState<'green' | 'yellow' | 'red' | 'absent' | null>(null);
  const [category, setCategory] = useState('');
  const [note, setNote] = useState('');
  const [reasonCode, setReasonCode] = useState('');
@@ -40,13 +41,14 @@ export default function EditSignalModal({
  useEffect(() => {
  if (isOpen && signal) {
  // Map expanded signal types to the modal's 3-option type
- const typeMap: Record<string, 'green' | 'yellow' | 'red' | null> = {
+ const typeMap: Record<string, 'green' | 'yellow' | 'red' | 'absent' | null> = {
  present: 'green', green: 'green', super_green: 'green',
- yellow: 'yellow', red: 'red', absent: null,
+ yellow: 'yellow', red: 'red', absent: 'absent',
  };
  setSelectedSignal(typeMap[signal.signal_type] ?? null);
  setCategory(signal.category || '');
  setNote(signal.note || '');
+ setReasonCode(signal.reason_code || '');
  // If it's green, the reason code might be stored in category or a separate field in backend
  // But based on our SignalLogModal, we send reasonCode as the 4th param.
  // We'll assume the backend returns it in a way we can identify.
@@ -128,14 +130,14 @@ export default function EditSignalModal({
  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
  Signal Type <span className="text-red-500">*</span>
  </label>
- <div className="grid grid-cols-3 gap-2">
- {(['green', 'yellow', 'red'] as const).map((type) => (
+ <div className="grid grid-cols-4 gap-2">
+ {(['green', 'yellow', 'red', 'absent'] as const).map((type) => (
  <button
  key={type}
- onClick={() => setSelectedSignal(type)}
+ onClick={() => { setSelectedSignal(type); if (type !== selectedSignal) { setCategory(''); setReasonCode(''); } }}
  className={`px-3 py-3 rounded-xl font-bold transition-all text-xs flex flex-col items-center gap-1.5 ${
  selectedSignal === type
- ? type === 'green'
+ ? type === 'absent' ? 'bg-gray-100 text-gray-700 border-2 border-gray-400' : type === 'green'
  ? 'bg-emerald-100 text-emerald-700 border-2 border-emerald-500 shadow-sm'
  : type === 'yellow'
  ? 'bg-amber-100 text-amber-700 border-2 border-amber-500 shadow-sm'
@@ -144,9 +146,9 @@ export default function EditSignalModal({
  }`}
  >
  <span className="text-lg">
- {type === 'green' ? '✨' : type === 'yellow' ? '⚠️' : '🚨'}
+ {type === 'absent' ? '●' : type === 'green' ? '✨' : type === 'yellow' ? '⚠️' : '🚨'}
  </span>
- {type === 'green' ? 'Good' : type === 'yellow' ? 'Warning' : 'Critical'}
+ {type === 'absent' ? 'Absent' : type === 'green' ? 'Good' : type === 'yellow' ? 'Warning' : 'Critical'}
  </button>
  ))}
  </div>
@@ -174,6 +176,11 @@ export default function EditSignalModal({
  </div>
  )}
 
+ {selectedSignal === 'absent' && <label className="block text-sm text-gray-600">Reason (optional)
+ <select value={reasonCode} disabled={loading} onChange={e => setReasonCode(e.target.value)} className="mt-2 block w-full rounded-lg border p-2">
+ <option value="">No reason</option>
+ {Object.entries(ABSENCE_REASONS).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+ </select></label>}
  {/* Reason Code - for Green */}
  {selectedSignal === 'green' && (
  <div className="animate-in fade-in slide-in-from-top-1 duration-200">

@@ -3,6 +3,7 @@
 import { X, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 import { logger } from '@/lib/logger';
+import { ABSENCE_REASONS } from '@/lib/absenceReasons';
 import { Student } from '@/lib/studentService';
 
 interface FlagModalProps {
@@ -16,6 +17,8 @@ interface FlagModalProps {
  bgColor: string;
  };
  apiStudent?: Student;
+ className?: string;
+ signalDate?: string;
  initialData?: any;
  onClose: () => void;
  onSubmit: (data: any) => void;
@@ -25,6 +28,8 @@ export default function FlagModal({
  flagType,
  student,
  apiStudent,
+ className,
+ signalDate,
  initialData,
  onClose,
  onSubmit,
@@ -119,7 +124,7 @@ export default function FlagModal({
  categories: ['academic', 'behavioral'],
  },
  absent: {
- title: 'Not In Class',
+ title: `Mark ${student.name} Absent`,
  icon: (
  <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
  <div className="w-3 h-3 rounded-full bg-gray-600" />
@@ -128,7 +133,7 @@ export default function FlagModal({
  studentBg: 'bg-slate-50 dark:bg-[#1b1e2c]',
  activeCategoryBg: 'bg-gray-500 text-white border-gray-500',
  selectedReasonBg: 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white border-gray-400 ring-1 ring-inset ring-gray-400 font-semibold',
- reasons: [],
+ reasons: Object.values(ABSENCE_REASONS),
  categories: [],
  },
  };
@@ -140,6 +145,10 @@ export default function FlagModal({
  : Array.isArray(config.reasons) && config.reasons.length > 0;
 
  const toggleReason = (reason: string, categoryName?: string) => {
+ if (flagType === 'absent') {
+ setSelectedReasons(prev => prev.includes(reason) ? [] : [reason]);
+ return;
+ }
  logger.formChange(`flag-reason-${reason}`, true, 'FlagModal');
 
  if (selectedReasons.includes(reason)) {
@@ -204,6 +213,7 @@ export default function FlagModal({
  </button>
  </div>
 
+ {flagType === 'absent' && <p className="px-6 pt-3 text-sm text-gray-500">{[className, student.period ? `Period ${student.period}` : '', signalDate].filter(Boolean).join(' | ')}</p>}
  {/* Content */}
  <div className="p-6">
  {/* Student Info */}
@@ -318,7 +328,7 @@ export default function FlagModal({
  ) : (
  Array.isArray(config.reasons) && config.reasons.length > 0 && (
  <div className="mb-6">
- <p className="text-[15px] font-medium text-slate-700 dark:text-gray-200 mb-3">Select reason(s)</p>
+ <p className="text-[15px] font-medium text-slate-700 dark:text-gray-200 mb-3">{flagType === 'absent' ? 'Reason (optional)' : 'Select reason(s)'}</p>
  <div className="flex flex-wrap gap-2.5">
  {config.reasons.map((reason: string) => (
  <button
@@ -357,10 +367,10 @@ export default function FlagModal({
  )}
 
  {/* Notes (Mandatory for Super Green & Red, Optional for Yellow) */}
- {(flagType === 'super-green' || flagType === 'yellow' || flagType === 'red') && (
+ {(flagType === 'super-green' || flagType === 'yellow' || flagType === 'red' || flagType === 'absent') && (
  <div className="mt-4">
  <label className="text-[15px] font-medium text-slate-700 dark:text-gray-200 mb-2 block">
- Notes {(flagType === 'super-green' || flagType === 'red') && <span className="text-red-500">*</span>}
+ {flagType === 'absent' ? 'Additional note (optional)' : 'Notes'} {(flagType === 'super-green' || flagType === 'red') && <span className="text-red-500">*</span>}
  </label>
  <textarea
  value={note}
@@ -388,15 +398,15 @@ export default function FlagModal({
  <button
  onClick={handleSubmit}
  disabled={
- (hasReasons && selectedReasons.length === 0) ||
+ (flagType !== 'absent' && hasReasons && selectedReasons.length === 0) ||
  ((flagType === 'super-green' || flagType === 'red') && !note.trim())
  }
- className={`px-6 py-2 rounded-lg font-medium transition-colors ${((hasReasons && selectedReasons.length === 0) || ((flagType === 'super-green' || flagType === 'red') && !note.trim()))
+ className={`px-6 py-2 rounded-lg font-medium transition-colors ${((flagType !== 'absent' && hasReasons && selectedReasons.length === 0) || ((flagType === 'super-green' || flagType === 'red') && !note.trim()))
  ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
  : 'bg-slate-700 text-white hover:bg-slate-800'
  }`}
  >
- Submit Flag
+ {flagType === 'absent' ? 'Save absence' : 'Submit Flag'}
  </button>
  </div>
  </div>

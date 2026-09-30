@@ -175,25 +175,106 @@ export function AdminClassRosterSkeleton({ label = 'Loading class roster' }: { l
 
 export function AdminStudentProfileSkeleton({ label = 'Loading student profile' }: { label?: string }) {
   return (
-    <div className="mx-auto w-full max-w-[1600px] space-y-6 pb-12" aria-label={label} role="status">
-      <div className="flex items-center justify-between gap-4">
-        <BackButtonSkeleton />
-        <div className="hidden gap-2 sm:flex"><AdminSkeletonLine className="h-9 w-28 rounded-lg" /><AdminSkeletonLine className="h-9 w-28 rounded-lg" /></div>
-      </div>
-      <SkeletonCard className="flex items-center justify-between gap-5 p-6">
-        <div className="flex items-center gap-5">
-          <AdminSkeletonLine className="h-20 w-20 shrink-0 rounded-full" />
-          <div><AdminSkeletonLine className="h-7 w-48" /><AdminSkeletonLine className="mt-3 h-3 w-24" /></div>
+    <div className="space-y-6" aria-label={label} role="status" aria-busy="true">
+      <div aria-hidden="true" className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <AdminSkeletonLine className="mt-1 h-10 w-10 shrink-0 rounded-lg" />
+          <div>
+            <AdminSkeletonLine className="h-9 w-56 max-w-full" />
+            <div className="mt-1 flex items-center gap-3">
+              <AdminSkeletonLine className="h-5 w-16" />
+              <AdminSkeletonLine className="h-5 w-24 rounded-full" />
+            </div>
+          </div>
         </div>
-        <AdminSkeletonLine className="hidden h-9 w-28 rounded-xl sm:block" />
-      </SkeletonCard>
-      <MetricCardsSkeleton count={3} />
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
-        <SkeletonCard className="p-5 xl:col-span-2">
-          <AdminSkeletonLine className="h-5 w-36" />
-          {[1, 2, 3, 4].map(item => <div key={item} className="mt-5 flex items-center gap-3"><AdminSkeletonLine className="h-3 w-14" /><AdminSkeletonLine className="h-8 flex-1 rounded-lg" /></div>)}
+        <div className="flex flex-wrap items-end gap-2 pt-1 md:pt-0">
+          <div className="flex flex-wrap items-end gap-3">
+            {['w-52', 'w-36', 'w-36'].map((width, index) => (
+              <div key={index}>
+                <AdminSkeletonLine className="h-4 w-10" />
+                <AdminSkeletonLine className={`mt-1 h-10 rounded-lg ${width}`} />
+              </div>
+            ))}
+            <AdminSkeletonLine className="h-10 w-20 rounded-lg" />
+          </div>
+          <AdminSkeletonLine className="h-10 w-36 rounded-lg" />
+          <AdminSkeletonLine className="h-10 w-44 rounded-lg" />
+        </div>
+      </div>
+
+      <div aria-hidden="true" className="space-y-6">
+        <SkeletonCard className="p-4">
+          <AdminSkeletonLine className="mb-3 h-4 w-80 max-w-full" />
+          <div className="grid grid-cols-5 gap-2">
+            {[1, 2, 3, 4, 5].map(item => (
+              <div key={item} className="flex flex-col items-center">
+                <AdminSkeletonLine className="h-7 w-8" />
+                <AdminSkeletonLine className="mt-1 h-3 w-16 max-w-full" />
+              </div>
+            ))}
+          </div>
         </SkeletonCard>
-        <div className="xl:col-span-3"><AdminTableSkeleton rows={5} columns={5} /></div>
+
+        <SkeletonCard className="p-5">
+          <AdminSkeletonLine className="mb-3 h-5 w-40" />
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {[1, 2, 3, 4, 5].map(item => (
+              <div key={item} className={`rounded-lg border border-gray-100 p-3 dark:border-[#262a3d] ${item === 5 ? 'md:col-span-2 md:col-start-2' : ''}`}>
+                <AdminSkeletonLine className="mx-auto h-8 w-10" />
+                <AdminSkeletonLine className="mx-auto mt-1 h-4 w-28 max-w-full" />
+              </div>
+            ))}
+          </div>
+        </SkeletonCard>
+
+        <SkeletonCard>
+          <div className="p-5">
+            <AdminSkeletonLine className="h-7 w-56 max-w-full" />
+            <AdminSkeletonLine className="mt-1 h-4 w-96 max-w-full" />
+            <AdminSkeletonLine className="mt-1 h-4 w-64 max-w-full" />
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[850px] text-left">
+              <thead className="border-y border-gray-100 bg-gray-50/50 dark:border-[#262a3d] dark:bg-[#1b1e2c]">
+                <tr>
+                  <th className="px-5 py-3"><AdminSkeletonLine className="h-4 w-28" /></th>
+                  {[1, 2, 3, 4, 5].map(column => <th key={column} className="px-3 py-3"><AdminSkeletonLine className="mx-auto h-4 w-12" /></th>)}
+                  <th className="px-5 py-3"><AdminSkeletonLine className="h-4 w-20" /></th>
+                  <th className="px-5 py-3"><AdminSkeletonLine className="h-4 w-16" /></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-[#262a3d]">
+                {[1, 2, 3, 4].map(row => (
+                  <tr key={row}>
+                    <td className="px-5 py-3"><AdminSkeletonLine className="h-5 w-28" /><AdminSkeletonLine className="mt-1 h-4 w-20" /></td>
+                    {[1, 2, 3, 4, 5].map(column => <td key={column} className="px-3 py-3"><AdminSkeletonLine className="mx-auto h-6 w-9 rounded-md" /></td>)}
+                    <td className="px-5 py-3"><AdminSkeletonLine className="h-4 w-40" /></td>
+                    <td className="px-5 py-3"><AdminSkeletonLine className="ml-auto h-4 w-20" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="border-t border-gray-100 p-5 dark:border-[#262a3d]"><AdminSkeletonLine className="h-4 w-full max-w-3xl" /></div>
+        </SkeletonCard>
+
+        <SkeletonCard className="overflow-hidden mb-6">
+          <div className="flex items-center gap-2 border-b border-gray-200 p-4 dark:border-[#262a3d]">
+            <AdminSkeletonLine className="h-4 w-4" />
+            <AdminSkeletonLine className="h-5 w-28" />
+          </div>
+          <div className="max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-[#262a3d]">
+            {[1, 2, 3, 4, 5].map(row => (
+              <div key={row} className="grid grid-cols-1 gap-2 p-4 lg:grid-cols-[5rem_minmax(0,0.8fr)_minmax(0,1.6fr)_minmax(0,1.1fr)_10rem] lg:items-center lg:gap-4">
+                <div><AdminSkeletonLine className="h-5 w-12" /><AdminSkeletonLine className="mt-1 h-4 w-8" /></div>
+                <AdminSkeletonLine className="h-4 w-28 max-w-full" />
+                <AdminSkeletonLine className="h-4 w-48 max-w-full" />
+                <AdminSkeletonLine className="h-4 w-36 max-w-full" />
+                <AdminSkeletonLine className="h-7 w-32 rounded-full lg:justify-self-end" />
+              </div>
+            ))}
+          </div>
+        </SkeletonCard>
       </div>
       <LoadingLabel />
     </div>

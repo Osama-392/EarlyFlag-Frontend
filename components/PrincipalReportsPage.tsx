@@ -15,7 +15,6 @@ import {
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import AdminTeacherReportModal from './AdminTeacherReportModal';
-import CreateReportModal from './CreateReportModal';
 import ReportView from './ReportView';
 import { generateAdminStudentReport } from '@/lib/adminDashboardService';
 import { AdminReportTableSkeleton } from '@/components/AdminLoadingSkeletons';
@@ -195,8 +194,9 @@ export default function PrincipalReportsPage() {
  const [studentFrom, setStudentFrom] = useState('');
  const [studentTo, setStudentTo] = useState('');
  const [studentGrade, setStudentGrade] = useState('');
- const [selectedStudentForReport, setSelectedStudentForReport] = useState<any>(null);
- const [isStudentReportModalOpen, setIsStudentReportModalOpen] = useState(false);
+ const [creatingStudentReport, setCreatingStudentReport] = useState<string | null>(null);
+ const [studentReportError, setStudentReportError] = useState<string | null>(null);
+ const studentReportPending = useRef(false);
  const [generatedStudentReport, setGeneratedStudentReport] = useState<any>(null);
  const REPORT_PAGE_SIZE = 50;
 
@@ -380,17 +380,25 @@ export default function PrincipalReportsPage() {
  }
  };
 
- const handleCreateStudentReport = (student: any) => {
- setSelectedStudentForReport(student);
- setIsStudentReportModalOpen(true);
+ const handleCreateStudentReport = async (student: any) => {
+ if (!studentData || studentLoading || studentReportPending.current) return;
+ studentReportPending.current = true;
+ setCreatingStudentReport(student.student_id);
+ setStudentReportError(null);
+ const options = {
+ start_date: studentData.range_start, end_date: studentData.range_end,
+ subject: 'All Subjects', include_teachers_notes: true,
+ include_ai_recommendations: false, include_template: true,
  };
-
- const handleGenerateStudentReport = (reportData: any) => {
- setGeneratedStudentReport({
- student: selectedStudentForReport,
- reportData: reportData,
- });
- setIsStudentReportModalOpen(false);
+ try {
+ const result = await generateAdminStudentReport(student.student_id, options);
+ setGeneratedStudentReport({ student, reportData: { ...options, result } });
+ } catch {
+ setStudentReportError('Unable to create the report. Please try again.');
+ } finally {
+ studentReportPending.current = false;
+ setCreatingStudentReport(null);
+ }
  };
 
  if (generatedStudentReport) {
@@ -407,7 +415,6 @@ export default function PrincipalReportsPage() {
  variant="admin"
  onBack={() => {
  setGeneratedStudentReport(null);
- setSelectedStudentForReport(null);
  }}
  />
  );
@@ -532,6 +539,8 @@ export default function PrincipalReportsPage() {
  gradeLevel={studentGrade} setGradeLevel={setStudentGrade}
  showGrade={true} onRefresh={fetchStudentReports} loading={studentLoading}
  />
+ {studentReportError && <p role="alert" className="text-sm text-red-600">{studentReportError}</p>}
+ {creatingStudentReport && <p role="status" className="text-sm text-gray-500">Creating report with teacher notes...</p>}
  {/* Export Buttons */}
  {!studentLoading && !studentError && (studentData?.students || []).length > 0 && (
  <div className="flex items-center gap-3 no-print">
@@ -597,11 +606,13 @@ export default function PrincipalReportsPage() {
  <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 dark:text-gray-300">{s.enrolled_class_count}</td>
  <td className="px-4 py-3 text-right">
  <button
- onClick={() => handleCreateStudentReport(s)}
+ disabled={studentLoading || creatingStudentReport !== null}
+ onClick={() => void handleCreateStudentReport(s)}
  className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors inline-flex items-center justify-center"
  title="Create Report"
+ aria-label={`Create report for ${s.first_name} ${s.last_name}`}
  >
- <FileText size={18} />
+ {creatingStudentReport === s.student_id ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}
  </button>
  </td>
  </tr>
@@ -617,28 +628,7 @@ export default function PrincipalReportsPage() {
  )}
  </div>
  )}
- {selectedStudentForReport && (
- <CreateReportModal
- isOpen={isStudentReportModalOpen}
- student={{
- id: selectedStudentForReport.student_id,
- name: `${selectedStudentForReport.first_name} ${selectedStudentForReport.last_name}`,
- status: 'neutral',
- initial: `${selectedStudentForReport.first_name.charAt(0)}${selectedStudentForReport.last_name.charAt(0)}`.toUpperCase(),
- bgColor: 'from-blue-400 to-blue-600',
- redCount: selectedStudentForReport.signal_counts?.red,
- yellowCount: selectedStudentForReport.signal_counts?.yellow,
- }}
- defaultSubject="All Subjects"
- gradeSubjects={[]}
- onClose={() => {
- setIsStudentReportModalOpen(false);
- setSelectedStudentForReport(null);
- }}
- onGenerate={handleGenerateStudentReport}
- customGenerateFunction={generateAdminStudentReport}
- />
- )}
+
  </div>
  )}
 

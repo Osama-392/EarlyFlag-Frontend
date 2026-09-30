@@ -387,7 +387,32 @@ export interface AdminStudentReferralRow {
   created_at: string;
 }
 
+export interface StudentClassSnapshotRow {
+  class_id: string;
+  class_name: string;
+  subject: string | null;
+  period: number | null;
+  teacher: { id: string; display_name: string };
+  counts: SignalCountsByType;
+  latest_note: { signal_id: string; signal_date: string; excerpt: string } | null;
+}
+
+export interface StudentClassSnapshot {
+  range_start: string;
+  range_end: string;
+  local_today: string;
+  academic_year_start: string;
+  class_scope: 'current_enrollments';
+  attendance_basis: 'recorded_signals';
+  classes: StudentClassSnapshotRow[];
+}
+
 export interface AdminStudentProfileBlock {
+  range_start?: string;
+  range_end?: string;
+  counts_selected_range?: SignalCountsByType;
+  category_selected_range?: ReportCategoryBreakdown;
+  class_snapshot?: StudentClassSnapshot | null;
   student: ReportStudentHeader;
   counts_7d: SignalCountsByType;
   counts_30d: SignalCountsByType;
@@ -453,6 +478,7 @@ export interface AdminStudentReportRedSummary {
 }
 
 export interface AdminStudentReportRequest {
+  class_id?: string;
   start_date?: string;
   end_date?: string;
   subject?: string;
@@ -462,6 +488,7 @@ export interface AdminStudentReportRequest {
 }
 
 export interface AdminStudentReportResponse {
+  class_snapshot?: StudentClassSnapshot | null;
   report: AdminStudentReportPayload;
   red_summary: AdminStudentReportRedSummary;
   template?: {
@@ -784,8 +811,9 @@ export const getAdminImproving = async (
  */
 export const getAdminStudentProfile = async (
   studentId: string,
+  dates?: { start_date: string; end_date: string },
 ): Promise<AdminStudentProfileBlock> => {
-  const res = await api.get(`/api/v1/admin/students/${studentId}`);
+  const res = await api.get(`/api/v1/admin/students/${studentId}`, { params: dates });
   return res.data;
 };
 

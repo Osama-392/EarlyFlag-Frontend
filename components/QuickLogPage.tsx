@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Check, X, Loader2, Calendar, Star } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/components/Toast';
+import { ABSENCE_REASONS, absenceReasonCode } from '@/lib/absenceReasons';
 import FlagModal from '@/components/FlagModal';
 import { useClasses } from '@/lib/useClasses';
 import { getClassStudents, logSignals, getAvailableSignalDates, getIncompleteQuickLogs, Student as ApiStudent, IncompleteLogSession } from '@/lib/studentService';
@@ -176,7 +177,10 @@ export default function QuickLogPage({ onCancel, initialClassId, targetDate }: Q
  flagData: { type: 'super-green', reasons: reasonDisplay ? [reasonDisplay] : [], note: primary.note || undefined },
  };
  } else if (signalType === 'absent') {
- initialLogData[s.id] = { studentId: s.id, green: false, superGreen: false, yellow: false, red: false, absent: true };
+ initialLogData[s.id] = {
+ studentId: s.id, green: false, superGreen: false, yellow: false, red: false, absent: true,
+ flagData: { flagType: 'absent', reasons: primary.reason_description ? [primary.reason_description] : primary.reason_code && ABSENCE_REASONS[primary.reason_code] ? [ABSENCE_REASONS[primary.reason_code]] : [], note: primary.note || undefined },
+ };
  } else {
  initialLogData[s.id] = { studentId: s.id, green: true, superGreen: false, yellow: false, red: false, absent: false };
  }
@@ -192,9 +196,9 @@ export default function QuickLogPage({ onCancel, initialClassId, targetDate }: Q
  red: draftSignal.signal_type === 'red',
  absent: draftSignal.signal_type === 'absent',
  isDraft: true,
- flagData: draftSignal.signal_type === 'yellow' || draftSignal.signal_type === 'red' || draftSignal.signal_type === 'super_green' ? {
+ flagData: draftSignal.signal_type === 'yellow' || draftSignal.signal_type === 'red' || draftSignal.signal_type === 'super_green' || draftSignal.signal_type === 'absent' ? {
  type: draftSignal.signal_type,
- category: draftSignal.category || 'academic',
+ category: draftSignal.signal_type === 'absent' ? undefined : draftSignal.category || 'academic',
  reasons: draftSignal.reasons || [],
  note: draftSignal.note
  } : undefined
@@ -318,7 +322,8 @@ export default function QuickLogPage({ onCancel, initialClassId, targetDate }: Q
  }
 
  // For green/present and absent signals, don't send empty strings
- const noteValue = entry.flagData?.note || reasonsText || undefined;
+ const noteValue = signalType === 'absent' ? entry.flagData?.note?.trim() || undefined : entry.flagData?.note || reasonsText || undefined;
+ if (signalType === 'absent') mappedReasonCode = absenceReasonCode(entry.flagData?.reasons?.[0]);
 
  return [{
  student_id: studentId,
@@ -403,12 +408,8 @@ export default function QuickLogPage({ onCancel, initialClassId, targetDate }: Q
  const student = mappedStudents.find((s) => s.id === studentId);
 
  // Simple toggle statuses (no modal needed)
- if (status === 'absent' || status === 'green') {
+ if (status === 'green') {
  const colorMap = {
- absent: {
- active: 'bg-gray-300 hover:bg-gray-400',
- inactive: 'bg-gray-100 dark:bg-[#262a3d] hover:bg-gray-200 dark:hover:bg-gray-600',
- },
  green: {
  active: 'bg-emerald-300 hover:bg-emerald-400',
  inactive: 'bg-gray-100 dark:bg-[#262a3d] hover:bg-gray-200 dark:hover:bg-gray-600',
@@ -428,13 +429,15 @@ export default function QuickLogPage({ onCancel, initialClassId, targetDate }: Q
  );
  }
 
- const statusMap: Record<string, 'super-green' | 'yellow' | 'red'> = {
+ const statusMap: Record<string, 'super-green' | 'yellow' | 'red' | 'absent'> = {
  superGreen: 'super-green',
+ absent: 'absent',
  yellow: 'yellow',
  red: 'red',
  };
 
  const statusColors = {
+ absent: 'bg-gray-400 hover:bg-gray-500',
  'super-green': 'bg-emerald-500 hover:bg-emerald-600',
  yellow: 'bg-amber-300 hover:bg-amber-400',
  red: 'bg-rose-300 hover:bg-rose-400',
@@ -447,6 +450,7 @@ export default function QuickLogPage({ onCancel, initialClassId, targetDate }: Q
  return (
  <div className="flex justify-center">
  <button
+ aria-label={`${status === 'absent' ? 'Mark absent' : statusMap[status]}: ${student?.name || studentId}`}
  onClick={() => {
  if (student) {
  logger.buttonClick(`Open flag modal for ${statusMap[status]}`, 'QuickLog');
@@ -461,7 +465,7 @@ export default function QuickLogPage({ onCancel, initialClassId, targetDate }: Q
  : 'bg-gray-100 dark:bg-[#262a3d] hover:bg-gray-200 dark:hover:bg-gray-600 text-transparent'
  }`}
  >
- {flagsCount > 1 ? flagsCount : ''}
+ {status === 'absent' && isActive ? <Check className="w-4 h-4 text-white" /> : flagsCount > 1 ? flagsCount : ''}
  </button>
  </div>
  );
@@ -484,9 +488,11 @@ export default function QuickLogPage({ onCancel, initialClassId, targetDate }: Q
  {selectedFlagModal && (
  <FlagModal
  flagType={selectedFlagModal.type}
+ className={classes.find(c => c.id === activeClassId)?.name}
+ signalDate={selectedDate}
  student={selectedFlagModal.student}
  apiStudent={apiStudents.find(s => s.id === selectedFlagModal.student.id)}
- initialData={logData[selectedFlagModal.student.id]?.flagData?.flagType === selectedFlagModal.type ? logData[selectedFlagModal.student.id]?.flagData : undefined}
+ initialData={(logData[selectedFlagModal.student.id]?.flagData?.flagType || logData[selectedFlagModal.student.id]?.flagData?.type?.replace('super_green', 'super-green')) === selectedFlagModal.type ? logData[selectedFlagModal.student.id]?.flagData : undefined}
  onClose={() => setSelectedFlagModal(null)}
  onSubmit={(data) => {
  logger.info('Flag submitted', data, 'QuickLog');
