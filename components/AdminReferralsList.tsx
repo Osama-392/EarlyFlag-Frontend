@@ -403,7 +403,7 @@ export default function AdminReferralsList({
                         {initials}
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white">{studentName}</p>
+                        <button type="button" onClick={() => router.push(`/principal-students/${event.student.slug || event.student.student_id}`)} className="text-left text-sm font-bold text-gray-900 hover:text-blue-600 hover:underline focus-visible:outline-blue-600 dark:text-white">{studentName}</button>
                         <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
                           {gradeLabel(event.student.grade_level)}
                         </p>

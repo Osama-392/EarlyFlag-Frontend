@@ -114,8 +114,8 @@ export default function PrincipalStudentRankingPage({ mode }: { mode: 'at-risk' 
                     <tr key={student.student_id} onClick={() => router.push(`/principal-students/${student.student_id}`)} className="cursor-pointer hover:bg-red-50/50 dark:hover:bg-red-950/10">
                       <td className="px-5 py-3 font-semibold text-gray-900 dark:text-white">{student.first_name} {student.last_name}</td>
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{student.grade_level}</td>
-                      <td className="px-4 py-3"><span className="rounded bg-amber-100 px-2 py-1 font-bold text-amber-700">A: {student.academic_active_flags}</span></td>
-                      <td className="px-4 py-3"><span className="rounded bg-red-100 px-2 py-1 font-bold text-red-700">B: {student.behavioral_active_flags}</span></td>
+                      <td className="px-4 py-3"><span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 font-bold text-red-700">A: {student.academic_red_count_7d}</span></td>
+                      <td className="px-4 py-3"><span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 font-bold text-red-700">B: {student.behavioral_red_count_7d}</span></td>
                       <td className="px-4 py-3 font-bold text-red-600">{student.red_count_7d}</td>
                       <td className="px-4 py-3"><Trend value={student.active_flag_change_7d} /></td>
                       <td className="px-4 py-3 text-gray-500">{formatDate(student.last_activity_date)}</td>

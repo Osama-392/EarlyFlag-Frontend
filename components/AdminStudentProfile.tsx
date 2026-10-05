@@ -3,13 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  ArrowLeft, AlertCircle, Shield, BookOpen, Clock,
-  FileText, ChevronRight, RefreshCw, Activity, Calendar, UserMinus, Mail
+  ArrowLeft, AlertCircle, Shield, BookOpen,
+  FileText, RefreshCw, UserMinus, Mail
 } from 'lucide-react';
 import {
   getAdminStudentProfile,
   AdminStudentProfileBlock,
-  SignalCountsByType,
   deactivateStudentAdmin,
   generateAdminStudentReport,
 } from '@/lib/adminDashboardService';
@@ -22,33 +21,13 @@ import { useAuth } from '@/app/providers';
 import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
 import { logger } from '@/lib/logger';
 import { AdminStudentProfileSkeleton } from '@/components/AdminLoadingSkeletons';
+import StudentReportHistory from '@/components/StudentReportHistory';
+import { reportHistory } from '@/lib/reportPresentation';
 import { formatTeacherDisplayName } from '@/lib/teacherTitle';
-
-const priorityStyles: Record<string, string> = {
-  urgent: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-  high: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
-  normal: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-  low: 'bg-gray-100 dark:bg-[#1b1e2c] text-gray-700 dark:text-gray-300',
-};
 
 function formatDate(d: string) {
   try { return new Date(`${d}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
   catch { return d; }
-}
-
-function CountsCard({ label, counts }: { label: string; counts: SignalCountsByType }) {
-  return (
-    <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] p-4 shadow-sm">
-      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">{label}</p>
-      <div className="grid grid-cols-5 gap-2 text-center text-xs">
-        <div><p className="text-lg font-bold text-emerald-600">{counts.super_green}</p><p className="text-gray-500 dark:text-gray-400">Super Green</p></div>
-        <div><p className="text-lg font-bold text-green-600">{counts.present}</p><p className="text-gray-500 dark:text-gray-400">Present</p></div>
-        <div><p className="text-lg font-bold text-yellow-600">{counts.yellow}</p><p className="text-gray-500 dark:text-gray-400">Yellow</p></div>
-        <div><p className="text-lg font-bold text-red-600">{counts.red}</p><p className="text-gray-500 dark:text-gray-400">Red</p></div>
-        <div><p className="text-lg font-bold text-gray-600 dark:text-gray-400">{counts.absent}</p><p className="text-gray-500 dark:text-gray-400">Absent</p></div>
-      </div>
-    </div>
-  );
 }
 
 export default function AdminStudentProfile({ studentId }: { studentId: string }) {
@@ -156,11 +135,9 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
   }
 
   const counts = profile.counts_selected_range ?? profile.counts_30d;
-  const category = profile.category_selected_range ?? profile.category_7d;
   const rangeStart = profile.range_start ?? profile.class_snapshot?.range_start;
   const rangeEnd = profile.range_end ?? profile.class_snapshot?.range_end;
   const rangeLabel = rangeStart && rangeEnd ? `${formatDate(rangeStart)} - ${formatDate(rangeEnd)}` : 'Selected period';
-  const crossClassRed = category?.red_cross_class ?? 0;
 
   async function createReport() {
     if (reportPending.current || rangeLoading || !rangeStart || !rangeEnd) return;
@@ -272,41 +249,6 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
       {rangeError && <p role="alert" className="text-sm text-red-600">{rangeError}</p>}
       {rangeLoading && <p role="status" className="text-sm text-gray-500">Updating all profile sections...</p>}
       <div aria-busy={rangeLoading || reportLoading} className={rangeLoading ? 'pointer-events-none opacity-50 space-y-6' : 'space-y-6'}>
-      <CountsCard label={`Selected Period (${rangeLabel})`} counts={counts} />
-
-      {/* Category Breakdown */}
-      <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Category Breakdown</h3>
-        <div className="grid grid-cols-2 gap-3 text-center text-sm md:grid-cols-4">
-          <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-100">
-            <p className="text-2xl font-bold text-yellow-600">{category?.yellow_academic ?? 0}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Yellow Academic</p>
-          </div>
-          <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-100">
-            <p className="text-2xl font-bold text-yellow-600">{category?.yellow_behavioral ?? 0}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Yellow Behavioral</p>
-          </div>
-          <div className="p-3 bg-red-50 rounded-lg border border-red-100">
-            <p className="text-2xl font-bold text-red-600">{category?.red_academic ?? 0}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Red Academic</p>
-          </div>
-          <div className="p-3 bg-red-50 rounded-lg border border-red-100">
-            <p className="text-2xl font-bold text-red-600">{category?.red_behavioral ?? 0}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Red Behavioral</p>
-          </div>
-          <div className="p-3 bg-red-50 rounded-lg border border-red-100 md:col-span-2 md:col-start-2">
-            <p className="text-2xl font-bold text-red-600">{crossClassRed}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Red Cross-Class</p>
-          </div>
-        </div>
-        {counts.absent > 0 && (
-          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-            <Clock size={14} className="inline mr-1" />Absences in selected period: <span className="font-bold text-gray-900 dark:text-white">{counts.absent}</span>
-          </p>
-        )}
-      </div>
-
-
       <AdminClassSnapshot
         key={`${studentId}:${rangeStart}:${rangeEnd}`}
         disabled={rangeLoading || reportLoading}
@@ -315,71 +257,11 @@ export default function AdminStudentProfile({ studentId }: { studentId: string }
         onReport={setGeneratedReport}
       />
 
-      {/* Student History */}
-      {(
-        <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm overflow-hidden mb-6">
-          <div className="p-4 border-b border-gray-200 dark:border-[#262a3d] flex items-center gap-2">
-            <Activity size={16} className="text-teal-500" />
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white">Student History</h3>
-          </div>
-          <div className="divide-y divide-gray-100 dark:divide-[#262a3d] max-h-96 overflow-y-auto">
-            {!profile.flag_log?.length && <p className="p-4 text-sm text-gray-500">No student history in this period.</p>}
-            {profile.flag_log?.map((flag: any, i: number) => {
-              let rawDate = new Date(flag.signal_date + 'T00:00:00');
-              let shortDate = flag.signal_date;
-              let dayOfWeek = '';
-              try {
-                shortDate = rawDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                dayOfWeek = rawDate.toLocaleDateString('en-US', { weekday: 'short' });
-              } catch (e) { }
-
-              const sType = flag.signal_type ? flag.signal_type.toUpperCase() : '';
-              const typeLabel = flag.signal_type ? flag.signal_type.charAt(0).toUpperCase() + flag.signal_type.slice(1).toLowerCase() : '';
-
-              let catLabel = '';
-              if (flag.category) {
-                if (flag.category.toLowerCase() === 'super_green') catLabel = 'Super Green';
-                else catLabel = flag.category.charAt(0).toUpperCase() + flag.category.slice(1).toLowerCase();
-              }
-              const displayType = catLabel && sType !== 'SUPER_GREEN' ? `${typeLabel} - ${catLabel}` : (sType === 'SUPER_GREEN' ? 'Super Green' : typeLabel);
-
-              return (
-                <div key={i} className="grid grid-cols-1 gap-2 p-4 transition-colors hover:bg-gray-50 dark:hover:bg-[#1b1e2c] lg:grid-cols-[5rem_minmax(0,0.8fr)_minmax(0,1.6fr)_minmax(0,1.1fr)_10rem] lg:items-center lg:gap-4">
-                  <div className="flex flex-col whitespace-nowrap text-left">
-                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{shortDate}</span>
-                    <span className="text-xs font-bold text-gray-400">{dayOfWeek}</span>
-                  </div>
-
-                  <h3 className="min-w-0 break-words text-sm font-bold leading-tight text-slate-800 dark:text-white">
-                    {flag.title || 'Flag Logged'}
-                  </h3>
-
-                  <p className="min-w-0 break-words text-[13px] leading-snug text-gray-500 dark:text-gray-400">
-                    {flag.description && flag.description.toLowerCase() !== (flag.title || '').toLowerCase() ? flag.description : '—'}
-                  </p>
-
-                  <span className="min-w-0 break-words text-xs font-bold text-slate-500 dark:text-slate-400">
-                    {[flag.class_name, flag.teacher_name].filter(Boolean).join(' • ') || '—'}
-                  </span>
-
-                  <div className="shrink-0 lg:justify-self-end">
-                    <div className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-bold ${sType === 'RED'
-                        ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30'
-                        : sType === 'YELLOW'
-                          ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30'
-                          : sType === 'ABSENT' ? 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300' : 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30'
-                      }`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${sType === 'RED' ? 'bg-red-500' : sType === 'YELLOW' ? 'bg-amber-500' : sType === 'ABSENT' ? 'bg-slate-400' : 'bg-emerald-500'}`} />
-                      {displayType}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
+      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-[#262a3d] dark:bg-[#151722]">
+        <h2 className="font-semibold">Student History · All Subjects</h2>
+        <p className="my-2 text-xs text-gray-500">{rangeLabel} | Grouped by class</p>
+        <StudentReportHistory rows={reportHistory(profile.class_history ?? profile.flag_log ?? [], true, rangeStart, rangeEnd)} />
+      </section>
       </div>
 
       <ConfirmDeleteModal

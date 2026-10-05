@@ -219,8 +219,9 @@ export default function StudentReportsView({
             initial: `${selectedStudent.first_name.charAt(0)}${selectedStudent.last_name.charAt(0)}`.toUpperCase(),
             bgColor: 'from-blue-400 to-blue-600',
           }}
-          defaultSubject={classData.subject || classData.name}
-          gradeSubjects={gradeSubjects}
+          classId={classData.id}
+          defaultSubject={classData.name}
+          gradeSubjects={[classData.name]}
           onClose={() => {
             setIsReportModalOpen(false);
             setSelectedStudent(null);

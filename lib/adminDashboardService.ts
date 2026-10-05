@@ -408,6 +408,7 @@ export interface StudentClassSnapshot {
 }
 
 export interface AdminStudentProfileBlock {
+  class_history?: any[] | null;
   range_start?: string;
   range_end?: string;
   counts_selected_range?: SignalCountsByType;

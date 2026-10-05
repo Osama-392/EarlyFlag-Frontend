@@ -74,15 +74,15 @@ function harness(overrides = {}, component = "AdminClassSnapshot") {
 
 const settle = () => new Promise((resolve) => setImmediate(resolve));
 
-test('snapshot renders the requested columns, zero badges and absent notes', () => {
+test('snapshot renders the reference columns and zero badges without a latest-note column', () => {
   const h = harness();
   const tree = h.render();
-  for (const label of ['Subject / Teacher', 'Present', 'Absent', 'Yellow', 'Red', 'Super Green', 'Latest Note']) {
+  for (const label of ['Subject / Teacher', 'Present', 'Absent', 'Yellow', 'Red', 'Super Green']) {
     assert.ok(content(tree).includes(label));
   }
   assert.ok(content(tree).includes('Mrs. Teacher'));
   assert.ok(find(tree, (el) => el.props['aria-label'] === 'Absent: 0'));
-  assert.ok(content(tree).includes('No notes in this period'));
+  assert.ok(!content(tree).includes('Latest Note'));
   assert.equal(find(tree, (el) => el.type === 'select'), undefined);
   h.props.snapshot = { ...snapshot, classes: [] };
   assert.ok(content(h.render()).includes('no active classes'));

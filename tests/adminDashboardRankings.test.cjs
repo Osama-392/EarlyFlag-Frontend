@@ -49,8 +49,8 @@ test('dashboard renders server ranking blocks and installs all refresh triggers'
   for (const token of [
     'dashboard.most_at_risk.students.map',
     'dashboard.most_at_risk.total',
-    'student.academic_active_flags',
-    'student.behavioral_active_flags',
+    'student.academic_red_count_7d',
+    'student.behavioral_red_count_7d',
     'student.red_count_7d',
     'student.active_flag_change_7d',
     'dashboard.students_improving.students.map',

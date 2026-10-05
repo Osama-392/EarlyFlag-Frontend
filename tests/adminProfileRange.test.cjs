@@ -67,6 +67,7 @@ function harness() {
     if (name === '@/app/providers') return { useAuth: () => ({ user: null }) };
     if (name === '@/lib/teacherTitle') return { formatTeacherDisplayName: () => '' };
     if (name === '@/lib/logger') return { logger: { buttonClick() {} } };
+    if (name === '@/lib/reportPresentation') return require('./loadTypeScript.cjs')('../lib/reportPresentation.ts');
     if (name === '@/components/AdminLoadingSkeletons') return { AdminStudentProfileSkeleton: 'Skeleton' };
     if (name.startsWith('@/components/')) return { __esModule: true, default: name.split('/').pop() };
     return require(name);
@@ -85,10 +86,10 @@ test('header filter refreshes all sections and sets Create Report dates', async 
   find(tree, el => el.type === 'AdminProfileDateFilter').props.onApply('2026-09-24', '2026-09-30');
   await settle(); tree = h.render();
   assert.equal(h.calls[1][1].start_date, '2026-09-24');
-  assert.ok(content(tree).includes('Selected history'));
-  assert.ok(!content(tree).includes('Original history'));
-  const summary = find(tree, el => typeof el.type === 'function' && el.type.name === 'CountsCard');
-  assert.equal(summary.props.counts.yellow, 2);
+  const history = find(tree, el => el.type === 'StudentReportHistory').props.rows;
+  assert.equal(history[0].title, 'Selected history');
+  assert.ok(!content(tree).includes('Category Breakdown'));
+  assert.equal(find(tree, el => typeof el.type === 'function' && el.type.name === 'CountsCard'), undefined);
   assert.equal(find(tree, el => el.type === 'AdminClassSnapshot').props.snapshot, h.selected.class_snapshot);
   assert.equal(find(tree, el => el.type === 'CreateReportModal'), undefined);
   find(tree, el => el.type === 'button' && content(el).includes('Create Report')).props.onClick();
@@ -105,7 +106,7 @@ test('failed profile refresh keeps the applied range and exposes a retry message
   find(h.render(), el => el.type === 'AdminProfileDateFilter').props.onApply('2026-09-24', '2026-09-30');
   await settle(); const tree = h.render();
   assert.ok(content(tree).includes('previous range is still shown'));
-  assert.ok(content(tree).includes('Original history'));
+  assert.equal(find(tree, el => el.type === 'StudentReportHistory').props.rows[0].title, 'Original history');
   find(tree, el => el.type === 'button' && content(el).includes('Create Report')).props.onClick();
   await settle();
   assert.equal(h.reportCalls[0][1].start_date, '2026-08-01');
@@ -116,6 +117,6 @@ test('direct admin report failures keep the profile visible with retry available
   find(h.render(), el => el.type === 'button' && content(el).includes('Create Report')).props.onClick();
   await settle(); const tree = h.render();
   assert.ok(content(tree).includes('Unable to create the report'));
-  assert.ok(content(tree).includes('Original history'));
+  assert.equal(find(tree, el => el.type === 'StudentReportHistory').props.rows[0].title, 'Original history');
   assert.equal(find(tree, el => el.type === 'button' && content(el).includes('Create Report')).props.disabled, false);
 });

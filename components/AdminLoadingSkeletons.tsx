@@ -203,30 +203,6 @@ export function AdminStudentProfileSkeleton({ label = 'Loading student profile' 
       </div>
 
       <div aria-hidden="true" className="space-y-6">
-        <SkeletonCard className="p-4">
-          <AdminSkeletonLine className="mb-3 h-4 w-80 max-w-full" />
-          <div className="grid grid-cols-5 gap-2">
-            {[1, 2, 3, 4, 5].map(item => (
-              <div key={item} className="flex flex-col items-center">
-                <AdminSkeletonLine className="h-7 w-8" />
-                <AdminSkeletonLine className="mt-1 h-3 w-16 max-w-full" />
-              </div>
-            ))}
-          </div>
-        </SkeletonCard>
-
-        <SkeletonCard className="p-5">
-          <AdminSkeletonLine className="mb-3 h-5 w-40" />
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {[1, 2, 3, 4, 5].map(item => (
-              <div key={item} className={`rounded-lg border border-gray-100 p-3 dark:border-[#262a3d] ${item === 5 ? 'md:col-span-2 md:col-start-2' : ''}`}>
-                <AdminSkeletonLine className="mx-auto h-8 w-10" />
-                <AdminSkeletonLine className="mx-auto mt-1 h-4 w-28 max-w-full" />
-              </div>
-            ))}
-          </div>
-        </SkeletonCard>
-
         <SkeletonCard>
           <div className="p-5">
             <AdminSkeletonLine className="h-7 w-56 max-w-full" />
@@ -234,12 +210,12 @@ export function AdminStudentProfileSkeleton({ label = 'Loading student profile' 
             <AdminSkeletonLine className="mt-1 h-4 w-64 max-w-full" />
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[850px] text-left">
+            <table className="w-full min-w-[650px] text-left">
               <thead className="border-y border-gray-100 bg-gray-50/50 dark:border-[#262a3d] dark:bg-[#1b1e2c]">
                 <tr>
                   <th className="px-5 py-3"><AdminSkeletonLine className="h-4 w-28" /></th>
                   {[1, 2, 3, 4, 5].map(column => <th key={column} className="px-3 py-3"><AdminSkeletonLine className="mx-auto h-4 w-12" /></th>)}
-                  <th className="px-5 py-3"><AdminSkeletonLine className="h-4 w-20" /></th>
+
                   <th className="px-5 py-3"><AdminSkeletonLine className="h-4 w-16" /></th>
                 </tr>
               </thead>
@@ -248,7 +224,7 @@ export function AdminStudentProfileSkeleton({ label = 'Loading student profile' 
                   <tr key={row}>
                     <td className="px-5 py-3"><AdminSkeletonLine className="h-5 w-28" /><AdminSkeletonLine className="mt-1 h-4 w-20" /></td>
                     {[1, 2, 3, 4, 5].map(column => <td key={column} className="px-3 py-3"><AdminSkeletonLine className="mx-auto h-6 w-9 rounded-md" /></td>)}
-                    <td className="px-5 py-3"><AdminSkeletonLine className="h-4 w-40" /></td>
+
                     <td className="px-5 py-3"><AdminSkeletonLine className="ml-auto h-4 w-20" /></td>
                   </tr>
                 ))}
