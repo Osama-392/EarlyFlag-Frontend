@@ -519,8 +519,9 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
           initial: `${history?.first_name?.charAt(0) || ''}${history?.last_name?.charAt(0) || ''}`.toUpperCase(),
           bgColor: 'from-blue-400 to-blue-600',
         }}
-        defaultSubject={profileClass?.subject || profileClass?.name || 'All Subjects'}
-        gradeSubjects={profileClass ? [profileClass.subject || profileClass.name] : []}
+        classId={profileClass?.id}
+        defaultSubject={profileClass?.name || 'All Subjects'}
+        gradeSubjects={profileClass ? [profileClass.name] : []}
         onClose={() => setIsReportModalOpen(false)}
         onGenerate={(reportData) => {
           logger.reportGeneration(studentFullName, reportData);

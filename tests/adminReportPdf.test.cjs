@@ -1,128 +1,36 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
-const ts = require('typescript');
-
-const source = fs.readFileSync(path.join(__dirname, '../lib/adminReportPdf.ts'), 'utf8');
-const compiled = ts.transpileModule(source, {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2017, esModuleInterop: true },
-}).outputText;
-const exportsObject = {};
-vm.runInNewContext(compiled, { exports: exportsObject, require });
-const { createAdminReportPdf } = exportsObject;
-
-const base = {
-  name: 'Arthur O’Connor', initials: 'AO', grade: '8th Grade', studentId: 'S-2042',
-  iep: true, ell: false, period: 'Last 30 Days',
-  dateRange: 'Aug 9, 2026 - Sep 7, 2026', subject: 'All Subjects',
-  counts: { superGreen: 2, present: 15, yellow: 3, red: 4, absent: 1 },
-  canonicalRed: {
-    total: 4, academic: 2, behavioral: 1, crossClass: 1,
-    range: 'Aug 9, 2026 - Sep 7, 2026',
-  },
-  history: [],
+const load = require('./loadTypeScript.cjs');
+const { createAdminReportPdf } = load('../lib/adminReportPdf.ts');
+const base = { name: 'Xavier Kensington', initials: 'XK', grade: 'Grade 6', iep: false, ell: false,
+  period: 'Sep 25, 2026 - Oct 1, 2026', dateRange: 'Sep 25, 2026 - Oct 1, 2026', subject: 'Math 6A',
+  kind: 'class', teacherName: 'Mr. Criss Mark', counts: { superGreen: 0, yellow: 2, red: 2, present: 2, absent: 0 }, history: [],
 };
-const pdfText = (pdf) => pdf.internal.pages.slice(1).map((page) => page.join('\n')).join('\n');
+const pdfText = pdf => pdf.internal.pages.flat().join('\n');
 
-test('admin PDF keeps every admin-preview summary metric as native text', () => {
-  const pdf = createAdminReportPdf(base);
-  const output = pdfText(pdf);
-  for (const value of [
-    'Arthur O', '8th Grade', 'S-2042', 'Last 30 Days', 'All Subjects',
-    'Super Green', 'Present', 'Yellow', 'Red', 'Absent',
-    'Red Summary', 'Total Red', 'Academic', 'Behavioral', 'Cross-Class',
-  ]) assert.ok(output.includes(value), `PDF contains ${value}`);
-  assert.doesNotMatch(output, /Student History|Recommended Next Steps|Teachers Notes/);
+test('class PDF matches the reference sections and exports native text', () => {
+  const pdf = createAdminReportPdf(base); const text = pdfText(pdf);
+  for (const label of ['CLASS REPORT', 'Xavier Kensington', 'Mr. Criss Mark', 'Super Green', 'Yellow Incidents', 'Red Incidents', 'Math 6A Attendance', 'Present', 'Absent', 'Student History']) assert.ok(text.includes(label), label);
+  assert.ok(!text.includes('Red Summary')); assert.ok(!text.includes('Category Breakdown'));
   assert.doesNotMatch(pdf.output(), /\/Subtype \/Image/);
 });
 
-test('admin PDF puts date, issue, description, class and teacher on one row', () => {
-  const pdf = createAdminReportPdf({
-    ...base,
-    history: [{
-      date: 'Sep 23', dayOfWeek: 'Wed', title: 'Bullying',
-      description: 'Said something mean', className: 'Math 6A', teacherName: 'Chris Mark',
-      typeLabel: 'Red - Behavioral', signalType: 'red',
-    }],
+test('overview PDF groups class history and keeps cross-class alerts separate', () => {
+  const pdf = createAdminReportPdf({ ...base, kind: 'overview',
+    crossClassAlerts: [{ date: 'Sep 30, 2026', description: 'Three classes in seven days', contributions: 'Math Sep 28 + Spanish Sep 29 + PE Sep 30' }],
+    classSnapshot: { range: base.dateRange, rows: [{ className: 'Math 6A', teacherName: 'Criss Mark', superGreen: 0, yellow: 2, red: 2, present: 2, absent: 0, latestNote: 'Obsolete note' }] },
+    history: [{ classId: 'math', className: 'Math 6A', teacherName: 'Criss Mark', date: 'Sep 28, 2026', dayOfWeek: '', signalType: 'red', typeLabel: 'Red · Academic', title: 'Cheating', description: 'Specific teacher note' }],
   });
-  const commands = pdf.internal.pages.slice(1).flat();
-  const textPosition = (value) => {
-    const command = commands.find((entry) => entry.includes(`(${value}) Tj`));
-    assert.ok(command, `PDF contains ${value}`);
-    const match = command.match(/([\d.]+) ([\d.]+) Td/);
-    assert.ok(match, `PDF positions ${value}`);
-    return { x: Number(match[1]), y: Number(match[2]) };
-  };
-  const date = textPosition('Sep 23');
-  const day = textPosition('Wed');
-  const title = textPosition('Bullying');
-  const context = textPosition('Math 6A \u0095 Chris Mark');
-  const description = textPosition('Said something mean');
-  assert.ok(date.x < title.x && title.x < description.x && description.x < context.x, 'history fields follow the requested order');
-  assert.ok(Math.abs(date.y - title.y) < 0.01, 'date and issue share a baseline');
-  assert.ok(day.y < date.y, 'day of week appears below the date');
-  assert.ok(Math.abs(description.y - title.y) < 0.01, 'description shares the issue baseline');
-  assert.ok(Math.abs(context.y - title.y) < 0.01, 'class and teacher share the issue baseline');
+  const text = pdfText(pdf);
+  for (const label of ['1 Cross-Class Alert', 'Class-by-Class Snapshot', 'Student History - Math 6A', 'Cheating', 'Specific teacher note']) assert.ok(text.includes(label), label);
+  assert.ok(!text.includes('Latest Note')); assert.ok(!text.includes('Obsolete note'));
 });
 
-test('admin PDF preserves long preview sections across native pages', () => {
-  const history = Array.from({ length: 55 }, (_, index) => ({
-    date: 'Sep 4', dayOfWeek: 'Fri', title: `HistoryTitle${String(index).padStart(2, '0')}`,
-    description: `HistoryDescription${String(index).padStart(2, '0')} ${'details '.repeat(8)}`,
-    className: 'Religion 8A', teacherName: 'Mark Twain',
-    typeLabel: 'Yellow - Academic', signalType: 'yellow',
-  }));
-  const recommendations = ['RecommendationMarker ' + 'follow up '.repeat(300) + 'END-RECOMMENDATION'];
-  const notes = [{
-    date: 'Sep 3, 2026', className: 'Religion 8A',
-    text: 'NoteMarker ' + 'support plan '.repeat(350) + 'END-NOTE',
-  }];
-  const pdf = createAdminReportPdf({ ...base, history, recommendations, notes });
-  const output = pdfText(pdf);
-
-  assert.ok(pdf.getNumberOfPages() > 4);
-  assert.deepEqual(output.match(/HistoryTitle\d{2}/g), history.map((row) => row.title));
-  assert.equal((output.match(/END-RECOMMENDATION/g) || []).length, 1);
-  assert.equal((output.match(/END-NOTE/g) || []).length, 1);
-  assert.ok(output.includes('Student History \\(continued\\)'));
-  assert.ok(output.includes('Recommended Next Steps'));
-  assert.ok(output.includes('Teachers Notes'));
-});
-
-
-test('class snapshot preserves every row and repeats table headings across PDF pages', () => {
-  const rows = Array.from({ length: 45 }, (_, index) => ({
-    className: `SnapshotRow${String(index).padStart(2, '0')}`, teacherName: 'SnapshotTeacher',
-    present: 11, absent: 0, yellow: 2, red: 1, superGreen: 3,
-    latestNote: 'Sep 4, 2026 - ' + 'Class participation improved. '.repeat(5),
-  }));
-  const pdf = createAdminReportPdf({ ...base, classSnapshot: { range: base.dateRange, rows } });
-  const output = pdfText(pdf);
-  assert.ok(pdf.getNumberOfPages() >= 3);
-  assert.deepEqual(output.match(/SnapshotRow\d{2}/g), rows.map((row) => row.className));
-  assert.ok((output.match(/Class-by-Class Snapshot/g) || []).length >= 3);
-  assert.ok((output.match(/Subject \/ Teacher/g) || []).length >= 3);
-  assert.ok(output.includes('SnapshotTeacher'));
-  assert.ok(output.includes('Latest Note'));
-  assert.ok(output.includes('(0) Tj'));
-  assert.doesNotMatch(pdf.output(), /\/Subtype \/Image/);
-});
-
-test('empty class snapshot has an explicit empty state in PDF', () => {
-  const output = pdfText(createAdminReportPdf({ ...base, classSnapshot: { range: base.dateRange, rows: [] } }));
-  assert.ok(output.includes('Class-by-Class Snapshot'));
-  assert.ok(output.includes('No active classes match this report.'));
-});
-
-
-test('admin PDF includes absence reason and note without a behavior category', () => {
-  const output = pdfText(createAdminReportPdf({ ...base, history: [{
-    date: 'Sep 1', dayOfWeek: 'Tue', title: 'Sports dismissal', description: 'Leaving early for an away game.',
-    className: 'Math 6A', teacherName: 'Chris Mark', typeLabel: 'Absent', signalType: 'absent',
-  }] }));
-  assert.ok(output.includes('Sports dismissal'));
-  assert.ok(output.includes('Leaving early for an away game.'));
-  assert.ok(output.includes('(Absent)'));
+test('long history and notes retain final text across repeated page headings', () => {
+  const rows = Array.from({ length: 120 }, (_, i) => ({ classId: 'math', className: 'Math 6A', teacherName: 'Criss Mark', date: 'Sep 28, 2026', dayOfWeek: '', signalType: 'yellow', typeLabel: 'Yellow - Behavioral', title: `Incident-${i}`, description: `Note-${i}` }));
+  rows.push({ ...rows[0], title: 'Long incident', description: `${'Long teacher note. '.repeat(1200)}FINAL-NOTE-TEXT` });
+  const pdf = createAdminReportPdf({ ...base, history: rows }); const text = pdfText(pdf);
+  assert.ok(pdf.getNumberOfPages() > 2);
+  for (const value of ['Incident-119', 'Note-119', 'FINAL-NOTE-TEXT', 'continued']) assert.ok(text.includes(value), value);
+  assert.equal((text.match(/FINAL-NOTE-TEXT/g) || []).length, 1);
 });

@@ -8,11 +8,11 @@ import {
 } from '@/lib/adminDashboardService';
 
 const columns = [
+  ['super_green', 'Super Green', 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-300'],
   ['present', 'Present', 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-300'],
   ['absent', 'Absent', 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300'],
   ['yellow', 'Yellow', 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-300'],
   ['red', 'Red', 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-300'],
-  ['super_green', 'Super Green', 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-300'],
 ] as const;
 
 function displayDate(date: string) {
@@ -70,20 +70,17 @@ export default function AdminClassSnapshot({ studentId, snapshot, disabled = fal
       {!snapshot ? <p role="status" className="px-5 pb-5 text-sm text-gray-500">Class activity is currently unavailable.</p>
         : snapshot.classes.length === 0 ? <p className="px-5 pb-5 text-sm text-gray-500">This student has no active classes.</p>
         : <div className="overflow-x-auto">
-          <table className="w-full min-w-[850px] text-left text-sm">
+          <table className="w-full min-w-[650px] text-left text-sm">
             <thead className="border-y border-gray-100 bg-gray-50/50 text-xs text-gray-600 dark:border-[#262a3d] dark:bg-[#1b1e2c] dark:text-gray-300">
               <tr><th scope="col" className="px-5 py-3">Subject / Teacher</th>
                 {columns.map(([key, label]) => <th key={key} scope="col" className="px-3 py-3 text-center">{label}</th>)}
-                <th scope="col" className="px-5 py-3">Latest Note</th><th scope="col" className="px-5 py-3"><span className="sr-only">Report</span></th>
+                <th scope="col" className="px-5 py-3"><span className="sr-only">Report</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-[#262a3d]">
               {snapshot.classes.map((row) => <tr key={row.class_id}>
                 <th scope="row" className="px-5 py-3 font-semibold text-gray-900 dark:text-white">{row.class_name}<span className="mt-1 block text-xs font-normal text-gray-500 dark:text-gray-400">{row.teacher.display_name}</span></th>
                 {columns.map(([key, label, style]) => <td key={key} className="px-3 py-3 text-center"><span aria-label={`${label}: ${row.counts[key]}`} className={`inline-block min-w-9 rounded-md border px-2 py-0.5 text-xs font-semibold ${style}`}>{row.counts[key]}</span></td>)}
-                <td className="max-w-xs px-5 py-3 text-xs text-gray-500 dark:text-gray-400">{row.latest_note
-                  ? <><time dateTime={row.latest_note.signal_date}>{displayDate(row.latest_note.signal_date)}</time> · <span className="break-words">{row.latest_note.excerpt}</span></>
-                  : 'No notes in this period'}</td>
                 <td className="px-5 py-3 text-right"><button type="button" disabled={busy} aria-label={`View report for ${row.class_name}`} onClick={() => void viewReport(row)} className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-blue-600 hover:underline disabled:opacity-50 dark:text-blue-400">
                   {reportClass === row.class_id ? 'Creating…' : 'View report'} <ArrowRight size={13} />
                 </button></td>
@@ -91,7 +88,7 @@ export default function AdminClassSnapshot({ studentId, snapshot, disabled = fal
             </tbody>
           </table>
         </div>}
-      <p className="border-t border-gray-100 p-5 text-xs text-gray-500 dark:border-[#262a3d] dark:text-gray-400">Present and Absent count recorded signals, not days attended. Super Green includes automatic entries. Cross-class Reds appear in the student summary.</p>
+      <p className="border-t border-gray-100 p-5 text-xs text-gray-500 dark:border-[#262a3d] dark:text-gray-400">Present and Absent count recorded signals, not days attended. Super Green includes automatic entries. Cross-class alerts are separate from classroom Red incidents.</p>
     </section>
   );
 }

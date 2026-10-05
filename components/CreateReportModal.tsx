@@ -17,6 +17,7 @@ interface CreateReportModalProps {
  yellowCount?: number;
  };
  defaultSubject: string;
+ classId?: string;
  initialStartDate?: string;
  initialEndDate?: string;
  gradeSubjects: string[];
@@ -29,6 +30,7 @@ export default function CreateReportModal({
  isOpen,
  student,
  defaultSubject,
+ classId,
  initialStartDate,
  initialEndDate,
  gradeSubjects,
@@ -46,7 +48,10 @@ export default function CreateReportModal({
  ninetyDaysAgo.setDate(today.getDate() - 89);
 
  const formatDate = (d: Date) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
- const formatLabel = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+ // Date inputs are calendar dates; parse locally so UTC conversion cannot shift the label.
+ const formatLabel = (date: string) => date
+ ? new Date(`${date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+ : '';
 
  const [startDate, setStartDate] = useState(formatDate(thirtyDaysAgo));
  const [endDate, setEndDate] = useState(formatDate(today));
@@ -83,7 +88,7 @@ export default function CreateReportModal({
  const payload = {
  start_date: startDate,
  end_date: endDate,
- subject,
+ ...(classId ? { class_id: classId } : { subject }),
  include_teachers_notes: includeTeachersNotes,
  include_ai_recommendations: false,
  };
@@ -93,7 +98,7 @@ export default function CreateReportModal({
  logger.formSubmit('CreateReportModal', payload);
  
  // Pass both the payload settings and the actual response to the parent
- onGenerate({ ...payload, result: apiResponse });
+ onGenerate({ ...payload, subject, result: apiResponse });
  } catch (err: any) {
  console.error('Report generation failed:', err);
  setError(err?.response?.data?.detail?.[0]?.msg || err?.response?.data?.detail || 'Failed to generate report.');
@@ -212,7 +217,7 @@ export default function CreateReportModal({
  />
  </div>
  </div>
- <p className="text-xs text-gray-400 mt-2">{formatLabel(new Date(startDate))} — {formatLabel(new Date(endDate))}</p>
+ <p className="text-xs text-gray-400 mt-2">{formatLabel(startDate)} — {formatLabel(endDate)}</p>
  </div>
 
  {/* Subject Selection */}
@@ -222,6 +227,7 @@ export default function CreateReportModal({
  </label>
  <select
  id="subject"
+ disabled={Boolean(classId)}
  value={subject}
  onChange={(e) => {
  logger.formChange('subject', e.target.value, 'CreateReportModal');
@@ -229,7 +235,7 @@ export default function CreateReportModal({
  }}
  className="w-full px-3 py-2 border dark:bg-[#1b1e2c] dark:text-white border-gray-300 dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white text-gray-900 dark:text-white"
  >
- <option value="All Subjects">All Subjects</option>
+ {!classId && <option value="All Subjects">All Subjects</option>}
  {subjectOptions.map((subj) => (
  <option key={subj} value={subj}>{subj}</option>
  ))}

@@ -288,7 +288,7 @@ export default function PrincipalDashboard() {
  </div>
  <AdminReferralsListSkeleton />
  <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
- <DashboardTableSkeleton title="Most At-Risk Students" subtitle="Highest active flag counts in the last 7 days." columns={5} />
+ <DashboardTableSkeleton title="Most At-Risk Students" subtitle="Most Red incidents in the last 7 days." columns={5} />
  <DashboardTableSkeleton title="Absent Watch" subtitle="Students with absences needing follow-up." columns={3} />
  <DashboardTableSkeleton title="Students Improving" subtitle="Positive behavioral and academic improvement." columns={4} />
  </div>
@@ -401,19 +401,19 @@ export default function PrincipalDashboard() {
  <div className="flex items-start justify-between px-4 pb-3 pt-4">
  <div className="flex items-start gap-2">
  <AlertCircle className="mt-0.5 h-5 w-5 text-red-500" />
- <div><h2 className="text-sm font-extrabold text-gray-900 dark:text-white">Most At-Risk Students</h2><p className="text-[10px] font-medium text-gray-500">Highest active flag counts in the last 7 days.</p></div>
+ <div><h2 className="text-sm font-extrabold text-gray-900 dark:text-white">Most At-Risk Students</h2><p className="text-[10px] font-medium text-gray-500">Most Red incidents in the last 7 days.</p></div>
  </div>
  <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-600 dark:bg-red-950/50">{dashboard.most_at_risk.total}</span>
  </div>
  <div className="overflow-x-auto px-3">
  <table className="w-full min-w-[420px] text-left text-[10px]">
- <thead><tr className="border-b border-red-100 uppercase tracking-wide text-gray-400"><th className="px-2 py-2">Student</th><th className="px-2 py-2">Grade</th><th className="px-2 py-2">A / B</th><th className="px-2 py-2">Active Reds</th><th className="px-2 py-2">Trend</th></tr></thead>
+ <thead><tr className="border-b border-red-100 uppercase tracking-wide text-gray-400"><th className="px-2 py-2">Student</th><th className="px-2 py-2">Grade</th><th className="px-2 py-2">Red Breakdown (A/B)</th><th className="px-2 py-2">Active Reds</th><th className="px-2 py-2">Trend</th></tr></thead>
  <tbody className="divide-y divide-red-50 dark:divide-red-950/30">
  {dashboard.most_at_risk.students.map(student => (
  <tr key={student.student_id} onClick={() => router.push(`/principal-students/${student.student_id}`)} className="cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/20">
  <td className="px-2 py-2.5 font-bold text-gray-900 dark:text-white">{student.first_name} {student.last_name}</td>
  <td className="px-2 py-2.5 font-medium text-gray-600 dark:text-gray-300">{student.grade_level}</td>
- <td className="px-2 py-2.5 whitespace-nowrap"><span className="rounded bg-amber-100 px-1.5 py-1 font-bold text-amber-700">A: {student.academic_active_flags}</span><span className="ml-1 rounded bg-red-100 px-1.5 py-1 font-bold text-red-700">B: {student.behavioral_active_flags}</span></td>
+ <td className="px-2 py-2.5 whitespace-nowrap"><span className="rounded border border-slate-200 bg-slate-50 px-1.5 py-1 font-bold text-red-700">A: {student.academic_red_count_7d}</span><span className="ml-1 rounded border border-slate-200 bg-slate-50 px-1.5 py-1 font-bold text-red-700">B: {student.behavioral_red_count_7d}</span></td>
  <td className="px-2 py-2.5 text-center font-extrabold text-red-600">{student.red_count_7d}</td>
  <td className={`px-2 py-2.5 text-center text-base font-extrabold ${student.active_flag_change_7d > 0 ? 'text-red-500' : student.active_flag_change_7d < 0 ? 'text-emerald-500' : 'text-gray-400'}`}>{riskTrendSymbol(student.active_flag_change_7d)}</td>
  </tr>
@@ -464,8 +464,8 @@ export default function PrincipalDashboard() {
  <Link href="/principal-improving" className="mt-2 flex items-center justify-center gap-2 border-t border-emerald-100 py-3 text-xs font-bold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900/30 dark:hover:bg-emerald-950/20">View full list <ChevronRight size={14} /></Link>
  </section>
  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-gray-200 bg-white px-4 py-3 text-[11px] text-gray-500 shadow-sm dark:border-[#262a3d] dark:bg-[#151722] xl:col-span-3">
- <span><strong className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">A</strong> = Academic active flags</span>
- <span><strong className="rounded bg-red-100 px-1.5 py-0.5 text-red-700">B</strong> = Behavioral active flags</span>
+ <span><strong className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-slate-700">A</strong> = Academic Red incidents</span>
+ <span><strong className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-slate-700">B</strong> = Behavioral Red incidents</span>
  <span><strong className="text-red-600">Active Reds</strong> = Intervention-level events in the current seven-day window</span>
  </div>
  </div>
