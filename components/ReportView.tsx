@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Download, Loader2 } from 'lucide-react';
 import { useAuth } from '@/app/providers';
 import { createAdminReportPdf, AdminReportPdfData } from '@/lib/adminReportPdf';
-import { reportDate, reportHistory, scrollReportToTop } from '@/lib/reportPresentation';
-import StudentReportHistory from '@/components/StudentReportHistory';
+import { reportCategoryCounts, reportDate, reportHistory, scrollReportToTop } from '@/lib/reportPresentation';
+import StudentReportDocument from '@/components/StudentReportDocument';
 
 interface ReportViewProps {
   student: { id: string; name: string; gradeLevel: number; initial: string; bgColor: string };
@@ -59,8 +59,13 @@ export default function ReportView({ student, reportData, variant, onBack, backL
     period: range, dateRange: range, subject: className,
     kind: classReport ? 'class' : 'overview', teacherName: classTeacher, includeNotes,
     counts: { superGreen: counts.super_green || 0, yellow: counts.yellow || 0, red: counts.red || 0, present: counts.present || 0, absent: counts.absent || 0 },
+    categories: reportCategoryCounts(history),
     crossClassAlerts: crossClassAlerts.map((alert: any) => ({
-      date: reportDate(alert.occurred_on), description: alert.description,
+      date: reportDate(alert.occurred_on), description: alert.description || 'Yellow incidents occurred across different classes within a 7-day period.',
+      items: (alert.contributions || []).map((item: any) => ({
+        title: item.title || item.reason_description || item.reason || '',
+        className: item.class_name || 'Class', date: reportDate(item.signal_date), inferred: Boolean(item.is_inferred),
+      })),
       contributions: (alert.contributions || []).map((item: any) => `${item.class_name || 'Class'} ${reportDate(item.signal_date)}${item.is_inferred ? ' (inferred)' : ''}`).join(' + '),
     })),
     classSnapshot: !classReport && !teacherView && snapshot ? {
@@ -87,52 +92,6 @@ export default function ReportView({ student, reportData, variant, onBack, backL
       </button>
     </div>
     {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-    <article className="report-print-area space-y-6 rounded-xl bg-white p-6 dark:bg-[#151722]">
-      <header className="flex flex-wrap items-center justify-between gap-5 rounded-xl border border-slate-200 p-5 dark:border-slate-700">
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-slate-100 font-bold text-slate-500">{student.initial}</div>
-          <div><p className="text-xs text-slate-500">{classReport ? 'CLASS REPORT' : 'STUDENT REPORT'}</p>
-            <h1 className="mt-1 text-xl font-bold">{student.name}</h1>
-            <p className="mt-2 text-xs text-slate-500">Grade {student.gradeLevel}{classReport ? ` | ${className}${classTeacher ? ` | ${classTeacher}` : ''}` : report.student?.external_student_id ? ` | ${report.student.external_student_id}` : ''}</p>
-          </div>
-        </div>
-        <div className="text-right text-xs"><p className="font-semibold">{range}</p>{!classReport && <p className="mt-3 text-slate-500">{className}</p>}</div>
-      </header>
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          ['Super Green', counts.super_green, 'bg-emerald-50 text-emerald-700'],
-          ['Yellow Incidents', counts.yellow, 'bg-amber-50 text-amber-700'],
-          ['Red Incidents', counts.red, 'bg-red-50 text-red-700'],
-        ].map(([label, value, style]) => <div key={String(label)} className={`flex flex-wrap items-center gap-4 rounded-lg p-4 ${style}`}>
-          <span className="text-2xl font-bold">{value || 0}</span><span className="text-xs font-semibold">{label}</span>
-        </div>)}
-      </div>
-      {pdfData.crossClassAlerts?.length ? <aside className="space-y-3 rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-xs text-indigo-900">
-        <h2 className="font-semibold">{pdfData.crossClassAlerts.length} Cross-Class {pdfData.crossClassAlerts.length === 1 ? 'Alert' : 'Alerts'}</h2>
-        {pdfData.crossClassAlerts.map((alert, index) => <div key={index}><p>{alert.date} · {alert.description}</p>{alert.contributions && <p className="mt-1">{alert.contributions}</p>}</div>)}
-        <p>Admin-only; does not add a Red to any class.</p>
-      </aside> : null}
-      {classReport && <section>
-        <h2 className="font-semibold">{className} Attendance</h2><p className="mt-1 text-xs text-gray-500">Recorded class signals for {range}; not a school-wide attendance total.</p>
-        <div className="mt-3 grid grid-cols-2 gap-3"><div className="rounded-lg bg-emerald-50 p-4 text-emerald-700"><strong className="mr-4 text-2xl">{counts.present || 0}</strong> Present</div><div className="rounded-lg bg-slate-50 p-4 text-slate-500"><strong className="mr-4 text-2xl">{counts.absent || 0}</strong> Absent</div></div>
-        <p className="mt-2 text-xs text-gray-500">A recorded zero does not confirm every class period was logged.</p>
-      </section>}
-      {pdfData.classSnapshot && <section>
-        <h2 className="font-semibold">Class-by-Class Snapshot</h2><p className="my-2 text-xs text-gray-500">{range} | Class-scoped counts</p>
-        <div className="overflow-x-auto"><table className="w-full min-w-[600px] text-left text-xs">
-          <thead className="bg-slate-50 text-slate-500"><tr>{['Subject / Teacher', 'Super Green', 'Present', 'Absent', 'Yellow', 'Red'].map(label => <th key={label} className="p-3 font-medium">{label}</th>)}</tr></thead>
-          <tbody className="divide-y divide-slate-100">{pdfData.classSnapshot.rows.map((row, index) => <tr key={index}>
-            <th className="p-3 font-semibold">{row.className}<span className="mt-1 block font-normal text-gray-500">{row.teacherName}</span></th>
-            {[row.superGreen, row.present, row.absent, row.yellow, row.red].map((value, i) => <td key={i} className="p-3"><span className={`inline-block rounded px-3 py-1 ${i === 4 ? 'bg-red-50 text-red-700' : i === 3 ? 'bg-amber-50 text-amber-700' : i === 2 ? 'bg-slate-50 text-slate-500' : 'bg-emerald-50 text-emerald-700'}`}>{value}</span></td>)}
-          </tr>)}</tbody>
-        </table></div>
-        {!pdfData.classSnapshot.rows.length && <p className="py-4 text-sm text-gray-500">No active classes match this report.</p>}
-        <p className="mt-2 text-xs text-gray-500">Present and Absent are recorded class signals, not verified days attended.</p>
-      </section>}
-      <section><h2 className="font-semibold">Student History{classReport ? ` · ${className}` : ''}</h2>
-        <p className="my-2 text-xs text-gray-500">{range}{!classReport ? ' | Grouped by class' : ''}</p>
-        <StudentReportHistory rows={history} grouped={!classReport} includeNotes={includeNotes} />
-      </section>
-    </article>
+    <StudentReportDocument data={pdfData} />
   </div>;
 }
