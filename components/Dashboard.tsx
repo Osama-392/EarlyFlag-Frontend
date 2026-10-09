@@ -142,7 +142,7 @@ const TeacherDashboardSkeleton = () => (
  </section>
 
  <div className="border-t border-gray-200 pt-8 dark:border-[#262a3d]">
- <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h2 className="text-2xl font-bold text-gray-900 dark:text-white">Analytics</h2><TeacherSkeletonLine className="mt-2 h-3 w-48" /></div><div className="flex gap-2">{[1, 2, 3].map(item => <TeacherSkeletonLine key={item} className="h-9 w-20 rounded-lg" />)}</div></div>
+ <div className="flex flex-col items-start gap-4"><div><h2 className="text-2xl font-bold text-gray-900 dark:text-white">Analytics</h2><TeacherSkeletonLine className="mt-2 h-3 w-48" /></div><div className="flex gap-2">{[1, 2, 3].map(item => <TeacherSkeletonLine key={item} className="h-9 w-20 rounded-lg" />)}</div></div>
  </div>
 
  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -1016,7 +1016,7 @@ export default function Dashboard() {
  )}
 
  {/* ─── Page Header ───────────────────────────────────────────── */}
- <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+ <div className="flex flex-col items-start gap-4">
  <div>
  <h1 className="text-2xl font-bold text-gray-900 dark:text-white ">Analytics</h1>
  <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">

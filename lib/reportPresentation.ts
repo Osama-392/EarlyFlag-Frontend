@@ -8,6 +8,7 @@ export interface HistoryRow {
   teacherName: string;
   typeLabel: string;
   signalType: string;
+  category?: string;
 }
 
 export function reportDate(value?: string | null): string {
@@ -33,9 +34,21 @@ export function reportHistory(flags: any[], includeNotes = true, start?: string,
       title: String(flag.title || flag.reason_description || 'Observation recorded'),
       description: includeNotes ? String(flag.description || flag.note || '') : '',
       className: String(flag.class_name || 'Unassigned'), teacherName: String(flag.teacher_name || ''),
-      typeLabel: category ? `${type} · ${category}` : type, signalType,
+      typeLabel: category ? `${type} · ${category}` : type, signalType, category: flag.category,
     };
   });
+}
+
+export function reportCategoryCounts(rows: HistoryRow[]) {
+  const counts = { yellowBehavioral: 0, yellowAcademic: 0, redBehavioral: 0, redAcademic: 0 };
+  for (const row of rows) {
+    const category = row.category || row.typeLabel.toLowerCase().match(/academic|behavioral/)?.[0];
+    if (row.signalType === 'yellow' && category === 'behavioral') counts.yellowBehavioral++;
+    if (row.signalType === 'yellow' && category === 'academic') counts.yellowAcademic++;
+    if (row.signalType === 'red' && category === 'behavioral') counts.redBehavioral++;
+    if (row.signalType === 'red' && category === 'academic') counts.redAcademic++;
+  }
+  return counts;
 }
 
 export function groupReportHistory(rows: HistoryRow[]) {

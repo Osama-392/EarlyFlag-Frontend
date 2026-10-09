@@ -22,7 +22,7 @@ test('overview PDF groups class history and keeps cross-class alerts separate', 
     history: [{ classId: 'math', className: 'Math 6A', teacherName: 'Criss Mark', date: 'Sep 28, 2026', dayOfWeek: '', signalType: 'red', typeLabel: 'Red · Academic', title: 'Cheating', description: 'Specific teacher note' }],
   });
   const text = pdfText(pdf);
-  for (const label of ['1 Cross-Class Alert', 'Class-by-Class Snapshot', 'Student History - Math 6A', 'Cheating', 'Specific teacher note']) assert.ok(text.includes(label), label);
+  for (const label of ['1 Cross-Class Alert', 'Class Snapshot', 'Student History', 'Math 6A', 'Cheating', 'Specific teacher note']) assert.ok(text.includes(label), label);
   assert.ok(!text.includes('Latest Note')); assert.ok(!text.includes('Obsolete note'));
 });
 
@@ -33,4 +33,19 @@ test('long history and notes retain final text across repeated page headings', (
   assert.ok(pdf.getNumberOfPages() > 2);
   for (const value of ['Incident-119', 'Note-119', 'FINAL-NOTE-TEXT', 'continued']) assert.ok(text.includes(value), value);
   assert.equal((text.match(/FINAL-NOTE-TEXT/g) || []).length, 1);
+});
+
+test('cross-class panels retain long descriptions and every contribution across pages', () => {
+  const items = Array.from({ length: 7 }, (_, i) => ({
+    title: `ContributionMarker${i}`, className: 'Math 6A', date: 'Sep 28, 2026',
+  }));
+  items[0].className = `${'Long class context. '.repeat(500)}\nENDCONTRIB`;
+  const pdf = createAdminReportPdf({ ...base, kind: 'overview', crossClassAlerts: [{
+    date: 'Sep 30, 2026', description: `${'Detailed alert context. '.repeat(1000)}FINAL-ALERT`, contributions: '', items,
+  }] });
+  const text = pdfText(pdf);
+  assert.ok(pdf.getNumberOfPages() > 1);
+  for (const marker of [...items.map(item => item.title), 'ENDCONTRIB', 'FINAL-ALERT']) {
+    assert.equal(text.split(marker).length - 1, 1, marker);
+  }
 });

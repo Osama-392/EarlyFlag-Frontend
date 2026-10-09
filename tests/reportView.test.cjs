@@ -44,7 +44,7 @@ test('admin and teacher exact-class reports have identical previews and PDF data
   const admin = await preview({ report, red_summary: { red_count: 99 }, class_snapshot: { classes: [] } }, { class_id: 'math' });
   assert.equal(admin.html, teacher.html);
   assert.equal(JSON.stringify(admin.data), JSON.stringify(teacher.data));
-  for (const label of ['CLASS REPORT', 'Math 6A Attendance', 'Present', 'Absent', 'Red · Academic', 'Cheating', 'Teacher note on this incident', 'Sep 25, 2026']) assert.ok(admin.html.includes(label), label);
+  for (const label of ['CLASS REPORT', 'Math 6A Attendance', 'Present', 'Absent', 'Red - Academic', 'Cheating', 'Teacher note on this incident', 'Sep 25, 2026']) assert.ok(admin.html.includes(label), label);
   for (const removed of ['Red Summary', 'Category Breakdown', 'Class-by-Class Snapshot', 'Cross-Class Alert']) assert.ok(!admin.html.includes(removed), removed);
   assert.equal(admin.data.counts.red, 2);
 });
@@ -61,7 +61,9 @@ test('overview cards match class totals and show cross-class alerts separately',
     ] },
   });
   assert.equal(result.data.counts.red, 2); assert.equal(result.data.counts.yellow, 5);
-  for (const label of ['1 Cross-Class Alert', 'does not add a Red', 'Math 6A Sep 28, 2026', 'Class-by-Class Snapshot', 'Grouped by class', 'Red · Academic', 'Yellow · Behavioral']) assert.ok(result.html.includes(label), label);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.data.categories)), { yellowBehavioral: 1, yellowAcademic: 0, redBehavioral: 0, redAcademic: 1 });
+  assert.equal(result.data.crossClassAlerts[0].items[0].className, 'Math 6A');
+  for (const label of ['1 Cross-Class Alert', 'Math 6A', 'Sep 28, 2026', 'Class Snapshot', 'Red - Academic', 'Yellow - Behavioral']) assert.ok(result.html.includes(label), label);
   assert.ok(!result.html.includes('Latest Note')); assert.ok(!result.html.includes('Red Summary'));
 });
 
@@ -79,6 +81,7 @@ test('selected-range history is complete beyond 100 entries and excludes outside
   rows.push({ ...row, signal_date: '2026-09-24', title: 'Outside period' });
   const result = await preview({ report: { ...report, class_history: rows } }, { class_id: 'math' });
   assert.equal(result.data.history.length, 130); assert.ok(result.html.includes('Incident 129'));
+  assert.equal(result.data.categories.redAcademic, 130);
   assert.ok(!result.html.includes('Outside period'));
   assert.ok(result.pdf.internal.pages.flat().join('\n').includes('Incident 129'));
 });
