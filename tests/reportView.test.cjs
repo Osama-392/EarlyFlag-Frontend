@@ -99,3 +99,45 @@ test('report navigation resets the actual scrolling ancestors', () => {
   scrollReportToTop({ parentElement: wrapper });
   assert.equal(main.scrollTop, 0); assert.equal(wrapper.scrollTop, 0);
 });
+
+test('cross-class preview and PDF use original concerns with the reference summary', async () => {
+  const contributions = [
+    { class_name: 'Language arts 8A', signal_date: '2026-09-24', reason_description: 'Off task' },
+    { class_name: 'Technology 8A', signal_date: '2026-09-26', reason_description: 'Off-task behavior' },
+    { class_name: 'Religion 8A', signal_date: '2026-09-28', reason_description: 'Talking out of turn' },
+  ];
+  const result = await preview({ report: { ...report, report_class: null, class_history: [],
+    cross_class_alerts: [{ occurred_on: '2026-09-28', description: 'Escalated: Off task | Off-task behavior | Talking out of turn', contributions }],
+  } });
+  const summary = 'Yellow incidents occurred in 3 different classes within a 7-day period.';
+  assert.equal(result.data.crossClassAlerts[0].description, summary);
+  assert.ok(result.html.includes(summary));
+  assert.ok(!result.html.includes('Yellow incident</p>'));
+  assert.ok(!result.html.includes('Escalated:'));
+  for (const item of contributions) {
+    assert.ok(result.html.includes(item.reason_description));
+    assert.ok(result.pdf.internal.pages.flat().join('\n').includes(item.reason_description));
+  }
+});
+
+test('older alert responses resolve concerns by source identity or unambiguous class and date', () => {
+  const { reportCrossClassAlerts } = load('../lib/reportPresentation.ts');
+  const history = [
+    { signal_id: 'one', class_id: 'math', class_name: 'Math 6A', signal_date: '2026-09-28', signal_type: 'yellow', title: 'Off task' },
+    { signal_id: 'two', class_id: 'math', class_name: 'Math 6A', signal_date: '2026-09-28', signal_type: 'yellow', title: 'Talking out of turn' },
+    { class_name: 'Spanish 6A', signal_date: '2026-09-27', signal_type: 'yellow', title: 'Incomplete work' },
+  ];
+  const alerts = reportCrossClassAlerts([{ occurred_on: '2026-09-28',
+    description: 'Escalated: Incomplete work | Off task | Talking out of turn',
+    contributions: [
+      { signal_id: 'two', class_id: 'math', class_name: 'Math 6A', signal_date: '2026-09-28' },
+      { class_name: 'Spanish 6A', signal_date: '2026-09-27' },
+      { class_name: 'Math 6A', signal_date: '2026-09-28' },
+      { signal_id: 'deleted', class_name: 'Spanish 6A', signal_date: '2026-09-27' },
+      { class_name: 'Spanish 6A', signal_date: '2026-09-26' },
+    ],
+  }], history);
+  assert.deepEqual(Array.from(alerts[0].items, item => item.title), ['Talking out of turn', 'Incomplete work', '', '', '']);
+  const original = reportCrossClassAlerts([{ contributions: [{ ...history[0], reason_description: 'Original concern' }] }], history);
+  assert.equal(original[0].items[0].title, 'Original concern');
+});
