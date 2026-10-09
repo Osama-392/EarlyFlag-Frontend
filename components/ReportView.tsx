@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Download, Loader2 } from 'lucide-react';
 import { useAuth } from '@/app/providers';
 import { createAdminReportPdf, AdminReportPdfData } from '@/lib/adminReportPdf';
-import { reportCategoryCounts, reportDate, reportHistory, scrollReportToTop } from '@/lib/reportPresentation';
+import { reportCategoryCounts, reportCrossClassAlerts, reportDate, reportHistory, scrollReportToTop } from '@/lib/reportPresentation';
 import StudentReportDocument from '@/components/StudentReportDocument';
 
 interface ReportViewProps {
@@ -39,7 +39,8 @@ export default function ReportView({ student, reportData, variant, onBack, backL
   const className = report.report_class?.class_name || reportData.subject || 'All Subjects';
   const classTeacher = report.report_class?.teacher_name || '';
   const snapshot = response?.class_snapshot;
-  const history = reportHistory(report.class_history ?? report.flag_log ?? report.signals ?? [], includeNotes, start, end);
+  const sourceHistory = report.class_history ?? report.flag_log ?? report.signals ?? [];
+  const history = reportHistory(sourceHistory, includeNotes, start, end);
   const snapshotRows = snapshot?.classes || [];
   const selected = report.counts_selected_range;
   // Overview cards and table share class-scoped counts. Cross-class alerts stay separate.
@@ -60,14 +61,7 @@ export default function ReportView({ student, reportData, variant, onBack, backL
     kind: classReport ? 'class' : 'overview', teacherName: classTeacher, includeNotes,
     counts: { superGreen: counts.super_green || 0, yellow: counts.yellow || 0, red: counts.red || 0, present: counts.present || 0, absent: counts.absent || 0 },
     categories: reportCategoryCounts(history),
-    crossClassAlerts: crossClassAlerts.map((alert: any) => ({
-      date: reportDate(alert.occurred_on), description: alert.description || 'Yellow incidents occurred across different classes within a 7-day period.',
-      items: (alert.contributions || []).map((item: any) => ({
-        title: item.title || item.reason_description || item.reason || '',
-        className: item.class_name || 'Class', date: reportDate(item.signal_date), inferred: Boolean(item.is_inferred),
-      })),
-      contributions: (alert.contributions || []).map((item: any) => `${item.class_name || 'Class'} ${reportDate(item.signal_date)}${item.is_inferred ? ' (inferred)' : ''}`).join(' + '),
-    })),
+    crossClassAlerts: reportCrossClassAlerts(crossClassAlerts, sourceHistory),
     classSnapshot: !classReport && !teacherView && snapshot ? {
       range, rows: snapshotRows.map((row: any) => ({
         className: row.class_name, teacherName: row.teacher.display_name,

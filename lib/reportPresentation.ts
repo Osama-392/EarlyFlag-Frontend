@@ -51,6 +51,43 @@ export function reportCategoryCounts(rows: HistoryRow[]) {
   return counts;
 }
 
+interface ReportConcernSource {
+  signal_id?: string; class_id?: string; class_name?: string; signal_date?: string;
+  signal_type?: string; reason_description?: string; title?: string; reason?: string;
+  is_inferred?: boolean;
+}
+
+export function reportCrossClassAlerts(alerts: Array<{
+  occurred_on?: string; contributions?: ReportConcernSource[];
+}>, history: ReportConcernSource[]) {
+  const concern = (row: ReportConcernSource) => [row.reason_description, row.title, row.reason]
+    .find(value => typeof value === 'string' && value.trim() && !/^yellow incident$/i.test(value.trim()))?.trim() || '';
+  return alerts.map(alert => {
+    const contributions = alert.contributions || [];
+    const classCount = new Set(contributions.map(item => item.class_id || item.class_name).filter(Boolean)).size;
+    return {
+      date: reportDate(alert.occurred_on),
+      description: `Yellow incidents occurred ${classCount > 1 ? `in ${classCount} different classes` : 'across different classes'} within a 7-day period.`,
+      items: contributions.map(item => {
+        // Older report responses omit concern text. Only use history when it
+        // identifies one concern; the combined escalation description is sorted
+        // alphabetically and cannot safely be paired with classes by position.
+        const matches = history.filter(row => row.signal_type === 'yellow' && (item.signal_id
+          ? row.signal_id === item.signal_id
+          : Boolean(item.signal_date && (item.class_id || item.class_name))
+            && (item.class_id ? row.class_id === item.class_id : row.class_name === item.class_name)
+            && row.signal_date?.slice(0, 10) === item.signal_date?.slice(0, 10)));
+        const matchingConcerns = [...new Set(matches.map(concern).filter(Boolean))];
+        return {
+          title: concern(item) || (matchingConcerns.length === 1 ? matchingConcerns[0] : ''),
+          className: item.class_name || 'Class', date: reportDate(item.signal_date), inferred: Boolean(item.is_inferred),
+        };
+      }),
+      contributions: contributions.map(item => `${item.class_name || 'Class'} ${reportDate(item.signal_date)}${item.is_inferred ? ' (inferred)' : ''}`).join(' + '),
+    };
+  });
+}
+
 export function groupReportHistory(rows: HistoryRow[]) {
   const groups = new Map<string, { key: string; className: string; teacherName: string; rows: HistoryRow[] }>();
   for (const row of rows) {

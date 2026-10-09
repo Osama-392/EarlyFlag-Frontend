@@ -12,7 +12,7 @@ export default function StudentReportDocument({ data }: { data: AdminReportPdfDa
     { label: 'Yellow Incidents', value: data.counts.yellow, style: 'border-amber-100 bg-amber-50/70', color: 'text-amber-500', behavioral: categories.yellowBehavioral, academic: categories.yellowAcademic },
     { label: 'Red Incidents', value: data.counts.red, style: 'border-rose-100 bg-rose-50/80', color: 'text-red-600', behavioral: categories.redBehavioral, academic: categories.redAcademic },
   ];
-  return <article className="report-print-area mx-auto w-full max-w-[1100px] space-y-6 rounded-xl bg-white p-4 font-[Arial,sans-serif] text-[#10133d] sm:p-7 print:p-0">
+  return <article className="report-print-area w-full min-w-0 space-y-6 rounded-xl bg-white p-4 font-[Arial,sans-serif] text-[#10133d] sm:p-7 print:p-0">
     <header className="relative flex items-center gap-4 rounded-lg border border-[#dce5ef] px-4 py-5 sm:gap-6 sm:px-6">
       <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-slate-100 text-2xl font-bold text-[#52617c] sm:h-20 sm:w-20">{data.initials}</div>
       <div className="min-w-0 flex-1">
