@@ -112,6 +112,19 @@ test('failed profile refresh keeps the applied range and exposes a retry message
   assert.equal(h.reportCalls[0][1].start_date, '2026-08-01');
 });
 
+test('admin profile sorts refreshed flag history newest first regardless of API order', async () => {
+  const h = harness(); h.render(); await settle();
+  h.selected.flag_log = [
+    { signal_date: '2026-09-24', title: 'Oldest' },
+    { signal_date: '2026-09-30', created_at: '2026-09-30T08:00:00Z', signal_type: 'red', title: 'Morning' },
+    { signal_date: '2026-09-30', created_at: '2026-09-30T16:00:00Z', signal_type: 'super_green', title: 'Newest' },
+  ];
+  find(h.render(), el => el.type === 'AdminProfileDateFilter').props.onApply('2026-09-24', '2026-09-30');
+  await settle();
+  const rows = find(h.render(), el => el.type === 'StudentReportHistory').props.rows;
+  assert.deepEqual(Array.from(rows, row => row.title), ['Newest', 'Morning', 'Oldest']);
+});
+
 test('direct admin report failures keep the profile visible with retry available', async () => {
   const h = harness(); h.render(); await settle(); h.setReportFail();
   find(h.render(), el => el.type === 'button' && content(el).includes('Create Report')).props.onClick();

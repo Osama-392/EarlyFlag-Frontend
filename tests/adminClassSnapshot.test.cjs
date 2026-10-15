@@ -103,21 +103,53 @@ test('View report uses the exact class and applied profile range', async () => {
   assert.equal(h.reports[0].result.report.counts_selected_range.red, 1);
 });
 
-test('header date presets default to academic year and use school-local today', async () => {
+test('header date presets automatically apply using school-local today', () => {
   const h = harness({}, 'AdminProfileDateFilter');
   assert.equal(find(h.render(), (el) => el.type === 'select').props.value, 'academic');
   let tree = h.render();
   find(tree, (el) => el.type === 'select').props.onChange({ target: { value: '30d' } });
-  tree = h.render();
-  find(tree, (el) => el.type === 'form').props.onSubmit({ preventDefault() {} });
-  await settle();
   assert.equal(h.calls[0][2].start_date, '2026-08-29');
+  assert.equal(h.calls[0][2].end_date, '2026-09-27');
+  find(h.render(), (el) => el.type === 'select').props.onChange({ target: { value: '7d' } });
+  assert.equal(h.calls[1][2].start_date, '2026-09-21');
+  assert.equal(h.calls[1][2].end_date, '2026-09-27');
+  find(h.render(), (el) => el.type === 'select').props.onChange({ target: { value: 'academic' } });
+  assert.equal(h.calls[2][2].start_date, '2026-09-01');
+  assert.equal(h.calls[2][2].end_date, '2026-09-27');
+  assert.equal(find(h.render(), (el) => el.type === 'button'), undefined);
+});
+
+test('custom dates auto-apply only when both dates form a valid range', () => {
+  const h = harness({}, 'AdminProfileDateFilter');
+  find(h.render(), (el) => el.type === 'select').props.onChange({ target: { value: 'custom' } });
+  assert.equal(h.calls.length, 0);
+  let tree = h.render();
+  find(tree, (el) => el.type === 'input').props.onChange({ target: { value: '2026-09-10' } });
+  assert.equal(h.calls[0][2].start_date, '2026-09-10');
   assert.equal(h.calls[0][2].end_date, '2026-09-27');
   tree = h.render();
   find(tree, (el) => el.type === 'input' && el.props.type === 'date').props.onChange({ target: { value: '2026-10-01' } });
   tree = h.render();
-  assert.equal(find(tree, (el) => el.type === 'button' && el.props.type === 'submit').props.disabled, true);
+  assert.equal(h.calls.length, 1);
   assert.ok(content(tree).includes('From must be on or before To'));
+  find(tree, (el) => el.type === 'input' && el.props.min !== undefined).props.onChange({ target: { value: '2026-10-05' } });
+  assert.equal(h.calls[1][2].start_date, '2026-10-01');
+  assert.equal(h.calls[1][2].end_date, '2026-10-05');
+  find(h.render(), (el) => el.type === 'input').props.onChange({ target: { value: '' } });
+  find(h.render(), (el) => el.type === 'input' && el.props.min !== undefined).props.onChange({ target: { value: '2026-10-06' } });
+  assert.equal(h.calls.length, 2);
+  find(h.render(), (el) => el.type === 'input').props.onChange({ target: { value: '2026-10-06' } });
+  assert.equal(h.calls[2][2].start_date, '2026-10-06');
+  assert.equal(h.calls[2][2].end_date, '2026-10-06');
+});
+
+test('date filter disables changes and shows status while updating', () => {
+  const h = harness({}, 'AdminProfileDateFilter');
+  h.props.busy = true;
+  const tree = h.render();
+  assert.equal(find(tree, (el) => el.type === 'select').props.disabled, true);
+  assert.equal(find(tree, (el) => el.type === 'input').props.disabled, true);
+  assert.ok(content(find(tree, (el) => el.props.role === 'status')).includes('Updating'));
 });
 
 test('failed class reports expose errors', async () => {

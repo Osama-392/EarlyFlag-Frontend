@@ -1,3 +1,5 @@
+import { sortFlagHistory } from './flagHistory';
+
 export interface HistoryRow {
   classId?: string;
   date: string;
@@ -20,10 +22,10 @@ export function reportDate(value?: string | null): string {
 }
 
 export function reportHistory(flags: any[], includeNotes = true, start?: string, end?: string): HistoryRow[] {
-  return flags.filter(flag => {
+  return sortFlagHistory(flags.filter(flag => {
     const day = String(flag.signal_date || flag.created_at || '').slice(0, 10);
     return (!start || day >= start) && (!end || day <= end);
-  }).map(flag => {
+  })).map(flag => {
     const signalType = String(flag.signal_type || '').toLowerCase();
     const type = signalType === 'super_green' || signalType === 'green' ? 'Super Green'
       : signalType.charAt(0).toUpperCase() + signalType.slice(1);
