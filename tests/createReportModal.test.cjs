@@ -117,7 +117,7 @@ test('report date inputs, helper text and generated payload keep the same calend
     return exportsObject.default({
       isOpen: true,
       student: { id: 'student-1', name: 'Test Student', status: 'neutral', initial: 'TS', bgColor: '' },
-      defaultSubject: 'All Subjects', gradeSubjects: [], onClose: () => {},
+      defaultSubject: classId ? 'Math 6A' : 'All Subjects', gradeSubjects: [], onClose: () => {},
       classId,
       onGenerate: (data) => { generated = data; },
     });
@@ -163,4 +163,55 @@ test('report date inputs, helper text and generated payload keep the same calend
   assert.equal(request.payload.class_id, 'math-6a');
   assert.ok(!Object.hasOwn(request.payload, 'subject'), 'exact class requests omit the ambiguous subject filter');
   assert.equal(findElement(render(), element => element.type === 'select').props.disabled, true);
+  assert.equal(generated.subject, 'Math 6A');
+  assert.ok(!renderToStaticMarkup(findElement(render(), element => element.type === 'select')).includes('All Subjects'));
+});
+
+test('teacher reports select exact classes even when class names match', async () => {
+  const states = [];
+  let index = 0;
+  let request;
+  let generated;
+  const { default: Modal } = require('./loadTypeScript.cjs')('../components/CreateReportModal.tsx', {
+    react: {
+      ...React, useEffect() {}, useMemo: factory => factory(),
+      useState(initial) {
+        const current = index++;
+        if (!(current in states)) states[current] = initial;
+        return [states[current], value => { states[current] = value; }];
+      },
+    },
+    'lucide-react': { X: () => null, AlertCircle: () => null },
+    '@/lib/logger': { logger: { formSubmit() {} } },
+    '@/lib/studentService': { generateStudentReport: async (id, payload) => { request = payload; return {}; } },
+  });
+  let classOptions = [{ id: 'math-a', name: 'Math' }, { id: 'math-b', name: 'Math' }];
+  function render() {
+    index = 0;
+    return Modal({
+      isOpen: true, student: { id: 'student', name: 'Test Student', initial: 'TS' },
+      defaultSubject: 'Math', gradeSubjects: ['Math'], classOptions,
+      onClose() {}, onGenerate(data) { generated = data; },
+    });
+  }
+  const select = findElement(render(), el => el.type === 'select');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  assert.ok(!renderToStaticMarkup(select).includes('All Subjects'));
+  assert.equal(select.props.value, 'math-a');
+  select.props.onChange({ target: { value: 'math-b' } });
+  findElement(render(), el => el.type === 'form').props.onSubmit({ preventDefault() {} });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(request.class_id, 'math-b');
+  assert.equal(request.subject, undefined);
+  assert.equal(generated.subject, 'Math');
+
+  states.length = 0;
+  request = undefined;
+  classOptions = [];
+  const empty = render();
+  assert.equal(findElement(empty, el => el.type === 'button' && el.props.type === 'submit').props.disabled, true);
+  findElement(empty, el => el.type === 'form').props.onSubmit({ preventDefault() {} });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(request, undefined);
+  assert.ok(!renderToStaticMarkup(empty).includes('All Subjects'));
 });

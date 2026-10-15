@@ -18,6 +18,7 @@ interface CreateReportModalProps {
  };
  defaultSubject: string;
  classId?: string;
+ classOptions?: { id: string; name: string }[];
  initialStartDate?: string;
  initialEndDate?: string;
  gradeSubjects: string[];
@@ -31,6 +32,7 @@ export default function CreateReportModal({
  student,
  defaultSubject,
  classId,
+ classOptions,
  initialStartDate,
  initialEndDate,
  gradeSubjects,
@@ -56,10 +58,16 @@ export default function CreateReportModal({
  const [startDate, setStartDate] = useState(formatDate(thirtyDaysAgo));
  const [endDate, setEndDate] = useState(formatDate(today));
  const [subject, setSubject] = useState(defaultSubject);
+ const [selectedClassId, setSelectedClassId] = useState(classId || classOptions?.[0]?.id || '');
  const [includeTeachersNotes, setIncludeTeachersNotes] = useState(true);
 
  const [loading, setLoading] = useState(false);
  const [error, setError] = useState<string | null>(null);
+ const isClassReport = Boolean(classId) || classOptions !== undefined;
+ const reportClassId = classId || selectedClassId;
+ const reportSubject = isClassReport
+ ? classOptions?.find(item => item.id === reportClassId)?.name || defaultSubject
+ : subject;
 
  const subjectOptions = useMemo(
  () => Array.from(new Set(
@@ -75,6 +83,10 @@ export default function CreateReportModal({
  }, [defaultSubject, isOpen]);
 
  useEffect(() => {
+ if (isOpen) setSelectedClassId(classId || classOptions?.[0]?.id || '');
+ }, [classId, classOptions, isOpen]);
+
+ useEffect(() => {
  if (isOpen && initialStartDate && initialEndDate) {
  setStartDate(initialStartDate);
  setEndDate(initialEndDate);
@@ -82,13 +94,14 @@ export default function CreateReportModal({
  }, [isOpen, initialStartDate, initialEndDate]);
 
  const handleGenerateReport = async () => {
+ if (isClassReport && !reportClassId) return;
  setLoading(true);
  setError(null);
  try {
  const payload = {
  start_date: startDate,
  end_date: endDate,
- ...(classId ? { class_id: classId } : { subject }),
+ ...(isClassReport ? { class_id: reportClassId } : { subject }),
  include_teachers_notes: includeTeachersNotes,
  include_ai_recommendations: false,
  };
@@ -98,7 +111,7 @@ export default function CreateReportModal({
  logger.formSubmit('CreateReportModal', payload);
  
  // Pass both the payload settings and the actual response to the parent
- onGenerate({ ...payload, subject, result: apiResponse });
+ onGenerate({ ...payload, subject: reportSubject, result: apiResponse });
  } catch (err: any) {
  console.error('Report generation failed:', err);
  setError(err?.response?.data?.detail?.[0]?.msg || err?.response?.data?.detail || 'Failed to generate report.');
@@ -223,23 +236,34 @@ export default function CreateReportModal({
  {/* Subject Selection */}
  <div>
  <label htmlFor="subject" className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
- Subject
+ {isClassReport ? 'Class' : 'Subject'}
  </label>
  <select
  id="subject"
- disabled={Boolean(classId)}
- value={subject}
+ disabled={Boolean(classId) || (isClassReport && !classOptions?.length)}
+ value={isClassReport ? reportClassId : subject}
  onChange={(e) => {
+ if (isClassReport) {
+ setSelectedClassId(e.target.value);
+ return;
+ }
  logger.formChange('subject', e.target.value, 'CreateReportModal');
  setSubject(e.target.value);
  }}
  className="w-full px-3 py-2 border dark:bg-[#1b1e2c] dark:text-white border-gray-300 dark:border-[#262a3d] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white text-gray-900 dark:text-white"
  >
- {!classId && <option value="All Subjects">All Subjects</option>}
+ {isClassReport ? (
+ classOptions ? classOptions.map(item => (
+ <option key={item.id} value={item.id}>{item.name}</option>
+ )) : <option value={classId}>{defaultSubject}</option>
+ ) : <>
+ <option value="All Subjects">All Subjects</option>
  {subjectOptions.map((subj) => (
  <option key={subj} value={subj}>{subj}</option>
  ))}
+ </>}
  </select>
+ {isClassReport && !reportClassId && <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">This student is not enrolled in any of your classes.</p>}
  </div>
 
  {/* Checkboxes */}
@@ -264,7 +288,7 @@ export default function CreateReportModal({
  {/* Create Report Button */}
  <button
  type="submit"
- disabled={loading}
+ disabled={loading || (isClassReport && !reportClassId)}
  className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
  >
  {loading ? (

@@ -90,6 +90,21 @@ export const getClassStudents = async (classId: string, signalDate?: string): Pr
   }
 };
 
+// Report choices must identify a specific class taught by the current teacher.
+export const getStudentReportClasses = async (studentId: string, classId?: string) => {
+  const classes = await getTeacherClasses();
+  if (classId) {
+    const currentClass = classes.find(item => item.id === classId || item.slug === classId);
+    if (!currentClass) throw new Error('Unable to find the report class.');
+    return [currentClass];
+  }
+  const enrolledClasses = await Promise.all(classes.map(async item => {
+    const students = await getClassStudents(item.id);
+    return students.some(student => student.id === studentId || student.slug === studentId) ? item : null;
+  }));
+  return enrolledClasses.filter((item): item is NonNullable<typeof item> => item !== null);
+};
+
 // Get a specific student's signal history
 export const getStudentHistory = async (studentId: string) => {
   try {

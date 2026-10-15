@@ -7,8 +7,8 @@ import {
   ArrowLeft, Mail, MessageSquare, Edit, AlertCircle, CheckCircle, 
   AlertTriangle, FileText
 } from 'lucide-react';
-import { getStudentHistory, updateStudentProfile } from '@/lib/studentService';
-import { getClass, Class } from '@/lib/classService';
+import { getStudentHistory, getStudentReportClasses, updateStudentProfile } from '@/lib/studentService';
+import { Class } from '@/lib/classService';
 import { getCategoryStyle } from '@/lib/categoryColors';
 import EditStudentProfileModal from '@/components/EditStudentProfileModal';
 import ParentEmailTemplateModal from '@/components/ParentEmailTemplateModal';
@@ -18,6 +18,7 @@ import ReportView from '@/components/ReportView';
 import { useAuth } from '@/app/providers';
 import { logger } from '@/lib/logger';
 import { filterGlobalEscalationsFromReportData } from '@/lib/reportUtils';
+import { sortFlagHistory } from '@/lib/flagHistory';
 import { TeacherStudentProfileSkeleton } from '@/components/TeacherLoadingSkeletons';
 import { formatTeacherDisplayName } from '@/lib/teacherTitle';
 
@@ -36,7 +37,7 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<any>(null);
-  const [profileClass, setProfileClass] = useState<Class | null>(null);
+  const [reportClasses, setReportClasses] = useState<Class[]>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [emailCategoryState, setEmailCategoryState] = useState<'red' | 'yellow' | 'super_green' | 'absent' | null>(null);
@@ -53,10 +54,10 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
       // Fetch student history which contains signal data
       const [historyData, classData] = await Promise.all([
         getStudentHistory(studentId),
-        classId ? getClass(classId).catch(() => null) : Promise.resolve(null),
+        getStudentReportClasses(studentId, classId),
       ]);
       setHistory(historyData);
-      setProfileClass(classData);
+      setReportClasses(classData);
     } catch (err: any) {
       const message = err?.response?.data?.detail?.[0]?.msg || 'Failed to load student data';
       setError(message);
@@ -144,34 +145,7 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
     };
   });
 
-  const SEVERITY_ORDER: Record<string, number> = {
-    red: 0,
-    yellow: 1,
-    super_green: 2,
-    green: 2,
-    absent: 3,
-    present: 4,
-  };
-
-  const signals = [...rawSignals, ...mappedReferrals].sort((a, b) => {
-    const parseDateOnly = (item: any) => {
-      const d = item.signal_date || item.created_at;
-      if (!d) return 0;
-      return new Date(d.includes('T') ? d.split('T')[0] + 'T00:00:00Z' : d + 'T00:00:00Z').getTime();
-    };
-
-    const dateA = parseDateOnly(a);
-    const dateB = parseDateOnly(b);
-    if (dateB !== dateA) return dateB - dateA;
-
-    const sevA = SEVERITY_ORDER[String(a.signal_type || '').toLowerCase()] ?? 99;
-    const sevB = SEVERITY_ORDER[String(b.signal_type || '').toLowerCase()] ?? 99;
-    if (sevA !== sevB) return sevA - sevB;
-
-    const timeA = new Date(a.created_at || a.signal_date || 0).getTime();
-    const timeB = new Date(b.created_at || b.signal_date || 0).getTime();
-    return timeB - timeA;
-  });
+  const signals = sortFlagHistory<any>([...rawSignals, ...mappedReferrals]);
  
   const isSuperGreenOrGeneral = (s: any): boolean => {
     if (!s) return false;
@@ -519,9 +493,10 @@ export default function StudentProfile({ studentId: propStudentId, classId: prop
           initial: `${history?.first_name?.charAt(0) || ''}${history?.last_name?.charAt(0) || ''}`.toUpperCase(),
           bgColor: 'from-blue-400 to-blue-600',
         }}
-        classId={profileClass?.id}
-        defaultSubject={profileClass?.name || 'All Subjects'}
-        gradeSubjects={profileClass ? [profileClass.name] : []}
+        classId={classId ? reportClasses[0]?.id : undefined}
+        classOptions={reportClasses}
+        defaultSubject={reportClasses[0]?.name || ''}
+        gradeSubjects={reportClasses.map(item => item.name)}
         onClose={() => setIsReportModalOpen(false)}
         onGenerate={(reportData) => {
           logger.reportGeneration(studentFullName, reportData);

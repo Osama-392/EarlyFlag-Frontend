@@ -49,6 +49,25 @@ test('admin and teacher exact-class reports have identical previews and PDF data
   assert.equal(admin.data.counts.red, 2);
 });
 
+test('admin and teacher previews and generated PDFs show newest flags first', async () => {
+  const class_history = [
+    { ...row, signal_date: '2026-09-26', title: 'HistoryOldest' },
+    { ...row, signal_date: '2026-09-30', created_at: '2026-09-30T08:00:00Z', title: 'HistoryMorning' },
+    { ...row, signal_type: 'super_green', signal_date: '2026-09-30', created_at: '2026-09-30T16:00:00Z', title: 'HistoryNewest' },
+    { ...row, signal_date: '2026-09-28', title: 'HistoryMiddle' },
+  ];
+  const expected = ['HistoryNewest', 'HistoryMorning', 'HistoryMiddle', 'HistoryOldest'];
+  for (const variant of ['admin', 'teacher']) {
+    for (const overview of variant === 'admin' ? [false, true] : [false]) {
+      const result = await preview({ report: { ...report, report_class: overview ? null : report.report_class, class_history } },
+        overview ? {} : { class_id: 'math' }, variant);
+      assert.deepEqual(Array.from(result.data.history, item => item.title), expected);
+      assert.deepEqual(result.html.match(/History(?:Newest|Morning|Middle|Oldest)/g), expected);
+      assert.deepEqual(result.pdf.internal.pages.flat().join('\n').match(/History(?:Newest|Morning|Middle|Oldest)/g), expected);
+    }
+  }
+});
+
 test('overview cards match class totals and show cross-class alerts separately', async () => {
   const result = await preview({
     report: { ...report, report_class: null, counts_selected_range: { red: 99 },
