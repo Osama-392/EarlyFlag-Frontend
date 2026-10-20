@@ -255,6 +255,7 @@ export interface AdminDashboardResponse {
 // ─── 2. Heatmap ───────────────────────────────────────────────────
 
 export type HeatmapBand = 'green' | 'yellow' | 'orange' | 'red' | 'no_data';
+export type HeatmapRange = '7d' | '30d' | '90d';
 
 export interface HeatmapTile {
   class_id: string;
@@ -266,6 +267,10 @@ export interface HeatmapTile {
   active_enrollments: number;
   yellow_count: number;
   red_count: number;
+  total_flags: number;
+  latest_flag_at: string | null;
+  school_rank: number;
+  heatmap_color: 'red' | 'yellow' | 'green';
   flag_percentage: number | null;
   band: HeatmapBand;
   has_unresolved_high_critical: boolean;
@@ -750,7 +755,7 @@ export const getAdminLeaderboard = async (
  * Per-class flag percentage tiles grouped by grade, with color bands.
  */
 export const getAdminHeatmap = async (
-  range: '1d' | '7d' | '30d' = '1d',
+  range: HeatmapRange = '7d',
 ): Promise<HeatmapBlock> => {
   const res = await api.get('/api/v1/admin/heatmap', { params: { range } });
   return res.data;

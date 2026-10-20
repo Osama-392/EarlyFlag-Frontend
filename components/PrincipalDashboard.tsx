@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -11,8 +12,9 @@ import {
 } from 'lucide-react';
 import {
  getAdminDashboard, getAdminHeatmap,
- AdminDashboardResponse, HeatmapBlock, HeatmapBand,
+ AdminDashboardResponse, HeatmapBlock, HeatmapRange,
 } from '@/lib/adminDashboardService';
+import { ALL_CLEAR_COLORS, getHeatmapColors, HEATMAP_LEGEND_GRADIENT } from '@/lib/heatmapColors';
 import { getPendingTeachers } from '@/lib/adminService';
 import { useAuth } from '@/app/providers';
 import GoodMorningBanner from '@/components/GoodMorningBanner';
@@ -34,14 +36,6 @@ const PREDEFINED_SUBJECTS = [
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────
-
-const bandColors: Record<HeatmapBand, { bg: string; border: string; badge: string; text: string }> = {
- red: { bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-200 dark:border-red-900/50', badge: 'bg-red-500', text: 'text-red-700 dark:text-red-400' },
- orange: { bg: 'bg-orange-50 dark:bg-orange-950/30', border: 'border-orange-200 dark:border-orange-900/50', badge: 'bg-orange-500', text: 'text-orange-700 dark:text-orange-400' },
- yellow: { bg: 'bg-yellow-50 dark:bg-yellow-950/30', border: 'border-yellow-200 dark:border-yellow-900/50', badge: 'bg-yellow-500', text: 'text-yellow-700 dark:text-yellow-400' },
- green: { bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-200 dark:border-green-900/50', badge: 'bg-green-500', text: 'text-green-700 dark:text-green-400' },
- no_data: { bg: 'bg-gray-50 dark:bg-[#1b1e2c]', border: 'border-gray-200 dark:border-[#262a3d]', badge: 'bg-gray-400', text: 'text-gray-500 dark:text-gray-400' },
-};
 
 const formatRankingDate = (value: string | null | undefined) => {
  if (!value) return '—';
@@ -181,6 +175,10 @@ export default function PrincipalDashboard() {
  const [showAllClasses, setShowAllClasses] = useState(false);
  const [dashboard, setDashboard] = useState<AdminDashboardResponse | null>(null);
  const [heatmap, setHeatmap] = useState<HeatmapBlock | null>(null);
+ const [heatmapRange, setHeatmapRange] = useState<HeatmapRange>('7d');
+ const [heatmapLoading, setHeatmapLoading] = useState(true);
+ const [heatmapError, setHeatmapError] = useState<string | null>(null);
+ const heatmapRequest = useRef(0);
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState<string | null>(null);
  const [refreshing, setRefreshing] = useState(false);
@@ -196,14 +194,12 @@ export default function PrincipalDashboard() {
  try {
  if (showRefresh) setRefreshing(true); else setLoading(true);
  setError(null);
- const [dashData, heatData, pendingData] = await Promise.all([
+ const [dashData, pendingData] = await Promise.all([
  getAdminDashboard(range),
- getAdminHeatmap('7d'),
  getPendingTeachers().catch(() => []),
  ]);
  setDashboard(dashData);
  setActiveRedTotal(dashData.red_flags?.all_total ?? 0);
- setHeatmap(heatData);
  setPendingCount(pendingData.length);
  setShowPendingAlert(pendingData.length > 0);
  setReferralsRefreshKey(key => key + 1);
@@ -218,6 +214,41 @@ export default function PrincipalDashboard() {
 
  useEffect(() => { fetchData(); }, [fetchData]);
 
+ const fetchHeatmap = useCallback(async (showLoading = false) => {
+ const request = ++heatmapRequest.current;
+ if (showLoading) setHeatmapLoading(true);
+ setHeatmapError(null);
+ try {
+ const data = await getAdminHeatmap(heatmapRange);
+ if (request === heatmapRequest.current) setHeatmap(data);
+ } catch {
+ if (request === heatmapRequest.current) {
+ setHeatmapError('Unable to refresh the heat map. Any displayed counts are from the last successful update.');
+ }
+ } finally {
+ if (request === heatmapRequest.current) setHeatmapLoading(false);
+ }
+ }, [heatmapRange]);
+
+ const invalidateHeatmapRequest = useCallback(() => {
+ heatmapRequest.current++;
+ }, []);
+
+ useEffect(() => {
+ void fetchHeatmap(true);
+ return invalidateHeatmapRequest;
+ }, [fetchHeatmap, invalidateHeatmapRequest]);
+
+ const selectHeatmapRange = (nextRange: HeatmapRange) => {
+ if (nextRange === heatmapRange) return;
+ // Invalidate immediately, including before the next effect runs.
+ invalidateHeatmapRequest();
+ setHeatmapLoading(true);
+ setHeatmapError(null);
+ setShowAllClasses(false);
+ setHeatmapRange(nextRange);
+ };
+
  const refreshDashboardRankings = useCallback(async () => {
  try {
  const dashData = await getAdminDashboard(range);
@@ -229,7 +260,10 @@ export default function PrincipalDashboard() {
  }, [range]);
 
  useEffect(() => {
- const refresh = () => { void refreshDashboardRankings(); };
+ const refresh = () => {
+ void refreshDashboardRankings();
+ void fetchHeatmap();
+ };
  window.addEventListener('dashboard-refresh', refresh);
  window.addEventListener('focus', refresh);
  const interval = window.setInterval(refresh, 60_000);
@@ -238,7 +272,7 @@ export default function PrincipalDashboard() {
  window.removeEventListener('focus', refresh);
  window.clearInterval(interval);
  };
- }, [refreshDashboardRankings]);
+ }, [refreshDashboardRankings, fetchHeatmap]);
 
  const handleReferralTotalsChange = useCallback(
    (totals: { all_total: number }) => {
@@ -246,8 +280,11 @@ export default function PrincipalDashboard() {
    },
    [],
  );
- const allTiles = heatmap?.grade_buckets?.flatMap(b => b.tiles) || [];
+ const allTiles = heatmap?.range_days === Number.parseInt(heatmapRange, 10)
+ ? heatmap.grade_buckets.flatMap(b => b.tiles).sort((a, b) => a.school_rank - b.school_rank)
+ : [];
  const totalClasses = allTiles.length;
+ const flaggedClassCount = allTiles.filter(tile => tile.total_flags > 0).length;
 
  // Only display the predefined subjects created in the Create Class dropdown
  const dynamicTabs = ['All Subjects', ...PREDEFINED_SUBJECTS];
@@ -376,7 +413,7 @@ export default function PrincipalDashboard() {
  </p>
  </div>
  <div className="flex items-center gap-3">
- <button onClick={() => fetchData(true)} disabled={refreshing}
+ <button onClick={() => { void fetchData(true); void fetchHeatmap(); }} disabled={refreshing}
  className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:bg-[#1b1e2c] rounded-lg transition disabled:opacity-50">
  <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
  </button>
@@ -474,7 +511,6 @@ export default function PrincipalDashboard() {
  {/* ── School Heat Map & Department Overview ───────────────── */}
  <div className="flex flex-col gap-6 mb-8">
  <div className="w-full">
- {heatmap && allTiles.length > 0 && (
  <div className="bg-white dark:bg-[#151722] rounded-xl border border-gray-200 dark:border-[#262a3d] shadow-sm p-6 space-y-6">
  <div className="flex items-center justify-between">
  <div className="flex items-center gap-3">
@@ -482,13 +518,32 @@ export default function PrincipalDashboard() {
  <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{totalClasses} classes</span>
  </div>
  <div className="hidden md:flex items-center gap-3 text-xs">
- {(['green', 'yellow', 'red'] as HeatmapBand[]).map(b => (
- <div key={b} className="flex items-center gap-1.5">
- <div className={`w-3 h-3 rounded-full ${bandColors[b].badge}`} />
- <span className="text-gray-600 dark:text-gray-400 capitalize">{b}</span>
+ <div className="flex items-center gap-1.5" title="Colors reflect school-wide flag activity rank for the selected period.">
+ <span className="text-gray-600 dark:text-gray-400">Higher activity</span>
+ <div aria-hidden="true" className="h-3 w-16 rounded-full" style={{ background: HEATMAP_LEGEND_GRADIENT }} />
+ <span className="text-gray-600 dark:text-gray-400">Lower activity</span>
  </div>
+ <div className="flex items-center gap-1.5">
+ <div aria-hidden="true" className="w-3 h-3 rounded-full" style={{ backgroundColor: ALL_CLEAR_COLORS.badge }} />
+ <span className="text-gray-600 dark:text-gray-400">All clear</span>
+ </div>
+ </div>
+ </div>
+
+ <div className="flex gap-2" role="group" aria-label="Heat map time period">
+ {(['7d', '30d', '90d'] as HeatmapRange[]).map(period => (
+ <button
+ key={period}
+ type="button"
+ aria-pressed={heatmapRange === period}
+ onClick={() => selectHeatmapRange(period)}
+ className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${heatmapRange === period
+ ? 'bg-orange-500 text-white'
+ : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-[#1b1e2c] dark:text-gray-300 dark:hover:bg-[#262a3d]'}`}
+ >
+ {Number.parseInt(period, 10)} Days
+ </button>
  ))}
- </div>
  </div>
 
  <div className="flex overflow-x-auto hide-scrollbar gap-6 border-b border-gray-200 dark:border-[#262a3d] mb-6 pb-0">
@@ -506,23 +561,32 @@ export default function PrincipalDashboard() {
  ))}
  </div>
 
+ {heatmapError && (
+ <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">
+ {heatmapError}
+ <button type="button" onClick={() => void fetchHeatmap(true)} className="ml-3 font-semibold underline">Try again</button>
+ </div>
+ )}
+ {heatmapLoading ? (
+ <div role="status" aria-label="Loading heat map" className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+ {[1, 2, 3].map(card => <SkeletonLine key={card} className="h-40 rounded-xl" />)}
+ </div>
+ ) : (
  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
  {displayedTiles.map(tile => {
-      let tileBand: HeatmapBand = tile.band;
-      if (tile.active_enrollments === 0 || tile.band === 'no_data') {
-        tileBand = 'no_data';
-      } else if ((tile.red_count || 0) > 0) {
-        tileBand = 'red';
-      } else if ((tile.yellow_count || 0) > 0) {
-        tileBand = 'yellow';
-      } else {
-        tileBand = 'green';
-      }
-      const c = bandColors[tileBand];
+      const c = getHeatmapColors(tile.school_rank, tile.total_flags, flaggedClassCount);
  return (
  <div key={tile.class_id}
+ style={{
+ '--heatmap-bg': c.background,
+ '--heatmap-border': c.border,
+ '--heatmap-text': c.text,
+ '--heatmap-dark-bg': c.darkBackground,
+ '--heatmap-dark-border': c.darkBorder,
+ '--heatmap-dark-text': c.darkText,
+ } as CSSProperties}
  onClick={() => router.push(`/principal-classes/${(tile as any).slug || tile.class_id}?from=heatmap`)}
- className={`fade-up ${c.bg} border-2 ${c.border} rounded-xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-0.5`}>
+ className="fade-up bg-[color:var(--heatmap-bg)] dark:bg-[color:var(--heatmap-dark-bg)] border-2 border-[color:var(--heatmap-border)] dark:border-[color:var(--heatmap-dark-border)] rounded-xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-0.5">
  <div className="flex items-start justify-between mb-3">
  <div>
  <h4 className="text-base font-bold text-gray-900 dark:text-white">{tile.class_name}</h4>
@@ -531,37 +595,32 @@ export default function PrincipalDashboard() {
  </p>
  </div>
  <div className="flex items-center gap-1.5">
- {tile.has_unresolved_high_critical && (
- <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" title="Unresolved high/critical alert" />
- )}
- {tile.has_observation_flag && (
- <span className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" title="Teacher observation flag" />
- )}
- <div className={`px-2 py-0.5 rounded-full text-xs font-bold ${c.badge} text-white`}>
- {tileBand === 'no_data' ? '—' : `${Math.round((tile.flag_percentage || 0) * 100)}%`}
+ <div title={`School rank #${tile.school_rank} · ${tile.total_flags} total flags`} style={{ backgroundColor: c.badge, color: c.badgeText }} className="px-2 py-0.5 rounded-full text-xs font-bold">
+ {tile.flag_percentage == null ? '—' : `${Math.round(tile.flag_percentage * 100)}%`}
  </div>
  </div>
  </div>
  <div className="flex items-center gap-4 text-sm">
- <span className={c.text}><Users size={14} className="inline mr-1" />{tile.active_enrollments} students</span>
+ <span className="text-[color:var(--heatmap-text)] dark:text-[color:var(--heatmap-dark-text)]"><Users size={14} className="inline mr-1" />{tile.active_enrollments} students</span>
  </div>
  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-[#262a3d]/60 flex items-center gap-4 text-sm">
  {tile.red_count > 0 && <span className="text-red-700 font-semibold">🔴 {tile.red_count} red</span>}
  {tile.yellow_count > 0 && <span className="text-yellow-700 font-semibold">🟡 {tile.yellow_count} yellow</span>}
- {tile.red_count === 0 && tile.yellow_count === 0 && <span className="text-green-700 font-semibold">✓ All clear</span>}
+ {tile.red_count === 0 && tile.yellow_count === 0 && <span className="text-[color:var(--heatmap-text)] dark:text-[color:var(--heatmap-dark-text)] font-semibold">✓ All clear</span>}
  </div>
  </div>
  );
  })}
 
- {filteredTiles.length === 0 && (
+ {!heatmapError && filteredTiles.length === 0 && (
  <div className="col-span-full py-12 text-center text-gray-500 dark:text-gray-400">
- No classes found for {activeTab}.
+ {totalClasses === 0 ? 'No active classes found.' : `No classes found for ${activeTab}.`}
  </div>
  )}
  </div>
+ )}
 
- {filteredTiles.length > 9 && (
+ {!heatmapLoading && filteredTiles.length > 9 && (
  <div className="mt-6 text-center">
  <button
  onClick={() => setShowAllClasses(!showAllClasses)}
@@ -573,7 +632,6 @@ export default function PrincipalDashboard() {
  </div>
  )}
  </div>
- )}
  </div>
 
  <div className="w-full">

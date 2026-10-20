@@ -3,7 +3,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const ts = require('typescript');
 
-module.exports = function loadTypeScript(relative, overrides = {}) {
+module.exports = function loadTypeScript(relative, overrides = {}, globals = {}) {
   const cache = new Map();
   function load(filename) {
     if (cache.has(filename)) return cache.get(filename);
@@ -13,7 +13,7 @@ module.exports = function loadTypeScript(relative, overrides = {}) {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2019, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
     }).outputText;
     vm.runInNewContext(compiled, {
-      exports, console, Date, Map, Set,
+      exports, console, Date, Map, Set, ...globals,
       require(name) {
         if (Object.hasOwn(overrides, name)) return overrides[name];
         if (name.startsWith('@/') || name.startsWith('.')) {
